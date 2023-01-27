@@ -79,19 +79,16 @@ void EvaluateExprIntoRax(Expr *expr) {
     } else if (expr->expr_kind == EK_Number) {
         printf("  mov rax, %d\n", expr->value);
         return;
-    }
-    switch (expr->expr_kind) {
-        case EK_Operator: {
-            if (expr->binary_op == '=') {
-                EvaluateLValueAddressIntoRax(expr->first_child);
-                printf("    push rax\n");
-                EvaluateExprIntoRax(expr->second_child);
-                printf("    push rax\n");
-                printf("    pop rdi\n");
-                printf("    pop rax\n");
-                printf("    mov [rax], rdi\n");
-                break;
-            }
+    } else if (expr->expr_kind == EK_Operator) {
+        if (expr->binary_op == '=') {
+            EvaluateLValueAddressIntoRax(expr->first_child);
+            printf("    push rax\n");
+            EvaluateExprIntoRax(expr->second_child);
+            printf("    push rax\n");
+            printf("    pop rdi\n");
+            printf("    pop rax\n");
+            printf("    mov [rax], rdi\n");
+        } else {
             EvaluateExprIntoRax(expr->first_child);
             printf("    push rax\n");
             EvaluateExprIntoRax(expr->second_child);
@@ -129,13 +126,9 @@ void EvaluateExprIntoRax(Expr *expr) {
                 fprintf(stderr, "Invalid binaryop kind:%d", expr->binary_op);
                 exit(1);
             }
-
-            break;
         }
-
-        default:
-            fprintf(stderr, "Invalid expr kind:%d", expr->expr_kind);
-            exit(1);
-            break;
+    } else {
+        fprintf(stderr, "Invalid expr kind:%d", expr->expr_kind);
+        exit(1);
     }
 }
