@@ -6,6 +6,7 @@
 Token all_tokens[1000];
 Token *token_end;
 Token **PTR_PTR;
+Token *tokens;
 
 int aa(int a, int b) {
     return a * 256 + b;
@@ -36,6 +37,7 @@ int main(int argc, char **argv) {
 
     Token *ptr = all_tokens;
     token_end = all_tokens + token_length;
+    tokens = ptr;
     Stmt *expr = parseProgram(PTR_PTR = &ptr);
 
     printf(".intel_syntax noprefix\n");

@@ -4,6 +4,7 @@
 #include "9cc.h"
 extern Token **PTR_PTR;
 extern Token *token_end;
+extern Token *tokens;
 
 Expr *numberexpr(int value) {
     Expr *numberexp = calloc(1, sizeof(Expr));
@@ -379,7 +380,6 @@ Stmt *parseFunctionContent(Token **ptrptr) {
 }
 
 Stmt *parseProgram() {
-    Token *tokens = *PTR_PTR;
     if (tokens->kind == aaaa('i', 'd', 'n', 't')) {
         tokens++;
     }
@@ -389,8 +389,7 @@ Stmt *parseProgram() {
     if (tokens->kind == ')') {
         tokens++;
     }
-    *PTR_PTR = tokens;
-    return parseFunctionContent(PTR_PTR);
+    return parseFunctionContent(&tokens);
 }
 
 Expr *parseMultiplicative(Token **ptrptr) {
