@@ -40,16 +40,11 @@ int main(int argc, char **argv) {
     tokens_end = all_tokens + tokens_length;
 
     parseProgram();
-    
+
     printf(".intel_syntax noprefix\n");
     for (int i = 0; all_funcdefs[i]; i++) {
         FuncDef *funcdef = all_funcdefs[i];
-        printf(".globl %s\n", funcdef->name);
-        printf("%s:\n", funcdef->name);
-        printf("  push rbp\n");
-        printf("  mov rbp, rsp\n");
-        printf("  sub rsp, 208\n");
-        CodegenStmt(funcdef->content);
+        CodegenFunc(funcdef);
     }
     return 0;
 }

@@ -73,6 +73,15 @@ void CodegenStmt(Stmt *stmt) {
     }
 }
 
+void CodegenFunc(FuncDef *funcdef) {
+    printf(".globl %s\n", funcdef->name);
+    printf("%s:\n", funcdef->name);
+    printf("  push rbp\n");
+    printf("  mov rbp, rsp\n");
+    printf("  sub rsp, 208\n");
+    CodegenStmt(funcdef->content);
+}
+
 const char *nth_arg_reg(int n) {
     return "rdi\0rsi\0rdx\0rcx\0r8 \0r9" + 4 * n;
 }

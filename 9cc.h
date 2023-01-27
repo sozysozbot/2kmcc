@@ -71,7 +71,7 @@ Stmt *parseFor();
 Stmt *parseStmt();
 FuncDef *parseFunction();
 
-void CodegenStmt(Stmt *stmt);
+void CodegenFunc(FuncDef *funcdef);
 
 int tokenize(char *str);
 LVar *findLVar(char *name);
