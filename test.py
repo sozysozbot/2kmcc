@@ -115,10 +115,10 @@ assert check("a = 0; if (a) { b = 1; c = 2; } else { b = 5; c = 7; } return b + 
 assert check("a = 0; b = 0; c = 3; if (a) { } return c;", 3)
 assert check("a = 0; b = 0; c = 3; if (a) { if (b) { c = 2; } } return c;", 3)
 assert check("a = 0; b = 0; c = 3; if (a) { if (b) { c = 2; } } else { c = 7; } return c;", 7)
-
-## BUGGY!!!!
 assert check("a = 0; b = 0; c = 3; if (a) {if (b) { c = 2; } else { c = 7; }} return c;", 3)
 assert check("a = 0; b = 0; c = 3; if (a) if (b) { c = 2; } else { c = 7; } return c;", 3)
 assert check("a = 0; b = 0; c = 3; if (a) {if (b) { c = 2; }} else { c = 7; } return c;", 7)
+
+
 
 print("OK")
