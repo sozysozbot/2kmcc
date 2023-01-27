@@ -83,6 +83,6 @@ void EvaluateExprIntoRax(Expr *expr);
 
 extern Token all_tokens[1000];
 
-int aa(int a, int b);
-int aaa(int a, int b, int c);
-int aaaa(int a, int b, int c, int d);
+int enum2(int a, int b);
+int enum3(int a, int b, int c);
+int enum4(int a, int b, int c, int d);

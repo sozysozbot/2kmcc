@@ -17,17 +17,17 @@ void EvaluateLValueAddressIntoRax(Expr *expr) {
 }
 
 void Codegen(Stmt *stmt) {
-    if (stmt->stmt_kind == aaaa('e', 'x', 'p', 'r')) {
+    if (stmt->stmt_kind == enum4('e', 'x', 'p', 'r')) {
         EvaluateExprIntoRax(stmt->expr);
-    } else if (stmt->stmt_kind == aaaa('n', 'e', 'x', 't')) {
+    } else if (stmt->stmt_kind == enum4('n', 'e', 'x', 't')) {
         Codegen(stmt->first_child);
         Codegen(stmt->second_child);
-    } else if (stmt->stmt_kind == aaa('r', 'e', 't')) {
+    } else if (stmt->stmt_kind == enum3('r', 'e', 't')) {
         EvaluateExprIntoRax(stmt->expr);
         printf("  mov rsp, rbp\n");
         printf("  pop rbp\n");
         printf("  ret\n");
-    } else if (stmt->stmt_kind == aa('i', 'f')) {
+    } else if (stmt->stmt_kind == enum2('i', 'f')) {
         int label = ++labelCounter;
 
         EvaluateExprIntoRax(stmt->expr);
@@ -40,7 +40,7 @@ void Codegen(Stmt *stmt) {
             Codegen(stmt->third_child);
         }
         printf(".Lend%d:\n", label);
-    } else if (stmt->stmt_kind == aaaa('w', 'h', 'i', 'l')) {
+    } else if (stmt->stmt_kind == enum4('w', 'h', 'i', 'l')) {
         int label = ++labelCounter;
 
         printf(".Lbegin%d:\n", label);
@@ -50,7 +50,7 @@ void Codegen(Stmt *stmt) {
         Codegen(stmt->second_child);
         printf("  jmp  .Lbegin%d\n", label);
         printf(".Lend%d:\n", label);
-    } else if (stmt->stmt_kind == aaa('f', 'o', 'r')) {
+    } else if (stmt->stmt_kind == enum3('f', 'o', 'r')) {
         int label = ++labelCounter;
 
         if (stmt->expr) {
@@ -122,11 +122,11 @@ void EvaluateExprIntoRax(Expr *expr) {
             } else if (expr->binary_op == '/') {
                 printf("  cqo\n");
                 printf("  idiv rdi\n");
-            } else if (expr->binary_op == aa('=', '=')) {
+            } else if (expr->binary_op == enum2('=', '=')) {
                 printf("  cmp rax, rdi\n");
                 printf("  sete al\n");
                 printf("  movzb rax, al\n");
-            } else if (expr->binary_op == aa('!', '=')) {
+            } else if (expr->binary_op == enum2('!', '=')) {
                 printf("  cmp rax, rdi\n");
                 printf("  setne al\n");
                 printf("  movzb rax, al\n");
@@ -134,7 +134,7 @@ void EvaluateExprIntoRax(Expr *expr) {
                 printf("  cmp rax, rdi\n");
                 printf("  setg al\n");
                 printf("  movzb rax, al\n");
-            } else if (expr->binary_op == aa('>', '=')) {
+            } else if (expr->binary_op == enum2('>', '=')) {
                 printf("  cmp rax, rdi\n");
                 printf("  setge al\n");
                 printf("  movzb rax, al\n");

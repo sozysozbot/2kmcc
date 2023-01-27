@@ -36,31 +36,15 @@ Expr *parseRelational() {
     }
     Expr *result = parseAdditive();
 
-    for (; tokens < tokens_end;) {
-        Token maybe_relational = *tokens;
-
-        if (maybe_relational.kind == '>') {
-            tokens++;
-            Expr *numberexp = parseAdditive();
-            result = binaryExpr(result, numberexp, '>');
-        }
-        if (maybe_relational.kind == aa('>', '=')) {
-            tokens++;
-            Expr *numberexp = parseAdditive();
-            result = binaryExpr(result, numberexp, aa('>', '='));
-        }
-        if (maybe_relational.kind == '<') {
-            tokens++;
-            Expr *numberexp = parseAdditive();
-            // swap children of operator node
-            result = binaryExpr(numberexp, result, '>');
-        }
-        if (maybe_relational.kind == aa('<', '=')) {
-            tokens++;
-            Expr *numberexp = parseAdditive();
-            // swap children of operator node
-            result = binaryExpr(numberexp, result, aa('>', '='));
-
+    while (tokens < tokens_end) {
+        if (consume('>')) {
+            result = binaryExpr(result, parseAdditive(), '>');
+        } else if (consume(enum2('>', '='))) {
+            result = binaryExpr(result, parseAdditive(), enum2('>', '='));
+        } else if (consume('<')) {
+            result = binaryExpr(parseAdditive(), result, '>');  // children & operator swapped
+        } else if (consume(enum2('<', '='))) {
+            result = binaryExpr(parseAdditive(), result, enum2('>', '=')); // children & operator swapped
         } else {
             return result;
         }
@@ -76,15 +60,10 @@ Expr *parseEquality() {
     Expr *result = parseRelational();
 
     while (tokens < tokens_end) {
-        Token maybe_relational = *tokens;
-        if (maybe_relational.kind == aa('=', '=')) {
-            tokens++;
-            Expr *numberexp = parseRelational();
-            result = binaryExpr(result, numberexp, aa('=', '='));
-        } else if (maybe_relational.kind == aa('!', '=')) {
-            tokens++;
-            Expr *numberexp = parseRelational();
-            result = binaryExpr(result, numberexp, aa('!', '='));
+        if (consume(enum2('=', '='))) {
+            result = binaryExpr(result, parseRelational(), enum2('=', '='));
+        } else if (consume(enum2('!', '='))) {
+            result = binaryExpr(result, parseRelational(), enum2('!', '='));
         } else {
             return result;
         }
@@ -97,11 +76,11 @@ Expr *parsePrimary() {
         fprintf(stderr, "Expected: number, but got EOF");
         exit(1);
     }
-    if (tokens->kind == aaa('n', 'u', 'm')) {
+    if (tokens->kind == enum3('n', 'u', 'm')) {
         int value = tokens->value;
         tokens += 1;
         return numberexpr(value);
-    } else if (tokens->kind == aaaa('i', 'd', 'n', 't')) {
+    } else if (tokens->kind == enum4('i', 'd', 'n', 't')) {
         char *name = tokens->identifier_name;
         tokens += 1;
         if (consume('(')) {
@@ -212,7 +191,7 @@ Stmt *parseFor() {
     exprs[2] = parseOptionalExprAndToken(')');
 
     Stmt *stmt = calloc(1, sizeof(Stmt));
-    stmt->stmt_kind = aaa('f', 'o', 'r');
+    stmt->stmt_kind = enum3('f', 'o', 'r');
     stmt->expr = exprs[0];
     stmt->expr1 = exprs[1];
     stmt->expr2 = exprs[2];
@@ -230,13 +209,13 @@ Stmt *parseStmt() {
 
     if (consume('{')) {
         Stmt *result = calloc(1, sizeof(Stmt));
-        result->stmt_kind = aaaa('e', 'x', 'p', 'r');
+        result->stmt_kind = enum4('e', 'x', 'p', 'r');
         result->expr = numberexpr(1);
         while (tokens->kind != '}') {
             Stmt *statement = parseStmt();
             Stmt *newstmt = calloc(1, sizeof(Stmt));
             newstmt->first_child = result;
-            newstmt->stmt_kind = aaaa('n', 'e', 'x', 't');
+            newstmt->stmt_kind = enum4('n', 'e', 'x', 't');
             newstmt->second_child = statement;
             result = newstmt;
         }
@@ -248,11 +227,11 @@ Stmt *parseStmt() {
     int is_if = 0;
     int is_while = 0;
 
-    if (tokens->kind == aaa('r', 'e', 't')) {
+    if (tokens->kind == enum3('r', 'e', 't')) {
         tokens++;
         is_return = 1;
     }
-    if (tokens->kind == aa('i', 'f')) {
+    if (tokens->kind == enum2('i', 'f')) {
         tokens++;
         is_if = 1;
         if (consume('(')) {
@@ -261,7 +240,7 @@ Stmt *parseStmt() {
             exit(1);
         }
     }
-    if (tokens->kind == aaaa('w', 'h', 'i', 'l')) {
+    if (tokens->kind == enum4('w', 'h', 'i', 'l')) {
         tokens++;
         is_while = 1;
         if (consume('(')) {
@@ -270,7 +249,7 @@ Stmt *parseStmt() {
             exit(1);
         }
     }
-    if (tokens->kind == aaa('f', 'o', 'r')) {
+    if (tokens->kind == enum3('f', 'o', 'r')) {
         Stmt *stmt = parseFor();
         return stmt;
     }
@@ -291,27 +270,27 @@ Stmt *parseStmt() {
     }
 
     Stmt *stmt = calloc(1, sizeof(Stmt));
-    stmt->stmt_kind = aaaa('e', 'x', 'p', 'r');
+    stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
     stmt->expr = expr;
     if (is_if) {
-        stmt->stmt_kind = aa('i', 'f');
+        stmt->stmt_kind = enum2('i', 'f');
         {
             Stmt *statement = parseStmt();
             stmt->second_child = statement;
         }
-        if (tokens->kind == aaaa('e', 'l', 's', 'e')) {
+        if (tokens->kind == enum4('e', 'l', 's', 'e')) {
             tokens++;
             Stmt *statement1 = parseStmt();
             stmt->third_child = statement1;
         }
     }
     if (is_while) {
-        stmt->stmt_kind = aaaa('w', 'h', 'i', 'l');
+        stmt->stmt_kind = enum4('w', 'h', 'i', 'l');
         Stmt *statement = parseStmt();
         stmt->second_child = statement;
     }
     if (is_return) {
-        stmt->stmt_kind = aaa('r', 'e', 't');
+        stmt->stmt_kind = enum3('r', 'e', 't');
     }
     return stmt;
 }
@@ -319,13 +298,13 @@ Stmt *parseStmt() {
 Stmt *parseFunctionContent() {
     if (consume('{')) {
         Stmt *result = calloc(1, sizeof(Stmt));
-        result->stmt_kind = aaaa('e', 'x', 'p', 'r');
+        result->stmt_kind = enum4('e', 'x', 'p', 'r');
         result->expr = numberexpr(1);
         while (tokens->kind != '}') {
             Stmt *statement = parseStmt();
             Stmt *newstmt = calloc(1, sizeof(Stmt));
             newstmt->first_child = result;
-            newstmt->stmt_kind = aaaa('n', 'e', 'x', 't');
+            newstmt->stmt_kind = enum4('n', 'e', 'x', 't');
             newstmt->second_child = statement;
             result = newstmt;
         }
@@ -338,7 +317,7 @@ Stmt *parseFunctionContent() {
 }
 
 Stmt *parseProgram() {
-    if (tokens->kind == aaaa('i', 'd', 'n', 't')) {
+    if (tokens->kind == enum4('i', 'd', 'n', 't')) {
         tokens++;
     }
     if (consume('(')) {
@@ -356,15 +335,13 @@ Expr *parseMultiplicative() {
     Expr *result = parseUnary();
 
     while (tokens < tokens_end) {
-        if (tokens->kind == aaa('n', 'u', 'm')) {
+        if (tokens->kind == enum3('n', 'u', 'm')) {
             fprintf(stderr, "Expected operator got Number");
             exit(1);
         } else if (consume('*')) {
-            Expr *numberexp = parseUnary();
-            result = binaryExpr(result, numberexp, '*');
+            result = binaryExpr(result, parseUnary(), '*');
         } else if (consume('/')) {
-            Expr *numberexp = parseUnary();
-            result = binaryExpr(result, numberexp, '/');
+            result = binaryExpr(result, parseUnary(), '/');
         } else {
             return result;
         }
@@ -380,15 +357,13 @@ Expr *parseAdditive() {
     Expr *result = parseMultiplicative();
 
     while (tokens < tokens_end) {
-        if (tokens->kind == aaa('n', 'u', 'm')) {
-            fprintf(stderr, "Expected operator got Number");
+        if (tokens->kind == enum3('n', 'u', 'm')) {
+            fprintf(stderr, "Expected operator, got Number");
             exit(1);
         } else if (consume('-')) {
-            Expr *numberexp = parseMultiplicative();
-            result = binaryExpr(result, numberexp, '-');
+            result = binaryExpr(result, parseMultiplicative(), '-');
         } else if (consume('+')) {
-            Expr *numberexp = parseMultiplicative();
-            result = binaryExpr(result, numberexp, '+');
+            result = binaryExpr(result, parseMultiplicative(), '+');
         } else {
             return result;
         }

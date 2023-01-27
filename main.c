@@ -7,16 +7,16 @@ Token all_tokens[1000];
 Token *tokens_end;
 Token *tokens;
 
-int aa(int a, int b) {
+int enum2(int a, int b) {
     return a * 256 + b;
 }
 
-int aaa(int a, int b, int c) {
-    return aa(aa(a, b), c);
+int enum3(int a, int b, int c) {
+    return enum2(enum2(a, b), c);
 }
 
-int aaaa(int a, int b, int c, int d) {
-    return aa(aaa(a, b, c), d);
+int enum4(int a, int b, int c, int d) {
+    return enum2(enum3(a, b, c), d);
 }
 
 int main(int argc, char **argv) {
