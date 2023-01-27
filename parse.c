@@ -99,15 +99,17 @@ Expr *parseEquality(Token **ptrptr) {
 }
 
 Expr *parsePrimary(Token **ptrptr) {
-    Token *maybe_number = *ptrptr;
-    if (maybe_number >= token_end) {
+    Token *tokens = *ptrptr;
+    if (tokens >= token_end) {
         fprintf(stderr, "Expected: number, but got EOF");
         exit(1);
     }
-    if (maybe_number->kind == aaa('n', 'u', 'm')) {
-        *ptrptr += 1;
-        return numberexpr(maybe_number->value);
-    } else if (maybe_number->kind == aaaa('i', 'd', 'n', 't')) {
+    if (tokens->kind == aaa('n', 'u', 'm')) {
+        int value = tokens->value;
+        tokens += 1;
+        *ptrptr = tokens;
+        return numberexpr(value);
+    } else if (tokens->kind == aaaa('i', 'd', 'n', 't')) {
         *ptrptr += 1;
         Token *maybe_leftparenthesis = *ptrptr;
         if (maybe_leftparenthesis->kind == '(') {
@@ -117,7 +119,7 @@ Expr *parsePrimary(Token **ptrptr) {
             if ((*ptrptr)->kind == ')') {
                 *ptrptr += 1;
                 Expr *callexp = calloc(1, sizeof(Expr));
-                callexp->name = maybe_number->identifier_name;
+                callexp->name = tokens->identifier_name;
                 callexp->expr_kind = EK_Call;
                 callexp->func_args = arguments;
                 callexp->func_arg_len = 0;
@@ -141,16 +143,16 @@ Expr *parsePrimary(Token **ptrptr) {
             }
 
             Expr *callexp = calloc(1, sizeof(Expr));
-            callexp->name = maybe_number->identifier_name;
+            callexp->name = tokens->identifier_name;
             callexp->expr_kind = EK_Call;
             callexp->func_args = arguments;
             callexp->func_arg_len = i + 1;
             return callexp;
         } else {
-            return identifierexpr(maybe_number->identifier_name);
+            return identifierexpr(tokens->identifier_name);
         }
     } else {
-        Token *maybe_leftparenthesis = maybe_number;
+        Token *maybe_leftparenthesis = tokens;
         if (maybe_leftparenthesis->kind == '(') {
             *ptrptr += 1;
             Expr *expr = parseExpr(ptrptr);
@@ -162,7 +164,7 @@ Expr *parsePrimary(Token **ptrptr) {
             *ptrptr += 1;
             return expr;
         }
-        fprintf(stderr, "Expected: number. Token Kind:%d", maybe_number->kind);
+        fprintf(stderr, "Expected: number. Token Kind:%d", tokens->kind);
         exit(1);
     }
 }
