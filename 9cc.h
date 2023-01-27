@@ -61,14 +61,14 @@ typedef struct Token
 int isDigit(char c);
 int intLength(char *str);
 int parseInt(char *str);
-Expr *parseMultiplicative(Token **ptrptr, Token *token_end);
-Expr *parseAdditive(Token **ptrptr, Token *token_end);
-Expr *parseExpr(Token **ptrptr, Token *token_end);
-Expr *parseUnary(Token **ptrptr, Token *token_end);
-Stmt *parseProgram(Token **ptrptr, Token *token_end);
-Expr *parseAssign(Token **ptrptr, Token *token_end);
-Stmt *parseFor(Token **ptrptr,Token *token_end);
-Stmt *parseStmt(Token **ptrptr, Token *token_end);
+Expr *parseMultiplicative();
+Expr *parseAdditive();
+Expr *parseExpr();
+Expr *parseUnary();
+Stmt *parseProgram();
+Expr *parseAssign();
+Stmt *parseFor();
+Stmt *parseStmt();
 
 void Codegen(Stmt* stmt);
 
@@ -81,7 +81,7 @@ int is_alnum(char c);
 
 void EvaluateExprIntoRax(Expr *expr);
 
-extern Token tokens[1000];
+extern Token all_tokens[1000];
 
 int aa(int a, int b);
 int aaa(int a, int b, int c);

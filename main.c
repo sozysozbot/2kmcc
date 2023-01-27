@@ -3,7 +3,9 @@
 
 #include "9cc.h"
 
-Token tokens[1000];
+Token all_tokens[1000];
+Token *tokens_end;
+Token *tokens;
 
 int aa(int a, int b) {
     return a * 256 + b;
@@ -25,16 +27,16 @@ int main(int argc, char **argv) {
 
     char *p = argv[1];
 
-    int token_length = tokenize(p);
+    int tokens_length = tokenize(p);
 
-    if (token_length == 0) {
+    if (tokens_length == 0) {
         fprintf(stderr, "No token found");
         return 1;
     }
 
-    Token *ptr = tokens;
-    Token *token_end = tokens + token_length;
-    Stmt *expr = parseProgram(&ptr, token_end);
+    tokens = all_tokens;
+    tokens_end = all_tokens + tokens_length;
+    Stmt *expr = parseProgram();
 
     printf(".intel_syntax noprefix\n");
     printf(".globl main\n");
