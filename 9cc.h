@@ -52,36 +52,11 @@ struct LVar {
 
 extern LVar *locals;
 
-
-
-enum TokenKind
-{
-  TK_Number,
-  TK_Minus,
-  TK_Plus,
-  TK_Mul,
-  TK_Div,
-  TK_LeftParenthesis,
-  TK_RightParenthesis,
-  TK_Equal,
-  TK_NotEqual,
-  TK_Greater,
-  TK_GreaterEqual,
-  TK_Less,
-  TK_LessEqual,
-  TK_Semicolon,
-  TK_Assign,
-  TK_Identifier,
-  TK_Return,
-  TK_IF,
-  TK_WHILE,
-  TK_ELSE,
-  TK_FOR,
-};
+typedef int TokenKind;
 
 typedef struct Token
 {
-  enum TokenKind kind;
+  TokenKind kind;
   int value;
   char* identifier_name;
 } Token;

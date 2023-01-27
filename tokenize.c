@@ -14,7 +14,7 @@ int tokenize(char *str)
         char *ptr = str + i;
         if (strncmp(ptr, "return", 6) == 0 && !is_alnum(ptr[6]))
         {
-            Token token = {TK_Return, 0, NULL};
+            Token token = {('r' * 256 + 'e') * 256 + 't', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i += 6;
@@ -22,7 +22,7 @@ int tokenize(char *str)
         }
         if (strncmp(ptr, "if", 2) == 0 && !is_alnum(ptr[2]))
         {
-            Token token = {TK_IF, 0, NULL};
+            Token token = {'i' * 256 + 'f', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i += 2;
@@ -30,7 +30,7 @@ int tokenize(char *str)
         }
         if (strncmp(ptr, "while", 5) == 0 && !is_alnum(ptr[5]))
         {
-            Token token = {TK_WHILE, 0, NULL};
+            Token token = {(('w' * 256 + 'h') * 256 + 'i') * 256 + 'l', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i += 5;
@@ -38,7 +38,7 @@ int tokenize(char *str)
         }
         if (strncmp(ptr, "else", 4) == 0 && !is_alnum(ptr[4]))
         {
-            Token token = {TK_ELSE, 0, NULL};
+            Token token = {(('e' * 256 + 'l') * 256 + 's') * 256 + 'e', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i += 4;
@@ -46,7 +46,7 @@ int tokenize(char *str)
         }
         if (strncmp(ptr, "for", 3) == 0 && !is_alnum(ptr[3]))
         {
-            Token token = {TK_FOR, 0, NULL};
+            Token token = {('f' * 256 + 'o') * 256 + 'r', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i += 3;
@@ -57,7 +57,7 @@ int tokenize(char *str)
         case '+':
         {
             /* code */
-            Token token = {TK_Plus, 0, NULL};
+            Token token = {'+', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i++;
@@ -66,7 +66,7 @@ int tokenize(char *str)
         case ';':
         {
             /* code */
-            Token token = {TK_Semicolon, 0, NULL};
+            Token token = {';', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i++;
@@ -75,7 +75,7 @@ int tokenize(char *str)
         case '(':
         {
             /* code */
-            Token token = {TK_LeftParenthesis, 0, NULL};
+            Token token = {'(', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i++;
@@ -84,7 +84,7 @@ int tokenize(char *str)
         case ')':
         {
             /* code */
-            Token token = {TK_RightParenthesis, 0, NULL};
+            Token token = {')', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i++;
@@ -92,7 +92,7 @@ int tokenize(char *str)
         }
         case '-':
         {
-            Token token = {TK_Minus, 0, NULL};
+            Token token = {'-', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i++;
@@ -101,7 +101,7 @@ int tokenize(char *str)
         case '*':
         {
             /* code */
-            Token token = {TK_Mul, 0, NULL};
+            Token token = {'*', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i++;
@@ -109,7 +109,7 @@ int tokenize(char *str)
         }
         case '/':
         {
-            Token token = {TK_Div, 0, NULL};
+            Token token = {'/', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i++;
@@ -121,13 +121,13 @@ int tokenize(char *str)
             char c = str[i];
             if (c != '=')
             {
-                Token token = {TK_Greater, 0, NULL};
+                Token token = {'>', 0, NULL};
                 tokens[token_index] = token;
                 token_index++;
                 break;
             }
             i++;
-            Token token = {TK_GreaterEqual, 0, NULL};
+            Token token = {'>' * 256 + '=', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             break;
@@ -138,13 +138,13 @@ int tokenize(char *str)
             char c = str[i];
             if (c != '=')
             {
-                Token token = {TK_Less, 0, NULL};
+                Token token = {'<', 0, NULL};
                 tokens[token_index] = token;
                 token_index++;
                 break;
             }
             i++;
-            Token token = {TK_LessEqual, 0, NULL};
+            Token token = {'<' * 256 + '=', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             break;
@@ -157,13 +157,13 @@ int tokenize(char *str)
             char c = str[i];
             if (c != '=')
             {
-                Token token = {TK_Assign, 0, NULL};
+                Token token = {'=', 0, NULL};
                 tokens[token_index] = token;
                 token_index++;
                 break;
             }
             i++;
-            Token token = {TK_Equal, 0, NULL};
+            Token token = {'=' * 256 + '=', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             break;
@@ -178,7 +178,7 @@ int tokenize(char *str)
                 return -1;
             }
             i++;
-            Token token = {TK_NotEqual, 0, NULL};
+            Token token = {'!' * 256 + '=', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             break;
@@ -197,7 +197,7 @@ int tokenize(char *str)
             int parsednum = parseInt(&str[i]);
             int parsedlength = intLength(&str[i]);
             i += parsedlength;
-            Token token = {TK_Number, parsednum, NULL};
+            Token token = {('n' * 256 + 'u') * 256 + 'm', parsednum, NULL};
             tokens[token_index] = token;
             token_index++;
             break;
@@ -235,7 +235,7 @@ int tokenize(char *str)
             {
                 insertLVar(name);
             }
-            Token token = {TK_Identifier, 0, NULL};
+            Token token = {(('i' * 256 + 'd') * 256 + 'n') * 256 + 't', 0, NULL};
             token.identifier_name = name;
             tokens[token_index] = token;
             token_index++;

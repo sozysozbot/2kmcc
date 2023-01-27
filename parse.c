@@ -44,21 +44,21 @@ Expr *parseRelational(Token **ptrptr, Token *token_end)
     Token maybe_relational = *tokens;
     switch (maybe_relational.kind)
     {
-    case TK_Greater:
+    case '>':
     {
       tokens++;
       Expr *numberexp = parseAdditive(&tokens, token_end);
       result = binaryExpr(result, numberexp, '>');
       break;
     }
-    case TK_GreaterEqual:
+    case '>' * 256 + '=':
     {
       tokens++;
       Expr *numberexp = parseAdditive(&tokens, token_end);
       result = binaryExpr(result, numberexp, '>' * 256 + '=');
       break;
     }
-    case TK_Less:
+    case '<':
     {
       tokens++;
       Expr *numberexp = parseAdditive(&tokens, token_end);
@@ -66,7 +66,7 @@ Expr *parseRelational(Token **ptrptr, Token *token_end)
       result = binaryExpr(numberexp, result, '>');
       break;
     }
-    case TK_LessEqual:
+    case '<' * 256 + '=':
     {
       tokens++;
       Expr *numberexp = parseAdditive(&tokens, token_end);
@@ -99,14 +99,14 @@ Expr *parseEquality(Token **ptrptr, Token *token_end)
     Token maybe_relational = *tokens;
     switch (maybe_relational.kind)
     {
-    case TK_Equal:
+    case '=' * 256 + '=':
     {
       tokens++;
       Expr *numberexp = parseRelational(&tokens, token_end);
       result = binaryExpr(result, numberexp, '=' * 256 + '=');
       break;
     }
-    case TK_NotEqual:
+    case '!' * 256 + '=':
     {
       tokens++;
       Expr *numberexp = parseRelational(&tokens, token_end);
@@ -131,12 +131,12 @@ Expr *parsePrimary(Token **ptrptr, Token *token_end)
     fprintf(stderr, "Expected: number, but got EOF");
     exit(1);
   }
-  if (maybe_number->kind == TK_Number)
+  if (maybe_number->kind == ('n' * 256 + 'u') * 256 + 'm')
   {
     *ptrptr += 1;
     return numberexpr(maybe_number->value);
   }
-  else if (maybe_number->kind == TK_Identifier)
+  else if (maybe_number->kind == (('i' * 256 + 'd') * 256 + 'n') * 256 + 't')
   {
     *ptrptr += 1;
     return identifierexpr(maybe_number->identifier_name);
@@ -144,12 +144,12 @@ Expr *parsePrimary(Token **ptrptr, Token *token_end)
   else
   {
     Token *maybe_leftparenthesis = maybe_number;
-    if (maybe_leftparenthesis->kind == TK_LeftParenthesis)
+    if (maybe_leftparenthesis->kind == '(')
     {
       *ptrptr += 1;
       Expr *expr = parseExpr(ptrptr, token_end);
       Token *maybe_rightparenthesis = *ptrptr;
-      if (maybe_rightparenthesis->kind != TK_RightParenthesis)
+      if (maybe_rightparenthesis->kind != ')')
       {
         fprintf(stderr, "Expected: right parenthesis. Token Kind:%d", maybe_rightparenthesis->kind);
         exit(1);
@@ -170,12 +170,12 @@ Expr *parseUnary(Token **ptrptr, Token *token_end)
     fprintf(stderr, "Expected: number, but got EOF");
     exit(1);
   }
-  if (maybe_unary->kind == TK_Plus)
+  if (maybe_unary->kind == '+')
   {
     *ptrptr += 1;
     return parsePrimary(ptrptr, token_end);
   }
-  if (maybe_unary->kind == TK_Minus)
+  if (maybe_unary->kind == '-')
   {
     *ptrptr += 1;
     return binaryExpr(numberexpr(0), parsePrimary(ptrptr, token_end), '-');
@@ -197,7 +197,7 @@ Expr *parseAssign(Token **ptrptr, Token *token_end)
     exit(1);
   }
   Expr *result = parseEquality(&tokens, token_end);
-  if (tokens->kind == TK_Assign)
+  if (tokens->kind == '=')
   {
     tokens++;
     Expr *newresult = parseAssign(&tokens, token_end);
@@ -208,7 +208,7 @@ Expr *parseAssign(Token **ptrptr, Token *token_end)
   return result;
 }
 
-Expr *parseOptionalExprAndToken(Token **ptrptr, Token *token_end, enum TokenKind target)
+Expr *parseOptionalExprAndToken(Token **ptrptr, Token *token_end, TokenKind target)
 {
   Token *tokens = *ptrptr;
   if (tokens->kind == target)
@@ -233,7 +233,7 @@ Stmt *parseFor(Token **ptrptr, Token *token_end)
   Token *tokens = *ptrptr;
   tokens++;
 
-  if (tokens->kind == TK_LeftParenthesis)
+  if (tokens->kind == '(')
   {
     tokens++;
   }
@@ -243,9 +243,9 @@ Stmt *parseFor(Token **ptrptr, Token *token_end)
     exit(1);
   }
   Expr *exprs[3] = {NULL, NULL, NULL};
-  exprs[0] = parseOptionalExprAndToken(&tokens, token_end, TK_Semicolon);
-  exprs[1] = parseOptionalExprAndToken(&tokens, token_end, TK_Semicolon);
-  exprs[2] = parseOptionalExprAndToken(&tokens, token_end, TK_RightParenthesis);
+  exprs[0] = parseOptionalExprAndToken(&tokens, token_end, ';');
+  exprs[1] = parseOptionalExprAndToken(&tokens, token_end, ';');
+  exprs[2] = parseOptionalExprAndToken(&tokens, token_end, ')');
 
   Stmt *stmt = malloc(sizeof(Stmt));
   stmt->stmt_kind = SK_For;
@@ -279,16 +279,16 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end)
   int is_if = 0;
   int is_while = 0;
 
-  if (tokens->kind == TK_Return)
+  if (tokens->kind == ('r' * 256 + 'e') * 256 + 't')
   {
     tokens++;
     is_return = 1;
   }
-  if (tokens->kind == TK_IF)
+  if (tokens->kind == 'i' * 256 + 'f')
   {
     tokens++;
     is_if = 1;
-    if (tokens->kind == TK_LeftParenthesis)
+    if (tokens->kind == '(')
     {
       tokens++;
     }
@@ -298,11 +298,11 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end)
       exit(1);
     }
   }
-  if (tokens->kind == TK_WHILE)
+  if (tokens->kind == (('w' * 256 + 'h') * 256 + 'i') * 256 + 'l')
   {
     tokens++;
     is_while = 1;
-    if (tokens->kind == TK_LeftParenthesis)
+    if (tokens->kind == '(')
     {
       tokens++;
     }
@@ -312,7 +312,7 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end)
       exit(1);
     }
   }
-  if (tokens->kind == TK_FOR)
+  if (tokens->kind == ('f' * 256 + 'o') * 256 + 'r')
   {
     Stmt *stmt = parseFor(&tokens, token_end);
     *ptrptr = tokens;
@@ -323,7 +323,7 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end)
     Token maybe_operator = *tokens;
     if (is_if || is_while)
     {
-      if (maybe_operator.kind == TK_RightParenthesis)
+      if (maybe_operator.kind == ')')
       {
         tokens++;
       }
@@ -335,7 +335,7 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end)
     }
     else
     {
-      if (maybe_operator.kind == TK_Semicolon)
+      if (maybe_operator.kind == ';')
       {
         tokens++;
       }
@@ -360,7 +360,7 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end)
       stmt->second_child = statement;
     }
     Token maybe_else = *(tokens);
-    if (maybe_else.kind == TK_ELSE)
+    if (maybe_else.kind == (('e' * 256 + 'l') * 256 + 's') * 256 + 'e')
     {
       tokens++;
       Stmt *statement1 = parseStmt(&tokens, token_end);
@@ -420,12 +420,12 @@ Expr *parseMultiplicative(Token **ptrptr, Token *token_end)
     Token maybe_operator = *tokens;
     switch (maybe_operator.kind)
     {
-    case TK_Number:
+    case ('n' * 256 + 'u') * 256 + 'm':
     {
       fprintf(stderr, "Expected operator got Number");
       exit(1);
     }
-    case TK_Mul:
+    case '*':
     {
       tokens++;
       Expr *numberexp = parseUnary(&tokens, token_end);
@@ -433,7 +433,7 @@ Expr *parseMultiplicative(Token **ptrptr, Token *token_end)
       // ptr++;
       break;
     }
-    case TK_Div:
+    case '/':
     {
       tokens++;
       Expr *numberexp = parseUnary(&tokens, token_end);
@@ -467,12 +467,12 @@ Expr *parseAdditive(Token **ptrptr, Token *token_end)
     Token maybe_operator = *tokens;
     switch (maybe_operator.kind)
     {
-    case TK_Number:
+    case ('n' * 256 + 'u') * 256 + 'm':
     {
       fprintf(stderr, "Expected operator got Number");
       exit(1);
     }
-    case TK_Minus:
+    case '-':
     {
       tokens++;
       Expr *numberexp = parseMultiplicative(&tokens, token_end);
@@ -480,7 +480,7 @@ Expr *parseAdditive(Token **ptrptr, Token *token_end)
       // ptr++;
       break;
     }
-    case TK_Plus:
+    case '+':
     {
       tokens++;
       Expr *numberexp = parseMultiplicative(&tokens, token_end);
