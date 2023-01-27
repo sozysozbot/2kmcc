@@ -117,7 +117,7 @@ void EvaluateExprIntoRax(Expr *expr)
         break;
     case EK_Operator:
     {
-        if (expr->binary_op == BO_Assign)
+        if (expr->binary_op == '=')
         {
             EvaluateLValueAddressIntoRax(expr->first_child);
             printf("    push rax\n");
@@ -138,49 +138,49 @@ void EvaluateExprIntoRax(Expr *expr)
 
         switch (expr->binary_op)
         {
-        case BO_Add:
+        case '+':
         {
             printf("    add rax,rdi\n");
             break;
         }
-        case BO_Sub:
+        case '-':
         {
             printf("    sub rax,rdi\n");
             break;
         }
-        case BO_Mul:
+        case '*':
         {
             printf("    imul rax,rdi\n");
             break;
         }
-        case BO_Div:
+        case '/':
         {
             printf("  cqo\n");
             printf("  idiv rdi\n");
             break;
         }
-        case BO_Equal:
+        case '=' * 256 + '=':
         {
             printf("  cmp rax, rdi\n");
             printf("  sete al\n");
             printf("  movzb rax, al\n");
             break;
         }
-        case BO_NotEqual:
+        case '!' * 256 + '=':
         {
             printf("  cmp rax, rdi\n");
             printf("  setne al\n");
             printf("  movzb rax, al\n");
             break;
         }
-        case BO_Greater:
+        case '>':
         {
             printf("  cmp rax, rdi\n");
             printf("  setg al\n");
             printf("  movzb rax, al\n");
             break;
         }
-        case BO_GreaterEqual:
+        case '>' * 256 + '=':
         {
             printf("  cmp rax, rdi\n");
             printf("  setge al\n");

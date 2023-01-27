@@ -1,16 +1,4 @@
-
-
-enum BinaryOperation{
-  BO_Add,
-  BO_Sub,
-  BO_Mul,
-  BO_Div,
-  BO_Equal,
-  BO_Greater,
-  BO_GreaterEqual,
-  BO_NotEqual,
-  BO_Assign
-};
+typedef int BinaryOperation;
 
 enum ExprKind
 {
@@ -21,7 +9,7 @@ enum ExprKind
 
 typedef struct Expr
 {
-  enum BinaryOperation binary_op;
+  BinaryOperation binary_op;
   enum ExprKind expr_kind;
   int value;
   struct Expr *first_child;

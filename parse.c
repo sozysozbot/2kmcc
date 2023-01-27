@@ -18,7 +18,7 @@ Expr *identifierexpr(char *name)
   return numberexp;
 }
 
-Expr *binaryExpr(Expr *first_child, Expr *second_child, enum BinaryOperation binaryop)
+Expr *binaryExpr(Expr *first_child, Expr *second_child, BinaryOperation binaryop)
 {
   Expr *newexp = calloc(1, sizeof(Expr));
   newexp->first_child = first_child;
@@ -48,14 +48,14 @@ Expr *parseRelational(Token **ptrptr, Token *token_end)
     {
       tokens++;
       Expr *numberexp = parseAdditive(&tokens, token_end);
-      result = binaryExpr(result, numberexp, BO_Greater);
+      result = binaryExpr(result, numberexp, '>');
       break;
     }
     case TK_GreaterEqual:
     {
       tokens++;
       Expr *numberexp = parseAdditive(&tokens, token_end);
-      result = binaryExpr(result, numberexp, BO_GreaterEqual);
+      result = binaryExpr(result, numberexp, '>' * 256 + '=');
       break;
     }
     case TK_Less:
@@ -63,7 +63,7 @@ Expr *parseRelational(Token **ptrptr, Token *token_end)
       tokens++;
       Expr *numberexp = parseAdditive(&tokens, token_end);
       // swap children of operator node
-      result = binaryExpr(numberexp, result, BO_Greater);
+      result = binaryExpr(numberexp, result, '>');
       break;
     }
     case TK_LessEqual:
@@ -71,7 +71,7 @@ Expr *parseRelational(Token **ptrptr, Token *token_end)
       tokens++;
       Expr *numberexp = parseAdditive(&tokens, token_end);
       // swap children of operator node
-      result = binaryExpr(numberexp, result, BO_GreaterEqual);
+      result = binaryExpr(numberexp, result, '>' * 256 + '=');
       break;
     }
     default:
@@ -103,14 +103,14 @@ Expr *parseEquality(Token **ptrptr, Token *token_end)
     {
       tokens++;
       Expr *numberexp = parseRelational(&tokens, token_end);
-      result = binaryExpr(result, numberexp, BO_Equal);
+      result = binaryExpr(result, numberexp, '=' * 256 + '=');
       break;
     }
     case TK_NotEqual:
     {
       tokens++;
       Expr *numberexp = parseRelational(&tokens, token_end);
-      result = binaryExpr(result, numberexp, BO_NotEqual);
+      result = binaryExpr(result, numberexp, '!' * 256 + '=');
       break;
     }
     default:
@@ -178,7 +178,7 @@ Expr *parseUnary(Token **ptrptr, Token *token_end)
   if (maybe_unary->kind == TK_Minus)
   {
     *ptrptr += 1;
-    return binaryExpr(numberexpr(0), parsePrimary(ptrptr, token_end), BO_Sub);
+    return binaryExpr(numberexpr(0), parsePrimary(ptrptr, token_end), '-');
   }
   return parsePrimary(ptrptr, token_end);
 }
@@ -202,7 +202,7 @@ Expr *parseAssign(Token **ptrptr, Token *token_end)
     tokens++;
     Expr *newresult = parseAssign(&tokens, token_end);
     *ptrptr = tokens;
-    return binaryExpr(result, newresult, BO_Assign);
+    return binaryExpr(result, newresult, '=');
   }
   *ptrptr = tokens;
   return result;
@@ -429,7 +429,7 @@ Expr *parseMultiplicative(Token **ptrptr, Token *token_end)
     {
       tokens++;
       Expr *numberexp = parseUnary(&tokens, token_end);
-      result = binaryExpr(result, numberexp, BO_Mul);
+      result = binaryExpr(result, numberexp, '*');
       // ptr++;
       break;
     }
@@ -437,7 +437,7 @@ Expr *parseMultiplicative(Token **ptrptr, Token *token_end)
     {
       tokens++;
       Expr *numberexp = parseUnary(&tokens, token_end);
-      result = binaryExpr(result, numberexp, BO_Div);
+      result = binaryExpr(result, numberexp, '/');
       // ptr++;
       break;
     }
@@ -476,7 +476,7 @@ Expr *parseAdditive(Token **ptrptr, Token *token_end)
     {
       tokens++;
       Expr *numberexp = parseMultiplicative(&tokens, token_end);
-      result = binaryExpr(result, numberexp, BO_Sub);
+      result = binaryExpr(result, numberexp, '-');
       // ptr++;
       break;
     }
@@ -484,7 +484,7 @@ Expr *parseAdditive(Token **ptrptr, Token *token_end)
     {
       tokens++;
       Expr *numberexp = parseMultiplicative(&tokens, token_end);
-      result = binaryExpr(result, numberexp, BO_Add);
+      result = binaryExpr(result, numberexp, '+');
       // ptr++;
       break;
     }
