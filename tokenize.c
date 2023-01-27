@@ -52,70 +52,61 @@ int tokenize(char *str)
             i += 3;
             continue;
         }
-        switch (c)
-        {
-        case '+':
+        if (c == '+')
         {
             /* code */
             Token token = {'+', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i++;
-            break;
         }
-        case ';':
+        else if (c == ';')
         {
             /* code */
             Token token = {';', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i++;
-            break;
         }
-        case '(':
+        else if (c == '(')
         {
             /* code */
             Token token = {'(', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i++;
-            break;
         }
-        case ')':
+        else if (c == ')')
         {
             /* code */
             Token token = {')', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i++;
-            break;
         }
-        case '-':
+        else if (c == '-')
         {
             Token token = {'-', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i++;
-            break;
         }
-        case '*':
+        else if (c == '*')
         {
             /* code */
             Token token = {'*', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i++;
-            break;
         }
-        case '/':
+        else if (c == '/')
         {
             Token token = {'/', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i++;
-            break;
         }
-        case '>':
+        else if (c == '>')
         {
             i++;
             char c = str[i];
@@ -124,15 +115,16 @@ int tokenize(char *str)
                 Token token = {'>', 0, NULL};
                 tokens[token_index] = token;
                 token_index++;
-                break;
             }
-            i++;
-            Token token = {'>' * 256 + '=', 0, NULL};
-            tokens[token_index] = token;
-            token_index++;
-            break;
+            else
+            {
+                i++;
+                Token token = {'>' * 256 + '=', 0, NULL};
+                tokens[token_index] = token;
+                token_index++;
+            }
         }
-        case '<':
+        else if (c == '<')
         {
             i++;
             char c = str[i];
@@ -141,17 +133,18 @@ int tokenize(char *str)
                 Token token = {'<', 0, NULL};
                 tokens[token_index] = token;
                 token_index++;
-                break;
             }
-            i++;
-            Token token = {'<' * 256 + '=', 0, NULL};
-            tokens[token_index] = token;
-            token_index++;
-            break;
+            else
+            {
+                i++;
+                Token token = {'<' * 256 + '=', 0, NULL};
+                tokens[token_index] = token;
+                token_index++;
+            }
         }
 
         //==
-        case '=':
+        else if (c == '=')
         {
             i++;
             char c = str[i];
@@ -160,15 +153,16 @@ int tokenize(char *str)
                 Token token = {'=', 0, NULL};
                 tokens[token_index] = token;
                 token_index++;
-                break;
             }
-            i++;
-            Token token = {'=' * 256 + '=', 0, NULL};
-            tokens[token_index] = token;
-            token_index++;
-            break;
+            else
+            {
+                i++;
+                Token token = {'=' * 256 + '=', 0, NULL};
+                tokens[token_index] = token;
+                token_index++;
+            }
         }
-        case '!':
+        else if (c == '!')
         {
             i++;
             char c = str[i];
@@ -181,18 +175,8 @@ int tokenize(char *str)
             Token token = {'!' * 256 + '=', 0, NULL};
             tokens[token_index] = token;
             token_index++;
-            break;
         }
-        case '0':
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-        case '6':
-        case '7':
-        case '8':
-        case '9':
+        else if ('0' <= c && c <= '9')
         {
             int parsednum = parseInt(&str[i]);
             int parsedlength = intLength(&str[i]);
@@ -200,16 +184,12 @@ int tokenize(char *str)
             Token token = {('n' * 256 + 'u') * 256 + 'm', parsednum, NULL};
             tokens[token_index] = token;
             token_index++;
-            break;
         }
-        case ' ':
+        else if (c == ' ')
         {
             i++;
-            break;
         }
-        case 'a':
-        case 'b':
-        case 'c':
+        else if ('a' <= c && c <= 'z')
         {
             char *start = str + i;
             i++;
@@ -239,14 +219,11 @@ int tokenize(char *str)
             token.identifier_name = name;
             tokens[token_index] = token;
             token_index++;
-
-            break;
         }
-        default:
+        else
         {
             fprintf(stderr, "%s: unknown character %c(%d)\n", __FUNCTION__, c, c);
             return -1;
-        }
         }
     }
     return token_index;
