@@ -43,6 +43,6 @@ int main(int argc, char **argv) {
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
     printf("  sub rsp, 208\n");
-    Codegen(funcdef->content);
+    CodegenStmt(funcdef->content);
     return 0;
 }

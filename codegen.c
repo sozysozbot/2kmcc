@@ -16,12 +16,12 @@ void EvaluateLValueAddressIntoRax(Expr *expr) {
     }
 }
 
-void Codegen(Stmt *stmt) {
+void CodegenStmt(Stmt *stmt) {
     if (stmt->stmt_kind == enum4('e', 'x', 'p', 'r')) {
         EvaluateExprIntoRax(stmt->expr);
     } else if (stmt->stmt_kind == enum4('n', 'e', 'x', 't')) {
-        Codegen(stmt->first_child);
-        Codegen(stmt->second_child);
+        CodegenStmt(stmt->first_child);
+        CodegenStmt(stmt->second_child);
     } else if (stmt->stmt_kind == enum3('r', 'e', 't')) {
         EvaluateExprIntoRax(stmt->expr);
         printf("  mov rsp, rbp\n");
@@ -33,11 +33,11 @@ void Codegen(Stmt *stmt) {
         EvaluateExprIntoRax(stmt->expr);
         printf("  cmp rax, 0\n");
         printf("  je  .Lelse%d\n", label);
-        Codegen(stmt->second_child);
+        CodegenStmt(stmt->second_child);
         printf("  jmp .Lend%d\n", label);
         printf(".Lelse%d:\n", label);
         if (stmt->third_child != NULL) {
-            Codegen(stmt->third_child);
+            CodegenStmt(stmt->third_child);
         }
         printf(".Lend%d:\n", label);
     } else if (stmt->stmt_kind == enum4('w', 'h', 'i', 'l')) {
@@ -47,7 +47,7 @@ void Codegen(Stmt *stmt) {
         EvaluateExprIntoRax(stmt->expr);
         printf("  cmp rax, 0\n");
         printf("  je  .Lend%d\n", label);
-        Codegen(stmt->second_child);
+        CodegenStmt(stmt->second_child);
         printf("  jmp  .Lbegin%d\n", label);
         printf(".Lend%d:\n", label);
     } else if (stmt->stmt_kind == enum3('f', 'o', 'r')) {
@@ -64,7 +64,7 @@ void Codegen(Stmt *stmt) {
         }
         printf("  cmp rax, 0\n");
         printf("  je  .Lend%d\n", label);
-        Codegen(stmt->second_child);
+        CodegenStmt(stmt->second_child);
         if (stmt->expr2) {
             EvaluateExprIntoRax(stmt->expr2);
         }
