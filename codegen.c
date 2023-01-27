@@ -73,10 +73,24 @@ void Codegen(Stmt *stmt) {
     }
 }
 
+const char *nth_arg_reg(int n) {
+    return "rdi\0rsi\0rdx\0rcx\0r8 \0r9" + 4 * n;
+}
+
 void EvaluateExprIntoRax(Expr *expr) {
     if (expr->expr_kind == EK_Identifier) {
         EvaluateLValueAddressIntoRax(expr);
         printf("  mov rax,[rax]\n");
+        return;
+    } else if (expr->expr_kind == EK_Call) {
+        for (int i = 0; i < expr->func_arg_len; i++) {
+            EvaluateExprIntoRax(expr->func_args[i]);
+            printf("    push rax\n");
+        }
+        for (int i = expr->func_arg_len - 1; i >= 0; i--) {
+            printf("    pop %s\n", nth_arg_reg(i));
+        }
+        printf(" call %s\n", expr->name);
         return;
     } else if (expr->expr_kind == EK_Number) {
         printf("  mov rax, %d\n", expr->value);

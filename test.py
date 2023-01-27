@@ -23,6 +23,23 @@ def check(input: str, expected: int):
     print(f"{bcolors.FAIL}FAIL:check:{input=} {expected=} {returned_value=}{bcolors.ENDC}")
     return False
 
+def check_and_link_with(input: str, linked_lib: str, expected: int):
+    os.system(f'./9cc "{input}" > tmp.s')
+    lib_file = open("libtest.c", "w")
+    lib_file.write(linked_lib)
+    lib_file.close()
+    os.system("cc -S -o libtest.s libtest.c")
+    os.system("cc -o tmp tmp.s libtest.s")
+    os.system("rm libtest.c libtest.s")
+    returned_value = (os.system("./tmp") >> 8) & 0xff
+
+    if expected == returned_value:
+        print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
+        return True
+
+    print(f"{bcolors.FAIL}FAIL:check:{input=} {expected=} {returned_value=}{bcolors.ENDC}")
+    return False
+
 
 assert check("return 0;", 0)
 
@@ -115,10 +132,28 @@ assert check("a = 0; if (a) { b = 1; c = 2; } else { b = 5; c = 7; } return b + 
 assert check("a = 0; b = 0; c = 3; if (a) { } return c;", 3)
 assert check("a = 0; b = 0; c = 3; if (a) { if (b) { c = 2; } } return c;", 3)
 assert check("a = 0; b = 0; c = 3; if (a) { if (b) { c = 2; } } else { c = 7; } return c;", 7)
-
-## BUGGY!!!!
 assert check("a = 0; b = 0; c = 3; if (a) {if (b) { c = 2; } else { c = 7; }} return c;", 3)
 assert check("a = 0; b = 0; c = 3; if (a) if (b) { c = 2; } else { c = 7; } return c;", 3)
 assert check("a = 0; b = 0; c = 3; if (a) {if (b) { c = 2; }} else { c = 7; } return c;", 7)
+
+assert check_and_link_with(
+    "return identity(3);", 
+    linked_lib="int identity(int a) { return a; }",
+    expected=3)
+
+assert check_and_link_with(
+    "return three();", 
+    linked_lib="int three() { return 3; }",
+    expected=3)
+
+assert check_and_link_with(
+    "return add(2, 3);", 
+    linked_lib="int add(int a, int b) { return a + b; }",
+    expected=5)
+
+assert check_and_link_with(
+    "return addsix(1, 2, 3, 4, 5, 6);", 
+    linked_lib="int addsix(int a, int b, int c, int d, int e, int f) { return a + b + c + d + e + f; }",
+    expected=21)
 
 print("OK")
