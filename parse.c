@@ -196,7 +196,7 @@ Stmt *parseFor(Token **ptrptr, Token *token_end) {
     exprs[2] = parseOptionalExprAndToken(&tokens, token_end, ')');
 
     Stmt *stmt = calloc(1, sizeof(Stmt));
-    stmt->stmt_kind = SK_For;
+    stmt->stmt_kind = ('f' * 256 + 'o') * 256 + 'r';
     stmt->expr = exprs[0];
     stmt->expr1 = exprs[1];
     stmt->expr2 = exprs[2];
@@ -267,10 +267,10 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end) {
     }
 
     Stmt *stmt = calloc(1, sizeof(Stmt));
-    stmt->stmt_kind = SK_Expr;
+    stmt->stmt_kind = (('e' * 256 + 'x') * 256 + 'p') * 256 + 'r';
     stmt->expr = expr;
     if (is_if) {
-        stmt->stmt_kind = SK_If;
+        stmt->stmt_kind = 'i' * 256 + 'f';
         {
             Stmt *statement = parseStmt(&tokens, token_end);
             stmt->second_child = statement;
@@ -283,12 +283,12 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end) {
         }
     }
     if (is_while) {
-        stmt->stmt_kind = SK_While;
+        stmt->stmt_kind = (('w' * 256 + 'h') * 256 + 'i') * 256 + 'l';
         Stmt *statement = parseStmt(&tokens, token_end);
         stmt->second_child = statement;
     }
     if (is_return) {
-        stmt->stmt_kind = SK_Return;
+        stmt->stmt_kind = ('r' * 256 + 'e') * 256 + 't';
     }
     *ptrptr = tokens;
     return stmt;
@@ -306,7 +306,7 @@ Stmt *parseProgram(Token **ptrptr, Token *token_end) {
         Stmt *statement = parseStmt(&tokens, token_end);
         Stmt *newexp = calloc(1, sizeof(Stmt));
         newexp->first_child = result;
-        newexp->stmt_kind = SK_AndThen;
+        newexp->stmt_kind = (('n' * 256 + 'e') * 256 + 'x') * 256 + 't';
         newexp->second_child = statement;
         result = newexp;
     }

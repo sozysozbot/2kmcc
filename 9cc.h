@@ -17,18 +17,11 @@ typedef struct Expr
   char* name;
 } Expr;
 
-enum StmtKind{
-  SK_AndThen,
-  SK_Expr,
-  SK_Return,
-  SK_If,
-  SK_While,
-  SK_For,
-};
+typedef int StmtKind;
 
 typedef struct Stmt
 {
-  enum StmtKind stmt_kind;
+  StmtKind stmt_kind;
   
   struct Expr *expr;
   struct Expr *expr1;

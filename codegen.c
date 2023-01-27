@@ -22,18 +22,18 @@ void Codegen(Stmt *stmt)
 {
     switch (stmt->stmt_kind)
     {
-    case SK_Expr:
+    case (('e' * 256 + 'x') * 256 + 'p') * 256 + 'r':
     {
         EvaluateExprIntoRax(stmt->expr);
         break;
     }
-    case SK_AndThen:
+    case (('n' * 256 + 'e') * 256 + 'x') * 256 + 't':
     {
         Codegen(stmt->first_child);
         Codegen(stmt->second_child);
         break;
     }
-    case SK_Return:
+    case ('r' * 256 + 'e') * 256 + 't':
     {
         EvaluateExprIntoRax(stmt->expr);
         // epilogue
@@ -42,7 +42,7 @@ void Codegen(Stmt *stmt)
         printf("  ret\n");
         break;
     }
-    case SK_If:
+    case 'i' * 256 + 'f':
     {
         EvaluateExprIntoRax(stmt->expr);
         printf("  cmp rax, 0\n");
@@ -58,7 +58,7 @@ void Codegen(Stmt *stmt)
         labelCounter++;
         break;
     }
-    case SK_While:
+    case (('w' * 256 + 'h') * 256 + 'i') * 256 + 'l':
     {
         printf(".Lbegin%d:\n", labelCounter);
         EvaluateExprIntoRax(stmt->expr);
@@ -71,7 +71,7 @@ void Codegen(Stmt *stmt)
         labelCounter++;
         break;
     }
-    case SK_For:
+    case ('f' * 256 + 'o') * 256 + 'r':
     {
         if (stmt->expr)
         {
