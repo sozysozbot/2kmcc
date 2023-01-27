@@ -96,58 +96,40 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    push rax\n");
             EvaluateExprIntoRax(expr->second_child);
             printf("    push rax\n");
-
             printf("    pop rdi\n");
             printf("    pop rax\n");
+            
+            if (expr->binary_op == '+') {
+                printf("    add rax,rdi\n");
+            } else if (expr->binary_op == '-') {
+                printf("    sub rax,rdi\n");
 
-            switch (expr->binary_op) {
-                case '+': {
-                    printf("    add rax,rdi\n");
-                    break;
-                }
-                case '-': {
-                    printf("    sub rax,rdi\n");
-                    break;
-                }
-                case '*': {
-                    printf("    imul rax,rdi\n");
-                    break;
-                }
-                case '/': {
-                    printf("  cqo\n");
-                    printf("  idiv rdi\n");
-                    break;
-                }
-                case '=' * 256 + '=': {
-                    printf("  cmp rax, rdi\n");
-                    printf("  sete al\n");
-                    printf("  movzb rax, al\n");
-                    break;
-                }
-                case '!' * 256 + '=': {
-                    printf("  cmp rax, rdi\n");
-                    printf("  setne al\n");
-                    printf("  movzb rax, al\n");
-                    break;
-                }
-                case '>': {
-                    printf("  cmp rax, rdi\n");
-                    printf("  setg al\n");
-                    printf("  movzb rax, al\n");
-                    break;
-                }
-                case '>' * 256 + '=': {
-                    printf("  cmp rax, rdi\n");
-                    printf("  setge al\n");
-                    printf("  movzb rax, al\n");
-                    break;
-                }
-                default: {
-                    fprintf(stderr, "Invalid binaryop kind:%d", expr->binary_op);
-                    exit(1);
-                    break;
-                }
+            } else if (expr->binary_op == '*') {
+                printf("    imul rax,rdi\n");
+            } else if (expr->binary_op == '/') {
+                printf("  cqo\n");
+                printf("  idiv rdi\n");
+            } else if (expr->binary_op == '=' * 256 + '=') {
+                printf("  cmp rax, rdi\n");
+                printf("  sete al\n");
+                printf("  movzb rax, al\n");
+            } else if (expr->binary_op == '!' * 256 + '=') {
+                printf("  cmp rax, rdi\n");
+                printf("  setne al\n");
+                printf("  movzb rax, al\n");
+            } else if (expr->binary_op == '>') {
+                printf("  cmp rax, rdi\n");
+                printf("  setg al\n");
+                printf("  movzb rax, al\n");
+            } else if (expr->binary_op == '>' * 256 + '=') {
+                printf("  cmp rax, rdi\n");
+                printf("  setge al\n");
+                printf("  movzb rax, al\n");
+            } else {
+                fprintf(stderr, "Invalid binaryop kind:%d", expr->binary_op);
+                exit(1);
             }
+
             break;
         }
 
