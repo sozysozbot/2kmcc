@@ -17,6 +17,14 @@ Expr *identifierexpr(char *name) {
     return numberexp;
 }
 
+Expr *callexpr(char *name, Expr *first_child) {
+    Expr *newexp = calloc(1, sizeof(Expr));
+    newexp->name = name;
+    newexp->expr_kind = EK_Call;
+    newexp->first_child = first_child;
+    return newexp;
+}
+
 Expr *binaryExpr(Expr *first_child, Expr *second_child, BinaryOperation binaryop) {
     Expr *newexp = calloc(1, sizeof(Expr));
     newexp->first_child = first_child;
@@ -106,7 +114,20 @@ Expr *parsePrimary(Token **ptrptr, Token *token_end) {
         return numberexpr(maybe_number->value);
     } else if (maybe_number->kind == aaaa('i', 'd', 'n', 't')) {
         *ptrptr += 1;
-        return identifierexpr(maybe_number->identifier_name);
+        Token *maybe_leftparenthesis = *ptrptr;
+        if (maybe_leftparenthesis->kind == '(') {
+            *ptrptr += 1;
+            Expr *expr = parseExpr(ptrptr, token_end);
+            Token *maybe_rightparenthesis = *ptrptr;
+            if (maybe_rightparenthesis->kind != ')') {
+                fprintf(stderr, "Expected: right parenthesis. Token Kind:%d", maybe_rightparenthesis->kind);
+                exit(1);
+            }
+            *ptrptr += 1;
+            return callexpr(maybe_number->identifier_name, expr);
+        } else {
+            return identifierexpr(maybe_number->identifier_name);
+        }
     } else {
         Token *maybe_leftparenthesis = maybe_number;
         if (maybe_leftparenthesis->kind == '(') {

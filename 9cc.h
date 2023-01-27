@@ -5,6 +5,7 @@ enum ExprKind
   EK_Number,
   EK_Operator,
   EK_Identifier,
+  EK_Call,
 };
 
 typedef struct Expr
