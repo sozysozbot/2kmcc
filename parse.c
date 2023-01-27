@@ -12,12 +12,26 @@ Expr *numberexpr(int value) {
     return numberexp;
 }
 
-int consume(TokenKind kind) {
+int maybe_consume(TokenKind kind) {
     if (tokens->kind == kind) {
         tokens += 1;
         return 1;
     }
     return 0;
+}
+
+void consume_otherwise_panic(int kind) {
+    if (!maybe_consume(kind)) {
+        fprintf(stderr, "expected TokenKind#%x, got TokenKind#%x\n", kind, tokens->kind);
+        exit(1);
+    }
+}
+
+void panic_if_eof() {
+    if (tokens >= tokens_end) {
+        fprintf(stderr, "EOF encountered");
+        exit(1);
+    }
 }
 
 Expr *binaryExpr(Expr *first_child, Expr *second_child, BinaryOperation binaryop) {
@@ -30,10 +44,7 @@ Expr *binaryExpr(Expr *first_child, Expr *second_child, BinaryOperation binaryop
 }
 
 Expr *parsePrimary() {
-    if (tokens >= tokens_end) {
-        fprintf(stderr, "Expected: number, but got EOF");
-        exit(1);
-    }
+    panic_if_eof();
     if (tokens->kind == enum3('n', 'u', 'm')) {
         int value = tokens->value;
         tokens += 1;
@@ -41,10 +52,9 @@ Expr *parsePrimary() {
     } else if (tokens->kind == enum4('i', 'd', 'n', 't')) {
         char *name = tokens->identifier_name;
         tokens += 1;
-        if (consume('(')) {
+        if (maybe_consume('(')) {
             Expr **arguments = calloc(6, sizeof(Expr *));
-
-            if (consume(')')) {
+            if (maybe_consume(')')) {
                 Expr *callexp = calloc(1, sizeof(Expr));
                 callexp->name = name;
                 callexp->expr_kind = EK_Call;
@@ -56,17 +66,13 @@ Expr *parsePrimary() {
             int i = 0;
             for (; i < 6; i++) {
                 Expr *expr = parseExpr();
-                if (consume(',')) {
-                    arguments[i] = expr;
-                } else if (consume(')')) {
+                if (maybe_consume(')')) {
                     arguments[i] = expr;
                     break;
-                } else {
-                    fprintf(stderr, "Expected: comma or right paren. Token Kind:%d", tokens->kind);
-                    exit(1);
                 }
+                consume_otherwise_panic(',');
+                arguments[i] = expr;
             }
-
             Expr *callexp = calloc(1, sizeof(Expr));
             callexp->name = name;
             callexp->expr_kind = EK_Call;
@@ -79,47 +85,35 @@ Expr *parsePrimary() {
             numberexp->expr_kind = EK_Identifier;
             return numberexp;
         }
-    } else if (consume('(')) {
-        Expr *expr = parseExpr();
-        if (consume(')')) {
-            return expr;
-        }
-
-        fprintf(stderr, "Expected: right parenthesis. Token Kind:%d", tokens->kind);
-        exit(1);
     }
-    fprintf(stderr, "Expected: number. Token Kind:%d", tokens->kind);
-    exit(1);
+
+    consume_otherwise_panic('(');
+    Expr *expr = parseExpr();
+    consume_otherwise_panic(')');
+    return expr;
 }
 
 Expr *parseUnary() {
-    if (tokens >= tokens_end) {
-        fprintf(stderr, "Expected: number, but got EOF");
-        exit(1);
-    }
-    if (consume('+')) {
+    panic_if_eof();
+    if (maybe_consume('+')) {
         return parsePrimary();
     }
-    if (consume('-')) {
+    if (maybe_consume('-')) {
         return binaryExpr(numberexpr(0), parsePrimary(), '-');
     }
     return parsePrimary();
 }
 
 Expr *parseMultiplicative() {
-    if (tokens_end == tokens) {
-        fprintf(stderr, "No token found");
-        exit(1);
-    }
+    panic_if_eof();
     Expr *result = parseUnary();
-
     while (tokens < tokens_end) {
         if (tokens->kind == enum3('n', 'u', 'm')) {
             fprintf(stderr, "Expected operator got Number");
             exit(1);
-        } else if (consume('*')) {
+        } else if (maybe_consume('*')) {
             result = binaryExpr(result, parseUnary(), '*');
-        } else if (consume('/')) {
+        } else if (maybe_consume('/')) {
             result = binaryExpr(result, parseUnary(), '/');
         } else {
             return result;
@@ -129,19 +123,15 @@ Expr *parseMultiplicative() {
 }
 
 Expr *parseAdditive() {
-    if (tokens_end == tokens) {
-        fprintf(stderr, "No token found");
-        exit(1);
-    }
+    panic_if_eof();
     Expr *result = parseMultiplicative();
-
     while (tokens < tokens_end) {
         if (tokens->kind == enum3('n', 'u', 'm')) {
             fprintf(stderr, "Expected operator, got Number");
             exit(1);
-        } else if (consume('-')) {
+        } else if (maybe_consume('-')) {
             result = binaryExpr(result, parseMultiplicative(), '-');
-        } else if (consume('+')) {
+        } else if (maybe_consume('+')) {
             result = binaryExpr(result, parseMultiplicative(), '+');
         } else {
             return result;
@@ -151,20 +141,16 @@ Expr *parseAdditive() {
 }
 
 Expr *parseRelational() {
-    if (tokens_end == tokens) {
-        fprintf(stderr, "No token found");
-        exit(1);
-    }
+    panic_if_eof();
     Expr *result = parseAdditive();
-
     while (tokens < tokens_end) {
-        if (consume('>')) {
+        if (maybe_consume('>')) {
             result = binaryExpr(result, parseAdditive(), '>');
-        } else if (consume(enum2('>', '='))) {
+        } else if (maybe_consume(enum2('>', '='))) {
             result = binaryExpr(result, parseAdditive(), enum2('>', '='));
-        } else if (consume('<')) {
+        } else if (maybe_consume('<')) {
             result = binaryExpr(parseAdditive(), result, '>');  // children & operator swapped
-        } else if (consume(enum2('<', '='))) {
+        } else if (maybe_consume(enum2('<', '='))) {
             result = binaryExpr(parseAdditive(), result, enum2('>', '='));  // children & operator swapped
         } else {
             return result;
@@ -174,16 +160,12 @@ Expr *parseRelational() {
 }
 
 Expr *parseEquality() {
-    if (tokens_end == tokens) {
-        fprintf(stderr, "No token found");
-        exit(1);
-    }
+    panic_if_eof();
     Expr *result = parseRelational();
-
     while (tokens < tokens_end) {
-        if (consume(enum2('=', '='))) {
+        if (maybe_consume(enum2('=', '='))) {
             result = binaryExpr(result, parseRelational(), enum2('=', '='));
-        } else if (consume(enum2('!', '='))) {
+        } else if (maybe_consume(enum2('!', '='))) {
             result = binaryExpr(result, parseRelational(), enum2('!', '='));
         } else {
             return result;
@@ -193,12 +175,9 @@ Expr *parseEquality() {
 }
 
 Expr *parseAssign() {
-    if (tokens_end == tokens) {
-        fprintf(stderr, "No token found");
-        exit(1);
-    }
+    panic_if_eof();
     Expr *result = parseEquality();
-    if (consume('=')) {
+    if (maybe_consume('=')) {
         return binaryExpr(result, parseAssign(), '=');
     }
     return result;
@@ -209,24 +188,17 @@ Expr *parseExpr() {
 }
 
 Expr *parseOptionalExprAndToken(TokenKind target) {
-    if (consume(target)) {
-        return NULL;
+    if (maybe_consume(target)) {
+        return 0;
     }
     Expr *expr = parseExpr();
-    if (consume(target)) {
-        return expr;
-    }
-    fprintf(stderr, "expected TokenKind#%d after optional expression but did not find one", target);
-    exit(-1);
+    consume_otherwise_panic(target);
+    return expr;
 }
 
 Stmt *parseFor() {
     tokens++;
-    if (consume('(')) {
-    } else {
-        fprintf(stderr, "expected left parenthesis got %d\n", tokens->kind);
-        exit(1);
-    }
+    consume_otherwise_panic('(');
     Expr *exprs[3] = {NULL, NULL, NULL};
     exprs[0] = parseOptionalExprAndToken(';');
     exprs[1] = parseOptionalExprAndToken(';');
@@ -244,12 +216,7 @@ Stmt *parseFor() {
 }
 
 Stmt *parseStmt() {
-    if (tokens_end == tokens) {
-        fprintf(stderr, "No token found");
-        exit(1);
-    }
-
-    if (consume('{')) {
+    if (maybe_consume('{')) {
         Stmt *result = calloc(1, sizeof(Stmt));
         result->stmt_kind = enum4('e', 'x', 'p', 'r');
         result->expr = numberexpr(1);
@@ -276,20 +243,12 @@ Stmt *parseStmt() {
     if (tokens->kind == enum2('i', 'f')) {
         tokens++;
         is_if = 1;
-        if (consume('(')) {
-        } else {
-            fprintf(stderr, "expected right parenthesis got %d\n", tokens->kind);
-            exit(1);
-        }
+        consume_otherwise_panic('(');
     }
     if (tokens->kind == enum4('w', 'h', 'i', 'l')) {
         tokens++;
         is_while = 1;
-        if (consume('(')) {
-        } else {
-            fprintf(stderr, "expected right parenthesis got %d\n", tokens->kind);
-            exit(1);
-        }
+        consume_otherwise_panic('(');
     }
     if (tokens->kind == enum3('f', 'o', 'r')) {
         Stmt *stmt = parseFor();
@@ -298,17 +257,9 @@ Stmt *parseStmt() {
     Expr *expr = parseExpr();
 
     if (is_if || is_while) {
-        if (consume(')')) {
-        } else {
-            fprintf(stderr, "expected right parenthesis got %d\n", tokens->kind);
-            exit(1);
-        }
+        consume_otherwise_panic(')');
     } else {
-        if (consume(';')) {
-        } else {
-            fprintf(stderr, "no semicolon after expr. kind=%d\n", tokens->kind);
-            exit(1);
-        }
+        consume_otherwise_panic(';');
     }
 
     Stmt *stmt = calloc(1, sizeof(Stmt));
@@ -338,34 +289,29 @@ Stmt *parseStmt() {
 }
 
 Stmt *parseFunctionContent() {
-    if (consume('{')) {
-        Stmt *result = calloc(1, sizeof(Stmt));
-        result->stmt_kind = enum4('e', 'x', 'p', 'r');
-        result->expr = numberexpr(1);
-        while (tokens->kind != '}') {
-            Stmt *statement = parseStmt();
-            Stmt *newstmt = calloc(1, sizeof(Stmt));
-            newstmt->first_child = result;
-            newstmt->stmt_kind = enum4('n', 'e', 'x', 't');
-            newstmt->second_child = statement;
-            result = newstmt;
-        }
-        tokens++;
-        return result;
-    } else {
-        fprintf(stderr, "no { after a parenthesis defining a function. kind=%d\n", tokens->kind);
-        exit(1);
+    consume_otherwise_panic('{');
+    Stmt *result = calloc(1, sizeof(Stmt));
+    result->stmt_kind = enum4('e', 'x', 'p', 'r');
+    result->expr = numberexpr(1);
+    while (tokens->kind != '}') {
+        Stmt *statement = parseStmt();
+        Stmt *newstmt = calloc(1, sizeof(Stmt));
+        newstmt->first_child = result;
+        newstmt->stmt_kind = enum4('n', 'e', 'x', 't');
+        newstmt->second_child = statement;
+        result = newstmt;
     }
+    tokens++;
+    return result;
 }
 
 Stmt *parseProgram() {
     if (tokens->kind == enum4('i', 'd', 'n', 't')) {
         tokens++;
     }
-    if (consume('(')) {
+    if (maybe_consume('(')) {
     }
-    if (consume(')')) {
+    if (maybe_consume(')')) {
     }
     return parseFunctionContent();
 }
-
