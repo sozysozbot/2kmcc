@@ -205,17 +205,14 @@ Expr *parseAssign(Token **ptrptr) {
     return result;
 }
 
-Expr *parseOptionalExprAndToken(Token **ptrptr, TokenKind target) {
-    Token *tokens = *ptrptr;
+Expr *parseOptionalExprAndToken(TokenKind target) {
     if (tokens->kind == target) {
         tokens++;
-        *ptrptr = tokens;
         return NULL;
     }
     Expr *expr = parseExpr(&tokens);
     if (tokens->kind == target) {
         tokens++;
-        *ptrptr = tokens;
         return expr;
     }
     fprintf(stderr, "expected TokenKind#%d after optional expression but did not find one", target);
@@ -231,9 +228,9 @@ Stmt *parseFor() {
         exit(1);
     }
     Expr *exprs[3] = {NULL, NULL, NULL};
-    exprs[0] = parseOptionalExprAndToken(&tokens, ';');
-    exprs[1] = parseOptionalExprAndToken(&tokens, ';');
-    exprs[2] = parseOptionalExprAndToken(&tokens, ')');
+    exprs[0] = parseOptionalExprAndToken(';');
+    exprs[1] = parseOptionalExprAndToken(';');
+    exprs[2] = parseOptionalExprAndToken(')');
 
     Stmt *stmt = calloc(1, sizeof(Stmt));
     stmt->stmt_kind = aaa('f', 'o', 'r');
