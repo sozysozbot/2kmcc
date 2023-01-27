@@ -163,15 +163,12 @@ Expr *parseUnary() {
         exit(1);
     }
     if (consume('+')) {
-        Expr *expr = parsePrimary();
-        return expr;
+        return parsePrimary();
     }
     if (consume('-')) {
-        Expr *expr = binaryExpr(numberexpr(0), parsePrimary(), '-');
-        return expr;
+        return binaryExpr(numberexpr(0), parsePrimary(), '-');
     }
-    Expr *expr = parsePrimary();
-    return expr;
+    return parsePrimary();
 }
 
 Expr *parseExpr() {
@@ -184,22 +181,18 @@ Expr *parseAssign() {
         exit(1);
     }
     Expr *result = parseEquality();
-    if (tokens->kind == '=') {
-        tokens++;
-        Expr *newresult = parseAssign();
-        return binaryExpr(result, newresult, '=');
+    if (consume('=')) {
+        return binaryExpr(result, parseAssign(), '=');
     }
     return result;
 }
 
 Expr *parseOptionalExprAndToken(TokenKind target) {
-    if (tokens->kind == target) {
-        tokens++;
+    if (consume(target)) {
         return NULL;
     }
     Expr *expr = parseExpr();
-    if (tokens->kind == target) {
-        tokens++;
+    if (consume(target)) {
         return expr;
     }
     fprintf(stderr, "expected TokenKind#%d after optional expression but did not find one", target);
@@ -208,8 +201,7 @@ Expr *parseOptionalExprAndToken(TokenKind target) {
 
 Stmt *parseFor() {
     tokens++;
-    if (tokens->kind == '(') {
-        tokens++;
+    if (consume('(')) {
     } else {
         fprintf(stderr, "expected left parenthesis got %d\n", tokens->kind);
         exit(1);
@@ -236,8 +228,7 @@ Stmt *parseStmt() {
         exit(1);
     }
 
-    if (tokens->kind == '{') {
-        tokens++;
+    if (consume('{')) {
         Stmt *result = calloc(1, sizeof(Stmt));
         result->stmt_kind = aaaa('e', 'x', 'p', 'r');
         result->expr = numberexpr(1);
@@ -264,8 +255,7 @@ Stmt *parseStmt() {
     if (tokens->kind == aa('i', 'f')) {
         tokens++;
         is_if = 1;
-        if (tokens->kind == '(') {
-            tokens++;
+        if (consume('(')) {
         } else {
             fprintf(stderr, "expected right parenthesis got %d\n", tokens->kind);
             exit(1);
@@ -274,8 +264,7 @@ Stmt *parseStmt() {
     if (tokens->kind == aaaa('w', 'h', 'i', 'l')) {
         tokens++;
         is_while = 1;
-        if (tokens->kind == '(') {
-            tokens++;
+        if (consume('(')) {
         } else {
             fprintf(stderr, "expected right parenthesis got %d\n", tokens->kind);
             exit(1);
@@ -288,15 +277,13 @@ Stmt *parseStmt() {
     Expr *expr = parseExpr();
 
     if (is_if || is_while) {
-        if (tokens->kind == ')') {
-            tokens++;
+        if (consume(')')) {
         } else {
             fprintf(stderr, "expected right parenthesis got %d\n", tokens->kind);
             exit(1);
         }
     } else {
-        if (tokens->kind == ';') {
-            tokens++;
+        if (consume(';')) {
         } else {
             fprintf(stderr, "no semicolon after expr. kind=%d\n", tokens->kind);
             exit(1);
@@ -330,8 +317,7 @@ Stmt *parseStmt() {
 }
 
 Stmt *parseFunctionContent() {
-    if (tokens->kind == '{') {
-        tokens++;
+    if (consume('{')) {
         Stmt *result = calloc(1, sizeof(Stmt));
         result->stmt_kind = aaaa('e', 'x', 'p', 'r');
         result->expr = numberexpr(1);
@@ -355,11 +341,9 @@ Stmt *parseProgram() {
     if (tokens->kind == aaaa('i', 'd', 'n', 't')) {
         tokens++;
     }
-    if (tokens->kind == '(') {
-        tokens++;
+    if (consume('(')) {
     }
-    if (tokens->kind == ')') {
-        tokens++;
+    if (consume(')')) {
     }
     return parseFunctionContent();
 }
@@ -375,12 +359,10 @@ Expr *parseMultiplicative() {
         if (tokens->kind == aaa('n', 'u', 'm')) {
             fprintf(stderr, "Expected operator got Number");
             exit(1);
-        } else if (tokens->kind == '*') {
-            tokens++;
+        } else if (consume('*')) {
             Expr *numberexp = parseUnary();
             result = binaryExpr(result, numberexp, '*');
-        } else if (tokens->kind == '/') {
-            tokens++;
+        } else if (consume('/')) {
             Expr *numberexp = parseUnary();
             result = binaryExpr(result, numberexp, '/');
         } else {
@@ -401,12 +383,10 @@ Expr *parseAdditive() {
         if (tokens->kind == aaa('n', 'u', 'm')) {
             fprintf(stderr, "Expected operator got Number");
             exit(1);
-        } else if (tokens->kind == '-') {
-            tokens++;
+        } else if (consume('-')) {
             Expr *numberexp = parseMultiplicative();
             result = binaryExpr(result, numberexp, '-');
-        } else if (tokens->kind == '+') {
-            tokens++;
+        } else if (consume('+')) {
             Expr *numberexp = parseMultiplicative();
             result = binaryExpr(result, numberexp, '+');
         } else {
