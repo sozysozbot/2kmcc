@@ -78,34 +78,34 @@ assert check("return 1<=1;", 1)
 
 
 #semicolon
-assert check("1+1;return 5-2;",3);
+assert check("1+1;return 5-2;",3)
 
 #variables
-assert check("a=3;return a;",3);
-assert check("a=3;b=4;return a+b;",7);
+assert check("a=3;return a;",3)
+assert check("a=3;b=4;return a+b;",7)
 
-assert check("ab=3;bd=4;return ab+bd;",7);
-assert check("abz=3;bdz =4;return abz+bdz;",7);
+assert check("ab=3;bd=4;return ab+bd;",7)
+assert check("abz=3;bdz =4;return abz+bdz;",7)
 
-assert check("return 1;return 2;",1);
-assert check("return 1;return 2+3;",1);
-assert check("a=0;if(1)a=1;return a;",1);
-assert check("a=0;if(0)a=1;return a;",0);
+assert check("return 1;return 2;",1)
+assert check("return 1;return 2+3;",1)
+assert check("a=0;if(1)a=1;return a;",1)
+assert check("a=0;if(0)a=1;return a;",0)
 
-assert check("a=1;if(a)a=5;return a;",5);
-assert check("a=0;if(a)a=5;return a;",0);
+assert check("a=1;if(a)a=5;return a;",5)
+assert check("a=0;if(a)a=5;return a;",0)
 
-assert check("a=1;if(a)return 5;return 10;",5);
-assert check("a=0;if(a)return 5;return 10;",10);
+assert check("a=1;if(a)return 5;return 10;",5)
+assert check("a=0;if(a)return 5;return 10;",10)
 
-assert check("a=0;if(a)return 5;a=1;if(a)return 3;return 10;",3);
-assert check("a=0;while(a)return 1; return 3;",3);
-assert check("a=0;while(a<5)a=a+1; return a;",5);
+assert check("a=0;if(a)return 5;a=1;if(a)return 3;return 10;",3)
+assert check("a=0;while(a)return 1; return 3;",3)
+assert check("a=0;while(a<5)a=a+1; return a;",5)
 
-assert check("a=0;if(a)return 5;else a=10;return a;",10);
-assert check("a=1;if(a)a=0;else return 10;return a;",0);
+assert check("a=0;if(a)return 5;else a=10;return a;",10)
+assert check("a=1;if(a)a=0;else return 10;return a;",0)
 
-assert check("for(a=0;a<10;a=a+1)b=a;return b;",9);
-assert check("for(;;)return 0;",0);
+assert check("for(a=0;a<10;a=a+1)b=a;return b;",9)
+assert check("for(;;)return 0;",0)
 
 print("OK")
