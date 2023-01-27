@@ -67,8 +67,8 @@ Expr *parseExpr(Token **ptrptr);
 Expr *parseUnary(Token **ptrptr);
 Stmt *parseProgram();
 Expr *parseAssign(Token **ptrptr);
-Stmt *parseFor(Token **ptrptr);
-Stmt *parseStmt(Token **ptrptr);
+Stmt *parseFor();
+Stmt *parseStmt();
 
 void Codegen(Stmt* stmt);
 

@@ -222,10 +222,8 @@ Expr *parseOptionalExprAndToken(Token **ptrptr, TokenKind target) {
     exit(-1);
 }
 
-Stmt *parseFor(Token **ptrptr) {
-    Token *tokens = *ptrptr;
+Stmt *parseFor() {
     tokens++;
-
     if (tokens->kind == '(') {
         tokens++;
     } else {
@@ -243,16 +241,12 @@ Stmt *parseFor(Token **ptrptr) {
     stmt->expr1 = exprs[1];
     stmt->expr2 = exprs[2];
 
-    Stmt *statement = parseStmt(&tokens);
-    stmt->second_child = statement;
-
-    *ptrptr = tokens;
-
+    Stmt *loop_body = parseStmt();
+    stmt->second_child = loop_body;
     return stmt;
 }
 
-Stmt *parseStmt(Token **ptrptr) {
-    Token *tokens = *ptrptr;
+Stmt *parseStmt() {
     if (token_end == tokens) {
         fprintf(stderr, "No token found");
         exit(1);
@@ -264,7 +258,7 @@ Stmt *parseStmt(Token **ptrptr) {
         result->stmt_kind = aaaa('e', 'x', 'p', 'r');
         result->expr = numberexpr(1);
         while (tokens->kind != '}') {
-            Stmt *statement = parseStmt(&tokens);
+            Stmt *statement = parseStmt();
             Stmt *newstmt = calloc(1, sizeof(Stmt));
             newstmt->first_child = result;
             newstmt->stmt_kind = aaaa('n', 'e', 'x', 't');
@@ -272,7 +266,6 @@ Stmt *parseStmt(Token **ptrptr) {
             result = newstmt;
         }
         tokens++;
-        *ptrptr = tokens;
         return result;
     }
 
@@ -306,7 +299,6 @@ Stmt *parseStmt(Token **ptrptr) {
     }
     if (tokens->kind == aaa('f', 'o', 'r')) {
         Stmt *stmt = parseFor(&tokens);
-        *ptrptr = tokens;
         return stmt;
     }
     Expr *expr = parseExpr(&tokens);
@@ -333,25 +325,23 @@ Stmt *parseStmt(Token **ptrptr) {
     if (is_if) {
         stmt->stmt_kind = aa('i', 'f');
         {
-            Stmt *statement = parseStmt(&tokens);
+            Stmt *statement = parseStmt();
             stmt->second_child = statement;
         }
-        Token maybe_else = *(tokens);
-        if (maybe_else.kind == aaaa('e', 'l', 's', 'e')) {
+        if (tokens->kind == aaaa('e', 'l', 's', 'e')) {
             tokens++;
-            Stmt *statement1 = parseStmt(&tokens);
+            Stmt *statement1 = parseStmt();
             stmt->third_child = statement1;
         }
     }
     if (is_while) {
         stmt->stmt_kind = aaaa('w', 'h', 'i', 'l');
-        Stmt *statement = parseStmt(&tokens);
+        Stmt *statement = parseStmt();
         stmt->second_child = statement;
     }
     if (is_return) {
         stmt->stmt_kind = aaa('r', 'e', 't');
     }
-    *ptrptr = tokens;
     return stmt;
 }
 
@@ -362,7 +352,7 @@ Stmt *parseFunctionContent() {
         result->stmt_kind = aaaa('e', 'x', 'p', 'r');
         result->expr = numberexpr(1);
         while (tokens->kind != '}') {
-            Stmt *statement = parseStmt(&tokens);
+            Stmt *statement = parseStmt();
             Stmt *newstmt = calloc(1, sizeof(Stmt));
             newstmt->first_child = result;
             newstmt->stmt_kind = aaaa('n', 'e', 'x', 't');
