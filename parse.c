@@ -138,7 +138,7 @@ Expr *parsePrimary(Token **ptrptr) {
                     arguments[i] = expr;
                     break;
                 } else {
-                    fprintf(stderr, "Expected: comma or right paren. Token Kind:%d", (*ptrptr)->kind);
+                    fprintf(stderr, "Expected: comma or right paren. Token Kind:%d", tokens->kind);
                     exit(1);
                 }
             }
@@ -155,16 +155,15 @@ Expr *parsePrimary(Token **ptrptr) {
             return identifierexpr(name);
         }
     } else {
-        Token *maybe_leftparenthesis = tokens;
-        if (maybe_leftparenthesis->kind == '(') {
-            *ptrptr += 1;
-            Expr *expr = parseExpr(ptrptr);
-            Token *maybe_rightparenthesis = *ptrptr;
-            if (maybe_rightparenthesis->kind != ')') {
-                fprintf(stderr, "Expected: right parenthesis. Token Kind:%d", maybe_rightparenthesis->kind);
+        if (tokens->kind == '(') {
+            tokens += 1;
+            Expr *expr = parseExpr(&tokens);
+            if (tokens->kind != ')') {
+                fprintf(stderr, "Expected: right parenthesis. Token Kind:%d", tokens->kind);
                 exit(1);
             }
-            *ptrptr += 1;
+            tokens += 1;
+            *ptrptr = tokens;
             return expr;
         }
         fprintf(stderr, "Expected: number. Token Kind:%d", tokens->kind);
