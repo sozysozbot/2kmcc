@@ -29,48 +29,6 @@ Expr *binaryExpr(Expr *first_child, Expr *second_child, BinaryOperation binaryop
     return newexp;
 }
 
-Expr *parseRelational() {
-    if (tokens_end == tokens) {
-        fprintf(stderr, "No token found");
-        exit(1);
-    }
-    Expr *result = parseAdditive();
-
-    while (tokens < tokens_end) {
-        if (consume('>')) {
-            result = binaryExpr(result, parseAdditive(), '>');
-        } else if (consume(enum2('>', '='))) {
-            result = binaryExpr(result, parseAdditive(), enum2('>', '='));
-        } else if (consume('<')) {
-            result = binaryExpr(parseAdditive(), result, '>');  // children & operator swapped
-        } else if (consume(enum2('<', '='))) {
-            result = binaryExpr(parseAdditive(), result, enum2('>', '='));  // children & operator swapped
-        } else {
-            return result;
-        }
-    }
-    return result;
-}
-
-Expr *parseEquality() {
-    if (tokens_end == tokens) {
-        fprintf(stderr, "No token found");
-        exit(1);
-    }
-    Expr *result = parseRelational();
-
-    while (tokens < tokens_end) {
-        if (consume(enum2('=', '='))) {
-            result = binaryExpr(result, parseRelational(), enum2('=', '='));
-        } else if (consume(enum2('!', '='))) {
-            result = binaryExpr(result, parseRelational(), enum2('!', '='));
-        } else {
-            return result;
-        }
-    }
-    return result;
-}
-
 Expr *parsePrimary() {
     if (tokens >= tokens_end) {
         fprintf(stderr, "Expected: number, but got EOF");
@@ -148,8 +106,90 @@ Expr *parseUnary() {
     return parsePrimary();
 }
 
-Expr *parseExpr() {
-    return parseAssign();
+Expr *parseMultiplicative() {
+    if (tokens_end == tokens) {
+        fprintf(stderr, "No token found");
+        exit(1);
+    }
+    Expr *result = parseUnary();
+
+    while (tokens < tokens_end) {
+        if (tokens->kind == enum3('n', 'u', 'm')) {
+            fprintf(stderr, "Expected operator got Number");
+            exit(1);
+        } else if (consume('*')) {
+            result = binaryExpr(result, parseUnary(), '*');
+        } else if (consume('/')) {
+            result = binaryExpr(result, parseUnary(), '/');
+        } else {
+            return result;
+        }
+    }
+    return result;
+}
+
+Expr *parseAdditive() {
+    if (tokens_end == tokens) {
+        fprintf(stderr, "No token found");
+        exit(1);
+    }
+    Expr *result = parseMultiplicative();
+
+    while (tokens < tokens_end) {
+        if (tokens->kind == enum3('n', 'u', 'm')) {
+            fprintf(stderr, "Expected operator, got Number");
+            exit(1);
+        } else if (consume('-')) {
+            result = binaryExpr(result, parseMultiplicative(), '-');
+        } else if (consume('+')) {
+            result = binaryExpr(result, parseMultiplicative(), '+');
+        } else {
+            return result;
+        }
+    }
+    return result;
+}
+
+Expr *parseRelational() {
+    if (tokens_end == tokens) {
+        fprintf(stderr, "No token found");
+        exit(1);
+    }
+    Expr *result = parseAdditive();
+
+    while (tokens < tokens_end) {
+        if (consume('>')) {
+            result = binaryExpr(result, parseAdditive(), '>');
+        } else if (consume(enum2('>', '='))) {
+            result = binaryExpr(result, parseAdditive(), enum2('>', '='));
+        } else if (consume('<')) {
+            result = binaryExpr(parseAdditive(), result, '>');  // children & operator swapped
+        } else if (consume(enum2('<', '='))) {
+            result = binaryExpr(parseAdditive(), result, enum2('>', '='));  // children & operator swapped
+        } else {
+            return result;
+        }
+    }
+    return result;
+}
+
+Expr *parseEquality() {
+    if (tokens_end == tokens) {
+        fprintf(stderr, "No token found");
+        exit(1);
+    }
+    Expr *result = parseRelational();
+
+    while (tokens < tokens_end) {
+        if (consume(enum2('=', '='))) {
+            result = binaryExpr(result, parseRelational(), enum2('=', '='));
+        } else if (consume(enum2('!', '='))) {
+            result = binaryExpr(result, parseRelational(), enum2('!', '='));
+        } else {
+            return result;
+        }
+    }
+    return result;
 }
 
 Expr *parseAssign() {
@@ -162,6 +202,10 @@ Expr *parseAssign() {
         return binaryExpr(result, parseAssign(), '=');
     }
     return result;
+}
+
+Expr *parseExpr() {
+    return parseAssign();
 }
 
 Expr *parseOptionalExprAndToken(TokenKind target) {
@@ -325,46 +369,3 @@ Stmt *parseProgram() {
     return parseFunctionContent();
 }
 
-Expr *parseMultiplicative() {
-    if (tokens_end == tokens) {
-        fprintf(stderr, "No token found");
-        exit(1);
-    }
-    Expr *result = parseUnary();
-
-    while (tokens < tokens_end) {
-        if (tokens->kind == enum3('n', 'u', 'm')) {
-            fprintf(stderr, "Expected operator got Number");
-            exit(1);
-        } else if (consume('*')) {
-            result = binaryExpr(result, parseUnary(), '*');
-        } else if (consume('/')) {
-            result = binaryExpr(result, parseUnary(), '/');
-        } else {
-            return result;
-        }
-    }
-    return result;
-}
-
-Expr *parseAdditive() {
-    if (tokens_end == tokens) {
-        fprintf(stderr, "No token found");
-        exit(1);
-    }
-    Expr *result = parseMultiplicative();
-
-    while (tokens < tokens_end) {
-        if (tokens->kind == enum3('n', 'u', 'm')) {
-            fprintf(stderr, "Expected operator, got Number");
-            exit(1);
-        } else if (consume('-')) {
-            result = binaryExpr(result, parseMultiplicative(), '-');
-        } else if (consume('+')) {
-            result = binaryExpr(result, parseMultiplicative(), '+');
-        } else {
-            return result;
-        }
-    }
-    return result;
-}
