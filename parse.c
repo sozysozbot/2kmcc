@@ -111,30 +111,30 @@ Expr *parsePrimary(Token **ptrptr) {
         return numberexpr(value);
     } else if (tokens->kind == aaaa('i', 'd', 'n', 't')) {
         char *name = tokens->identifier_name;
-        *ptrptr += 1;
-        Token *maybe_leftparenthesis = *ptrptr;
-        if (maybe_leftparenthesis->kind == '(') {
-            *ptrptr += 1;
+        tokens += 1;
+        if (tokens->kind == '(') {
+            tokens += 1;
             Expr **arguments = calloc(6, sizeof(Expr *));
 
-            if ((*ptrptr)->kind == ')') {
-                *ptrptr += 1;
+            if (tokens->kind == ')') {
+                tokens += 1;
                 Expr *callexp = calloc(1, sizeof(Expr));
                 callexp->name = name;
                 callexp->expr_kind = EK_Call;
                 callexp->func_args = arguments;
                 callexp->func_arg_len = 0;
+                *ptrptr = tokens;
                 return callexp;
             }
 
             int i = 0;
             for (; i < 6; i++) {
-                Expr *expr = parseExpr(ptrptr);
-                if ((*ptrptr)->kind == ',') {
-                    *ptrptr += 1;
+                Expr *expr = parseExpr(&tokens);
+                if (tokens->kind == ',') {
+                    tokens += 1;
                     arguments[i] = expr;
-                } else if ((*ptrptr)->kind == ')') {
-                    *ptrptr += 1;
+                } else if (tokens->kind == ')') {
+                    tokens += 1;
                     arguments[i] = expr;
                     break;
                 } else {
@@ -144,12 +144,14 @@ Expr *parsePrimary(Token **ptrptr) {
             }
 
             Expr *callexp = calloc(1, sizeof(Expr));
-            callexp->name = tokens->identifier_name;
+            callexp->name = name;
             callexp->expr_kind = EK_Call;
             callexp->func_args = arguments;
             callexp->func_arg_len = i + 1;
+            *ptrptr = tokens;
             return callexp;
         } else {
+            *ptrptr = tokens;
             return identifierexpr(name);
         }
     } else {
