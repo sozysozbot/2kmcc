@@ -72,15 +72,15 @@ void Codegen(Stmt *stmt) {
 }
 
 void EvaluateExprIntoRax(Expr *expr) {
+    if (expr->expr_kind == EK_Identifier) {
+        EvaluateLValueAddressIntoRax(expr);
+        printf("  mov rax,[rax]\n");
+        return;
+    } else if (expr->expr_kind == EK_Number) {
+        printf("  mov rax, %d\n", expr->value);
+        return;
+    }
     switch (expr->expr_kind) {
-        case EK_Identifier:
-            EvaluateLValueAddressIntoRax(expr);
-            printf("  mov rax,[rax]\n");
-            break;
-
-        case EK_Number:
-            printf("  mov rax, %d\n", expr->value);
-            break;
         case EK_Operator: {
             if (expr->binary_op == '=') {
                 EvaluateLValueAddressIntoRax(expr->first_child);
@@ -98,7 +98,7 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    push rax\n");
             printf("    pop rdi\n");
             printf("    pop rax\n");
-            
+
             if (expr->binary_op == '+') {
                 printf("    add rax,rdi\n");
             } else if (expr->binary_op == '-') {
