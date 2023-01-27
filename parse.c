@@ -44,7 +44,7 @@ Expr *parseRelational() {
         } else if (consume('<')) {
             result = binaryExpr(parseAdditive(), result, '>');  // children & operator swapped
         } else if (consume(enum2('<', '='))) {
-            result = binaryExpr(parseAdditive(), result, enum2('>', '=')); // children & operator swapped
+            result = binaryExpr(parseAdditive(), result, enum2('>', '='));  // children & operator swapped
         } else {
             return result;
         }
@@ -121,19 +121,17 @@ Expr *parsePrimary() {
             numberexp->expr_kind = EK_Identifier;
             return numberexp;
         }
-    } else {
-        if (consume('(')) {
-            Expr *expr = parseExpr();
-            if (tokens->kind != ')') {
-                fprintf(stderr, "Expected: right parenthesis. Token Kind:%d", tokens->kind);
-                exit(1);
-            }
-            tokens += 1;
+    } else if (consume('(')) {
+        Expr *expr = parseExpr();
+        if (consume(')')) {
             return expr;
         }
-        fprintf(stderr, "Expected: number. Token Kind:%d", tokens->kind);
+
+        fprintf(stderr, "Expected: right parenthesis. Token Kind:%d", tokens->kind);
         exit(1);
     }
+    fprintf(stderr, "Expected: number. Token Kind:%d", tokens->kind);
+    exit(1);
 }
 
 Expr *parseUnary() {
