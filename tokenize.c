@@ -129,7 +129,7 @@ int tokenize(char *str) {
             token_index++;
         } else if (c == ' ') {
             i++;
-        } else if ('a' <= c && c <= 'z' || c == '_') {
+        } else if (('a' <= c && c <= 'z') || c == '_') {
             char *start = str + i;
             i++;
             for (;;) {

@@ -352,24 +352,43 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end) {
     return stmt;
 }
 
-Stmt *parseProgram(Token **ptrptr, Token *token_end) {
+Stmt *parseFunctionContent(Token **ptrptr, Token *token_end) {
     Token *tokens = *ptrptr;
-    if (token_end == tokens) {
-        fprintf(stderr, "No token found");
+    if (tokens->kind == '{') {
+        tokens++;
+        Stmt *result = calloc(1, sizeof(Stmt));
+        result->stmt_kind = aaaa('e', 'x', 'p', 'r');
+        result->expr = numberexpr(1);
+        while (tokens->kind != '}') {
+            Stmt *statement = parseStmt(&tokens, token_end);
+            Stmt *newstmt = calloc(1, sizeof(Stmt));
+            newstmt->first_child = result;
+            newstmt->stmt_kind = aaaa('n', 'e', 'x', 't');
+            newstmt->second_child = statement;
+            result = newstmt;
+        }
+        tokens++;
+        *ptrptr = tokens;
+        return result;
+    } else {
+        fprintf(stderr, "no { after a parenthesis defining a function. kind=%d\n", tokens->kind);
         exit(1);
     }
-    Stmt *result = parseStmt(&tokens, token_end);
+}
 
-    for (; tokens < token_end;) {
-        Stmt *statement = parseStmt(&tokens, token_end);
-        Stmt *newexp = calloc(1, sizeof(Stmt));
-        newexp->first_child = result;
-        newexp->stmt_kind = aaaa('n', 'e', 'x', 't');
-        newexp->second_child = statement;
-        result = newexp;
+Stmt *parseProgram(Token **ptrptr, Token *token_end) {
+    Token *tokens = *ptrptr;
+    if (tokens->kind == aaaa('i', 'd', 'n', 't')) {
+        tokens++;
+    }
+    if (tokens->kind == '(') {
+        tokens++;
+    }
+    if (tokens->kind == ')') {
+        tokens++;
     }
     *ptrptr = tokens;
-    return result;
+    return parseFunctionContent(ptrptr, token_end);
 }
 
 Expr *parseMultiplicative(Token **ptrptr, Token *token_end) {
