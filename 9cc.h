@@ -61,14 +61,14 @@ typedef struct Token
 int isDigit(char c);
 int intLength(char *str);
 int parseInt(char *str);
-Expr *parseMultiplicative(Token **ptrptr, Token *token_end);
-Expr *parseAdditive(Token **ptrptr, Token *token_end);
-Expr *parseExpr(Token **ptrptr, Token *token_end);
-Expr *parseUnary(Token **ptrptr, Token *token_end);
-Stmt *parseProgram(Token **ptrptr, Token *token_end);
-Expr *parseAssign(Token **ptrptr, Token *token_end);
-Stmt *parseFor(Token **ptrptr,Token *token_end);
-Stmt *parseStmt(Token **ptrptr, Token *token_end);
+Expr *parseMultiplicative(Token **ptrptr);
+Expr *parseAdditive(Token **ptrptr);
+Expr *parseExpr(Token **ptrptr);
+Expr *parseUnary(Token **ptrptr);
+Stmt *parseProgram(Token **ptrptr);
+Expr *parseAssign(Token **ptrptr);
+Stmt *parseFor(Token **ptrptr);
+Stmt *parseStmt(Token **ptrptr);
 
 void Codegen(Stmt* stmt);
 
