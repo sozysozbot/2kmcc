@@ -129,12 +129,12 @@ int tokenize(char *str) {
             token_index++;
         } else if (c == ' ') {
             i++;
-        } else if ('a' <= c && c <= 'z') {
+        } else if ('a' <= c && c <= 'z' || c == '_') {
             char *start = str + i;
             i++;
             for (;;) {
                 char c1 = str[i];
-                if ('a' <= c1 && c1 <= 'z') {
+                if (('a' <= c1 && c1 <= 'z') || c1 == '_' || ('0' <= c1 && c1 <= '9')) {
                     i++;
                 } else {
                     break;

@@ -152,8 +152,8 @@ assert check_and_link_with(
     expected=5)
 
 assert check_and_link_with(
-    "return addsix(1, 2, 3, 4, 5, 6);", 
-    linked_lib="int addsix(int a, int b, int c, int d, int e, int f) { return a + b + c + d + e + f; }",
+    "return add6(1, 2, 3, 4, 5, 6);", 
+    linked_lib="int add6(int a, int b, int c, int d, int e, int f) { return a + b + c + d + e + f; }",
     expected=21)
 
 print("OK")
