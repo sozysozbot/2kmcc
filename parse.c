@@ -12,6 +12,15 @@ Expr *numberexpr(int value) {
     return numberexp;
 }
 
+Expr *binaryExpr(Expr *first_child, Expr *second_child, BinaryOperation binaryop) {
+    Expr *newexp = calloc(1, sizeof(Expr));
+    newexp->first_child = first_child;
+    newexp->expr_kind = EK_Operator;
+    newexp->binary_op = binaryop;
+    newexp->second_child = second_child;
+    return newexp;
+}
+
 int maybe_consume(TokenKind kind) {
     if (tokens->kind == kind) {
         tokens += 1;
@@ -32,15 +41,6 @@ void panic_if_eof() {
         fprintf(stderr, "EOF encountered");
         exit(1);
     }
-}
-
-Expr *binaryExpr(Expr *first_child, Expr *second_child, BinaryOperation binaryop) {
-    Expr *newexp = calloc(1, sizeof(Expr));
-    newexp->first_child = first_child;
-    newexp->expr_kind = EK_Operator;
-    newexp->binary_op = binaryop;
-    newexp->second_child = second_child;
-    return newexp;
 }
 
 Expr *parsePrimary() {
