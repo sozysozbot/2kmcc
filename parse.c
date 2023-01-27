@@ -168,20 +168,26 @@ Expr *parsePrimary(Token **ptrptr) {
 }
 
 Expr *parseUnary(Token **ptrptr) {
-    Token *maybe_unary = *ptrptr;
-    if (maybe_unary >= token_end) {
+    Token *tokens = *ptrptr;
+    if (tokens >= token_end) {
         fprintf(stderr, "Expected: number, but got EOF");
         exit(1);
     }
-    if (maybe_unary->kind == '+') {
-        *ptrptr += 1;
-        return parsePrimary(ptrptr);
+    if (tokens->kind == '+') {
+        tokens += 1;
+        Expr *expr = parsePrimary(&tokens);
+        *ptrptr = tokens;
+        return expr;
     }
-    if (maybe_unary->kind == '-') {
-        *ptrptr += 1;
-        return binaryExpr(numberexpr(0), parsePrimary(ptrptr), '-');
+    if (tokens->kind == '-') {
+        tokens += 1;
+        Expr *expr = binaryExpr(numberexpr(0), parsePrimary(&tokens), '-');
+        *ptrptr = tokens;
+        return expr;
     }
-    return parsePrimary(ptrptr);
+    Expr *expr = parsePrimary(&tokens);
+    *ptrptr = tokens;
+    return expr;
 }
 
 Expr *parseExpr(Token **ptrptr) {
