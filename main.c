@@ -1,13 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "9cc.h"
 
 Token tokens[1000];
 
-int main(int argc, char **argv)
-{
-    if (argc != 2)
-    {
+int aa(int a, int b) {
+    return a * 256 + b;
+}
+
+int aaa(int a, int b, int c) {
+    return aa(aa(a, b), c);
+}
+
+int aaaa(int a, int b, int c, int d) {
+    return aa(aaa(a, b, c), d);
+}
+
+int main(int argc, char **argv) {
+    if (argc != 2) {
         fprintf(stderr, "引数の個数が正しくありません\n");
         return 1;
     }
@@ -16,8 +27,7 @@ int main(int argc, char **argv)
 
     int token_length = tokenize(p);
 
-    if (token_length == 0)
-    {
+    if (token_length == 0) {
         fprintf(stderr, "No token found");
         return 1;
     }

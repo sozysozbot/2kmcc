@@ -42,10 +42,10 @@ Expr *parseRelational(Token **ptrptr, Token *token_end) {
             Expr *numberexp = parseAdditive(&tokens, token_end);
             result = binaryExpr(result, numberexp, '>');
         }
-        if (maybe_relational.kind == '>' * 256 + '=') {
+        if (maybe_relational.kind == aa('>', '=')) {
             tokens++;
             Expr *numberexp = parseAdditive(&tokens, token_end);
-            result = binaryExpr(result, numberexp, '>' * 256 + '=');
+            result = binaryExpr(result, numberexp, aa('>', '='));
         }
         if (maybe_relational.kind == '<') {
             tokens++;
@@ -53,11 +53,11 @@ Expr *parseRelational(Token **ptrptr, Token *token_end) {
             // swap children of operator node
             result = binaryExpr(numberexp, result, '>');
         }
-        if (maybe_relational.kind == '<' * 256 + '=') {
+        if (maybe_relational.kind == aa('<', '=')) {
             tokens++;
             Expr *numberexp = parseAdditive(&tokens, token_end);
             // swap children of operator node
-            result = binaryExpr(numberexp, result, '>' * 256 + '=');
+            result = binaryExpr(numberexp, result, aa('>', '='));
 
         } else {
             *ptrptr = tokens;
@@ -78,14 +78,14 @@ Expr *parseEquality(Token **ptrptr, Token *token_end) {
 
     while (tokens < token_end) {
         Token maybe_relational = *tokens;
-        if (maybe_relational.kind == '=' * 256 + '=') {
+        if (maybe_relational.kind == aa('=', '=')) {
             tokens++;
             Expr *numberexp = parseRelational(&tokens, token_end);
-            result = binaryExpr(result, numberexp, '=' * 256 + '=');
-        } else if (maybe_relational.kind == '!' * 256 + '=') {
+            result = binaryExpr(result, numberexp, aa('=', '='));
+        } else if (maybe_relational.kind == aa('!', '=')) {
             tokens++;
             Expr *numberexp = parseRelational(&tokens, token_end);
-            result = binaryExpr(result, numberexp, '!' * 256 + '=');
+            result = binaryExpr(result, numberexp, aa('!', '='));
         } else {
             *ptrptr = tokens;
             return result;
@@ -101,10 +101,10 @@ Expr *parsePrimary(Token **ptrptr, Token *token_end) {
         fprintf(stderr, "Expected: number, but got EOF");
         exit(1);
     }
-    if (maybe_number->kind == ('n' * 256 + 'u') * 256 + 'm') {
+    if (maybe_number->kind == aaa('n', 'u', 'm')) {
         *ptrptr += 1;
         return numberexpr(maybe_number->value);
-    } else if (maybe_number->kind == (('i' * 256 + 'd') * 256 + 'n') * 256 + 't') {
+    } else if (maybe_number->kind == aaaa('i', 'd', 'n', 't')) {
         *ptrptr += 1;
         return identifierexpr(maybe_number->identifier_name);
     } else {
@@ -196,7 +196,7 @@ Stmt *parseFor(Token **ptrptr, Token *token_end) {
     exprs[2] = parseOptionalExprAndToken(&tokens, token_end, ')');
 
     Stmt *stmt = calloc(1, sizeof(Stmt));
-    stmt->stmt_kind = ('f' * 256 + 'o') * 256 + 'r';
+    stmt->stmt_kind = aaa('f', 'o', 'r');
     stmt->expr = exprs[0];
     stmt->expr1 = exprs[1];
     stmt->expr2 = exprs[2];
@@ -219,11 +219,11 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end) {
     int is_if = 0;
     int is_while = 0;
 
-    if (tokens->kind == ('r' * 256 + 'e') * 256 + 't') {
+    if (tokens->kind == aaa('r', 'e', 't')) {
         tokens++;
         is_return = 1;
     }
-    if (tokens->kind == 'i' * 256 + 'f') {
+    if (tokens->kind == aa('i', 'f')) {
         tokens++;
         is_if = 1;
         if (tokens->kind == '(') {
@@ -233,7 +233,7 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end) {
             exit(1);
         }
     }
-    if (tokens->kind == (('w' * 256 + 'h') * 256 + 'i') * 256 + 'l') {
+    if (tokens->kind == aaaa('w', 'h', 'i', 'l')) {
         tokens++;
         is_while = 1;
         if (tokens->kind == '(') {
@@ -243,7 +243,7 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end) {
             exit(1);
         }
     }
-    if (tokens->kind == ('f' * 256 + 'o') * 256 + 'r') {
+    if (tokens->kind == aaa('f', 'o', 'r')) {
         Stmt *stmt = parseFor(&tokens, token_end);
         *ptrptr = tokens;
         return stmt;
@@ -267,28 +267,28 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end) {
     }
 
     Stmt *stmt = calloc(1, sizeof(Stmt));
-    stmt->stmt_kind = (('e' * 256 + 'x') * 256 + 'p') * 256 + 'r';
+    stmt->stmt_kind = aaaa('e', 'x', 'p', 'r');
     stmt->expr = expr;
     if (is_if) {
-        stmt->stmt_kind = 'i' * 256 + 'f';
+        stmt->stmt_kind = aa('i', 'f');
         {
             Stmt *statement = parseStmt(&tokens, token_end);
             stmt->second_child = statement;
         }
         Token maybe_else = *(tokens);
-        if (maybe_else.kind == (('e' * 256 + 'l') * 256 + 's') * 256 + 'e') {
+        if (maybe_else.kind == aaaa('e', 'l', 's', 'e')) {
             tokens++;
             Stmt *statement1 = parseStmt(&tokens, token_end);
             stmt->third_child = statement1;
         }
     }
     if (is_while) {
-        stmt->stmt_kind = (('w' * 256 + 'h') * 256 + 'i') * 256 + 'l';
+        stmt->stmt_kind = aaaa('w', 'h', 'i', 'l');
         Stmt *statement = parseStmt(&tokens, token_end);
         stmt->second_child = statement;
     }
     if (is_return) {
-        stmt->stmt_kind = ('r' * 256 + 'e') * 256 + 't';
+        stmt->stmt_kind = aaa('r', 'e', 't');
     }
     *ptrptr = tokens;
     return stmt;
@@ -306,7 +306,7 @@ Stmt *parseProgram(Token **ptrptr, Token *token_end) {
         Stmt *statement = parseStmt(&tokens, token_end);
         Stmt *newexp = calloc(1, sizeof(Stmt));
         newexp->first_child = result;
-        newexp->stmt_kind = (('n' * 256 + 'e') * 256 + 'x') * 256 + 't';
+        newexp->stmt_kind = aaaa('n', 'e', 'x', 't');
         newexp->second_child = statement;
         result = newexp;
     }
@@ -323,7 +323,7 @@ Expr *parseMultiplicative(Token **ptrptr, Token *token_end) {
     Expr *result = parseUnary(&tokens, token_end);
 
     while (tokens < token_end) {
-        if (tokens->kind == ('n' * 256 + 'u') * 256 + 'm') {
+        if (tokens->kind == aaa('n', 'u', 'm')) {
             fprintf(stderr, "Expected operator got Number");
             exit(1);
         } else if (tokens->kind == '*') {
@@ -352,7 +352,7 @@ Expr *parseAdditive(Token **ptrptr, Token *token_end) {
     Expr *result = parseMultiplicative(&tokens, token_end);
 
     while (tokens < token_end) {
-        if (tokens->kind == ('n' * 256 + 'u') * 256 + 'm') {
+        if (tokens->kind == aaa('n', 'u', 'm')) {
             fprintf(stderr, "Expected operator got Number");
             exit(1);
         } else if (tokens->kind == '-') {

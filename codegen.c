@@ -17,17 +17,17 @@ void EvaluateLValueAddressIntoRax(Expr *expr) {
 }
 
 void Codegen(Stmt *stmt) {
-    if (stmt->stmt_kind == (('e' * 256 + 'x') * 256 + 'p') * 256 + 'r') {
+    if (stmt->stmt_kind == aaaa('e', 'x', 'p', 'r')) {
         EvaluateExprIntoRax(stmt->expr);
-    } else if (stmt->stmt_kind == (('n' * 256 + 'e') * 256 + 'x') * 256 + 't') {
+    } else if (stmt->stmt_kind == aaaa('n', 'e', 'x', 't')) {
         Codegen(stmt->first_child);
         Codegen(stmt->second_child);
-    } else if (stmt->stmt_kind == ('r' * 256 + 'e') * 256 + 't') {
+    } else if (stmt->stmt_kind == aaa('r', 'e', 't')) {
         EvaluateExprIntoRax(stmt->expr);
         printf("  mov rsp, rbp\n");
         printf("  pop rbp\n");
         printf("  ret\n");
-    } else if (stmt->stmt_kind == 'i' * 256 + 'f') {
+    } else if (stmt->stmt_kind == aa('i', 'f')) {
         EvaluateExprIntoRax(stmt->expr);
         printf("  cmp rax, 0\n");
         printf("  je  .Lelse%d\n", labelCounter);
@@ -39,7 +39,7 @@ void Codegen(Stmt *stmt) {
         }
         printf(".Lend%d:\n", labelCounter);
         labelCounter++;
-    } else if (stmt->stmt_kind == (('w' * 256 + 'h') * 256 + 'i') * 256 + 'l') {
+    } else if (stmt->stmt_kind == aaaa('w', 'h', 'i', 'l')) {
         printf(".Lbegin%d:\n", labelCounter);
         EvaluateExprIntoRax(stmt->expr);
         printf("  cmp rax, 0\n");
@@ -49,7 +49,7 @@ void Codegen(Stmt *stmt) {
         printf(".Lend%d:\n", labelCounter);
 
         labelCounter++;
-    } else if (stmt->stmt_kind == ('f' * 256 + 'o') * 256 + 'r') {
+    } else if (stmt->stmt_kind == aaa('f', 'o', 'r')) {
         if (stmt->expr) {
             EvaluateExprIntoRax(stmt->expr);
         }
@@ -106,11 +106,11 @@ void EvaluateExprIntoRax(Expr *expr) {
             } else if (expr->binary_op == '/') {
                 printf("  cqo\n");
                 printf("  idiv rdi\n");
-            } else if (expr->binary_op == '=' * 256 + '=') {
+            } else if (expr->binary_op == aa('=', '=')) {
                 printf("  cmp rax, rdi\n");
                 printf("  sete al\n");
                 printf("  movzb rax, al\n");
-            } else if (expr->binary_op == '!' * 256 + '=') {
+            } else if (expr->binary_op == aa('!', '=')) {
                 printf("  cmp rax, rdi\n");
                 printf("  setne al\n");
                 printf("  movzb rax, al\n");
@@ -118,7 +118,7 @@ void EvaluateExprIntoRax(Expr *expr) {
                 printf("  cmp rax, rdi\n");
                 printf("  setg al\n");
                 printf("  movzb rax, al\n");
-            } else if (expr->binary_op == '>' * 256 + '=') {
+            } else if (expr->binary_op == aa('>', '=')) {
                 printf("  cmp rax, rdi\n");
                 printf("  setge al\n");
                 printf("  movzb rax, al\n");

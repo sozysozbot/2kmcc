@@ -79,3 +79,7 @@ int is_alnum(char c);
 void EvaluateExprIntoRax(Expr *expr);
 
 extern Token tokens[1000];
+
+int aa(int a, int b);
+int aaa(int a, int b, int c);
+int aaaa(int a, int b, int c, int d);
