@@ -216,7 +216,7 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end) {
         exit(1);
     }
 
-     if (tokens->kind == '{') {
+    if (tokens->kind == '{') {
         tokens++;
         Stmt *result = calloc(1, sizeof(Stmt));
         result->stmt_kind = aaaa('e', 'x', 'p', 'r');
