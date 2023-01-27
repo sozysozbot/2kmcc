@@ -12,11 +12,12 @@ Expr *numberexpr(int value) {
     return numberexp;
 }
 
-Expr *identifierexpr(char *name) {
-    Expr *numberexp = calloc(1, sizeof(Expr));
-    numberexp->name = name;
-    numberexp->expr_kind = EK_Identifier;
-    return numberexp;
+int consume(TokenKind kind) {
+    if (tokens->kind == kind) {
+        tokens += 1;
+        return 1;
+    }
+    return 0;
 }
 
 Expr *binaryExpr(Expr *first_child, Expr *second_child, BinaryOperation binaryop) {
@@ -103,12 +104,10 @@ Expr *parsePrimary() {
     } else if (tokens->kind == aaaa('i', 'd', 'n', 't')) {
         char *name = tokens->identifier_name;
         tokens += 1;
-        if (tokens->kind == '(') {
-            tokens += 1;
+        if (consume('(')) {
             Expr **arguments = calloc(6, sizeof(Expr *));
 
-            if (tokens->kind == ')') {
-                tokens += 1;
+            if (consume(')')) {
                 Expr *callexp = calloc(1, sizeof(Expr));
                 callexp->name = name;
                 callexp->expr_kind = EK_Call;
@@ -120,11 +119,9 @@ Expr *parsePrimary() {
             int i = 0;
             for (; i < 6; i++) {
                 Expr *expr = parseExpr();
-                if (tokens->kind == ',') {
-                    tokens += 1;
+                if (consume(',')) {
                     arguments[i] = expr;
-                } else if (tokens->kind == ')') {
-                    tokens += 1;
+                } else if (consume(')')) {
                     arguments[i] = expr;
                     break;
                 } else {
@@ -140,11 +137,13 @@ Expr *parsePrimary() {
             callexp->func_arg_len = i + 1;
             return callexp;
         } else {
-            return identifierexpr(name);
+            Expr *numberexp = calloc(1, sizeof(Expr));
+            numberexp->name = name;
+            numberexp->expr_kind = EK_Identifier;
+            return numberexp;
         }
     } else {
-        if (tokens->kind == '(') {
-            tokens += 1;
+        if (consume('(')) {
             Expr *expr = parseExpr();
             if (tokens->kind != ')') {
                 fprintf(stderr, "Expected: right parenthesis. Token Kind:%d", tokens->kind);
@@ -163,13 +162,11 @@ Expr *parseUnary() {
         fprintf(stderr, "Expected: number, but got EOF");
         exit(1);
     }
-    if (tokens->kind == '+') {
-        tokens += 1;
+    if (consume('+')) {
         Expr *expr = parsePrimary();
         return expr;
     }
-    if (tokens->kind == '-') {
-        tokens += 1;
+    if (consume('-')) {
         Expr *expr = binaryExpr(numberexpr(0), parsePrimary(), '-');
         return expr;
     }
