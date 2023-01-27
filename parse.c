@@ -124,7 +124,7 @@ Expr *parsePrimary(Token **ptrptr, Token *token_end) {
         exit(1);
     }
 }
-// unary   = ("+" | "-")? primary
+
 Expr *parseUnary(Token **ptrptr, Token *token_end) {
     Token *maybe_unary = *ptrptr;
     if (maybe_unary >= token_end) {
@@ -142,10 +142,10 @@ Expr *parseUnary(Token **ptrptr, Token *token_end) {
     return parsePrimary(ptrptr, token_end);
 }
 
-// expr       = equality
 Expr *parseExpr(Token **ptrptr, Token *token_end) {
     return parseAssign(ptrptr, token_end);
 }
+
 Expr *parseAssign(Token **ptrptr, Token *token_end) {
     Token *tokens = *ptrptr;
     if (token_end == tokens) {
@@ -195,11 +195,8 @@ Stmt *parseFor(Token **ptrptr, Token *token_end) {
     exprs[1] = parseOptionalExprAndToken(&tokens, token_end, ';');
     exprs[2] = parseOptionalExprAndToken(&tokens, token_end, ')');
 
-    Stmt *stmt = malloc(sizeof(Stmt));
+    Stmt *stmt = calloc(1, sizeof(Stmt));
     stmt->stmt_kind = SK_For;
-    stmt->first_child = NULL;
-    stmt->second_child = NULL;
-    stmt->third_child = NULL;
     stmt->expr = exprs[0];
     stmt->expr1 = exprs[1];
     stmt->expr2 = exprs[2];
@@ -211,10 +208,7 @@ Stmt *parseFor(Token **ptrptr, Token *token_end) {
 
     return stmt;
 }
-// statement= expr ";"
-//        | "if" "(" expr ")" stmt ("else" stmt)?
-//        | "while" "(" expr ")" stmt ?
-//        | for?
+
 Stmt *parseStmt(Token **ptrptr, Token *token_end) {
     Token *tokens = *ptrptr;
     if (token_end == tokens) {
@@ -299,7 +293,7 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end) {
     *ptrptr = tokens;
     return stmt;
 }
-// program = (expr ";")*
+
 Stmt *parseProgram(Token **ptrptr, Token *token_end) {
     Token *tokens = *ptrptr;
     if (token_end == tokens) {
@@ -320,7 +314,6 @@ Stmt *parseProgram(Token **ptrptr, Token *token_end) {
     return result;
 }
 
-// mul = unary ("*" unary | "/" unary)*
 Expr *parseMultiplicative(Token **ptrptr, Token *token_end) {
     Token *tokens = *ptrptr;
     if (token_end == tokens) {
@@ -350,7 +343,6 @@ Expr *parseMultiplicative(Token **ptrptr, Token *token_end) {
     return result;
 }
 
-// additive = mul ("+" mul | "-" mul)*
 Expr *parseAdditive(Token **ptrptr, Token *token_end) {
     Token *tokens = *ptrptr;
     if (token_end == tokens) {
@@ -359,30 +351,21 @@ Expr *parseAdditive(Token **ptrptr, Token *token_end) {
     }
     Expr *result = parseMultiplicative(&tokens, token_end);
 
-    for (; tokens < token_end;) {
-        switch (tokens->kind) {
-            case ('n' * 256 + 'u') * 256 + 'm': {
-                fprintf(stderr, "Expected operator got Number");
-                exit(1);
-            }
-            case '-': {
-                tokens++;
-                Expr *numberexp = parseMultiplicative(&tokens, token_end);
-                result = binaryExpr(result, numberexp, '-');
-                // ptr++;
-                break;
-            }
-            case '+': {
-                tokens++;
-                Expr *numberexp = parseMultiplicative(&tokens, token_end);
-                result = binaryExpr(result, numberexp, '+');
-                // ptr++;
-                break;
-            }
-            default:
-                *ptrptr = tokens;
-                return result;
-                break;
+    while (tokens < token_end) {
+        if (tokens->kind == ('n' * 256 + 'u') * 256 + 'm') {
+            fprintf(stderr, "Expected operator got Number");
+            exit(1);
+        } else if (tokens->kind == '-') {
+            tokens++;
+            Expr *numberexp = parseMultiplicative(&tokens, token_end);
+            result = binaryExpr(result, numberexp, '-');
+        } else if (tokens->kind == '+') {
+            tokens++;
+            Expr *numberexp = parseMultiplicative(&tokens, token_end);
+            result = binaryExpr(result, numberexp, '+');
+        } else {
+            *ptrptr = tokens;
+            return result;
         }
     }
     *ptrptr = tokens;
