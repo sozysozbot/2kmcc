@@ -255,29 +255,25 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end) {
         return stmt;
     }
     Expr *expr = parseExpr(&tokens, token_end);
-    {
-        Token maybe_operator = *tokens;
-        if (is_if || is_while) {
-            if (maybe_operator.kind == ')') {
-                tokens++;
-            } else {
-                fprintf(stderr, "expected right parenthesis got %d\n", maybe_operator.kind);
-                exit(1);
-            }
+
+    if (is_if || is_while) {
+        if (tokens->kind == ')') {
+            tokens++;
         } else {
-            if (maybe_operator.kind == ';') {
-                tokens++;
-            } else {
-                fprintf(stderr, "no semicolon after expr. kind=%d\n", maybe_operator.kind);
-                exit(1);
-            }
+            fprintf(stderr, "expected right parenthesis got %d\n", tokens->kind);
+            exit(1);
+        }
+    } else {
+        if (tokens->kind == ';') {
+            tokens++;
+        } else {
+            fprintf(stderr, "no semicolon after expr. kind=%d\n", tokens->kind);
+            exit(1);
         }
     }
-    Stmt *stmt = malloc(sizeof(Stmt));
+
+    Stmt *stmt = calloc(1, sizeof(Stmt));
     stmt->stmt_kind = SK_Expr;
-    stmt->first_child = NULL;
-    stmt->second_child = NULL;
-    stmt->third_child = NULL;
     stmt->expr = expr;
     if (is_if) {
         stmt->stmt_kind = SK_If;
@@ -334,15 +330,14 @@ Expr *parseMultiplicative(Token **ptrptr, Token *token_end) {
     Expr *result = parseUnary(&tokens, token_end);
 
     while (tokens < token_end) {
-        Token maybe_operator = *tokens;
-        if (maybe_operator.kind == ('n' * 256 + 'u') * 256 + 'm') {
+        if (tokens->kind == ('n' * 256 + 'u') * 256 + 'm') {
             fprintf(stderr, "Expected operator got Number");
             exit(1);
-        } else if (maybe_operator.kind == '*') {
+        } else if (tokens->kind == '*') {
             tokens++;
             Expr *numberexp = parseUnary(&tokens, token_end);
             result = binaryExpr(result, numberexp, '*');
-        } else if (maybe_operator.kind == '/') {
+        } else if (tokens->kind == '/') {
             tokens++;
             Expr *numberexp = parseUnary(&tokens, token_end);
             result = binaryExpr(result, numberexp, '/');
@@ -365,8 +360,7 @@ Expr *parseAdditive(Token **ptrptr, Token *token_end) {
     Expr *result = parseMultiplicative(&tokens, token_end);
 
     for (; tokens < token_end;) {
-        Token maybe_operator = *tokens;
-        switch (maybe_operator.kind) {
+        switch (tokens->kind) {
             case ('n' * 256 + 'u') * 256 + 'm': {
                 fprintf(stderr, "Expected operator got Number");
                 exit(1);
