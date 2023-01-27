@@ -333,31 +333,22 @@ Expr *parseMultiplicative(Token **ptrptr, Token *token_end) {
     }
     Expr *result = parseUnary(&tokens, token_end);
 
-    for (; tokens < token_end;) {
+    while (tokens < token_end) {
         Token maybe_operator = *tokens;
-        switch (maybe_operator.kind) {
-            case ('n' * 256 + 'u') * 256 + 'm': {
-                fprintf(stderr, "Expected operator got Number");
-                exit(1);
-            }
-            case '*': {
-                tokens++;
-                Expr *numberexp = parseUnary(&tokens, token_end);
-                result = binaryExpr(result, numberexp, '*');
-                // ptr++;
-                break;
-            }
-            case '/': {
-                tokens++;
-                Expr *numberexp = parseUnary(&tokens, token_end);
-                result = binaryExpr(result, numberexp, '/');
-                // ptr++;
-                break;
-            }
-            default:
-                *ptrptr = tokens;
-                return result;
-                break;
+        if (maybe_operator.kind == ('n' * 256 + 'u') * 256 + 'm') {
+            fprintf(stderr, "Expected operator got Number");
+            exit(1);
+        } else if (maybe_operator.kind == '*') {
+            tokens++;
+            Expr *numberexp = parseUnary(&tokens, token_end);
+            result = binaryExpr(result, numberexp, '*');
+        } else if (maybe_operator.kind == '/') {
+            tokens++;
+            Expr *numberexp = parseUnary(&tokens, token_end);
+            result = binaryExpr(result, numberexp, '/');
+        } else {
+            *ptrptr = tokens;
+            return result;
         }
     }
     *ptrptr = tokens;
