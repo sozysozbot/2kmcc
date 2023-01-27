@@ -3,8 +3,9 @@
 
 #include "9cc.h"
 
-Token tokens[1000];
+Token all_tokens[1000];
 Token *token_end;
+Token **PTR_PTR;
 
 int aa(int a, int b) {
     return a * 256 + b;
@@ -33,9 +34,9 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    Token *ptr = tokens;
-    token_end = tokens + token_length;
-    Stmt *expr = parseProgram(&ptr);
+    Token *ptr = all_tokens;
+    token_end = all_tokens + token_length;
+    Stmt *expr = parseProgram(PTR_PTR = &ptr);
 
     printf(".intel_syntax noprefix\n");
     printf(".globl main\n");

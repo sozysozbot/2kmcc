@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include "9cc.h"
-
+extern Token **PTR_PTR;
 extern Token *token_end;
 
 Expr *numberexpr(int value) {
@@ -378,8 +378,8 @@ Stmt *parseFunctionContent(Token **ptrptr) {
     }
 }
 
-Stmt *parseProgram(Token **ptrptr) {
-    Token *tokens = *ptrptr;
+Stmt *parseProgram() {
+    Token *tokens = *PTR_PTR;
     if (tokens->kind == aaaa('i', 'd', 'n', 't')) {
         tokens++;
     }
@@ -389,8 +389,8 @@ Stmt *parseProgram(Token **ptrptr) {
     if (tokens->kind == ')') {
         tokens++;
     }
-    *ptrptr = tokens;
-    return parseFunctionContent(ptrptr);
+    *PTR_PTR = tokens;
+    return parseFunctionContent(PTR_PTR);
 }
 
 Expr *parseMultiplicative(Token **ptrptr) {

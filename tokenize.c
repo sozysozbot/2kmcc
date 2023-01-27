@@ -13,61 +13,61 @@ int tokenize(char *str) {
         char *ptr = str + i;
         if (strncmp(ptr, "return", 6) == 0 && !is_alnum(ptr[6])) {
             Token token = {aaa('r', 'e', 't'), 0, NULL};
-            tokens[token_index] = token;
+            all_tokens[token_index] = token;
             token_index++;
             i += 6;
             continue;
         }
         if (strncmp(ptr, "if", 2) == 0 && !is_alnum(ptr[2])) {
             Token token = {aa('i', 'f'), 0, NULL};
-            tokens[token_index] = token;
+            all_tokens[token_index] = token;
             token_index++;
             i += 2;
             continue;
         }
         if (strncmp(ptr, "while", 5) == 0 && !is_alnum(ptr[5])) {
             Token token = {aaaa('w', 'h', 'i', 'l'), 0, NULL};
-            tokens[token_index] = token;
+            all_tokens[token_index] = token;
             token_index++;
             i += 5;
             continue;
         }
         if (strncmp(ptr, "else", 4) == 0 && !is_alnum(ptr[4])) {
             Token token = {aaaa('e', 'l', 's', 'e'), 0, NULL};
-            tokens[token_index] = token;
+            all_tokens[token_index] = token;
             token_index++;
             i += 4;
             continue;
         }
         if (strncmp(ptr, "for", 3) == 0 && !is_alnum(ptr[3])) {
             Token token = {aaa('f', 'o', 'r'), 0, NULL};
-            tokens[token_index] = token;
+            all_tokens[token_index] = token;
             token_index++;
             i += 3;
             continue;
         }
         if (c == '+') {
             Token token = {'+', 0, NULL};
-            tokens[token_index] = token;
+            all_tokens[token_index] = token;
             token_index++;
             i++;
         } else if (c == ';' || c == '(' || c == ')' || c == '{' || c == '}' || c == ',') {
-            tokens[token_index].kind = c;
+            all_tokens[token_index].kind = c;
             token_index++;
             i++;
         } else if (c == '-') {
             Token token = {'-', 0, NULL};
-            tokens[token_index] = token;
+            all_tokens[token_index] = token;
             token_index++;
             i++;
         } else if (c == '*') {
             Token token = {'*', 0, NULL};
-            tokens[token_index] = token;
+            all_tokens[token_index] = token;
             token_index++;
             i++;
         } else if (c == '/') {
             Token token = {'/', 0, NULL};
-            tokens[token_index] = token;
+            all_tokens[token_index] = token;
             token_index++;
             i++;
         } else if (c == '>') {
@@ -75,12 +75,12 @@ int tokenize(char *str) {
             char c = str[i];
             if (c != '=') {
                 Token token = {'>', 0, NULL};
-                tokens[token_index] = token;
+                all_tokens[token_index] = token;
                 token_index++;
             } else {
                 i++;
                 Token token = {aa('>', '='), 0, NULL};
-                tokens[token_index] = token;
+                all_tokens[token_index] = token;
                 token_index++;
             }
         } else if (c == '<') {
@@ -88,12 +88,12 @@ int tokenize(char *str) {
             char c = str[i];
             if (c != '=') {
                 Token token = {'<', 0, NULL};
-                tokens[token_index] = token;
+                all_tokens[token_index] = token;
                 token_index++;
             } else {
                 i++;
                 Token token = {aa('<', '='), 0, NULL};
-                tokens[token_index] = token;
+                all_tokens[token_index] = token;
                 token_index++;
             }
         } else if (c == '=') {
@@ -101,12 +101,12 @@ int tokenize(char *str) {
             char c = str[i];
             if (c != '=') {
                 Token token = {'=', 0, NULL};
-                tokens[token_index] = token;
+                all_tokens[token_index] = token;
                 token_index++;
             } else {
                 i++;
                 Token token = {aa('=', '='), 0, NULL};
-                tokens[token_index] = token;
+                all_tokens[token_index] = token;
                 token_index++;
             }
         } else if (c == '!') {
@@ -118,14 +118,14 @@ int tokenize(char *str) {
             }
             i++;
             Token token = {aa('!', '='), 0, NULL};
-            tokens[token_index] = token;
+            all_tokens[token_index] = token;
             token_index++;
         } else if ('0' <= c && c <= '9') {
             int parsednum = parseInt(&str[i]);
             int parsedlength = intLength(&str[i]);
             i += parsedlength;
             Token token = {aaa('n', 'u', 'm'), parsednum, NULL};
-            tokens[token_index] = token;
+            all_tokens[token_index] = token;
             token_index++;
         } else if (c == ' ') {
             i++;
@@ -151,7 +151,7 @@ int tokenize(char *str) {
             }
             Token token = {aaaa('i', 'd', 'n', 't'), 0, NULL};
             token.identifier_name = name;
-            tokens[token_index] = token;
+            all_tokens[token_index] = token;
             token_index++;
         } else {
             fprintf(stderr, "%s: unknown character %c(%d)\n", __FUNCTION__, c, c);

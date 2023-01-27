@@ -65,7 +65,7 @@ Expr *parseMultiplicative(Token **ptrptr);
 Expr *parseAdditive(Token **ptrptr);
 Expr *parseExpr(Token **ptrptr);
 Expr *parseUnary(Token **ptrptr);
-Stmt *parseProgram(Token **ptrptr);
+Stmt *parseProgram();
 Expr *parseAssign(Token **ptrptr);
 Stmt *parseFor(Token **ptrptr);
 Stmt *parseStmt(Token **ptrptr);
@@ -81,7 +81,7 @@ int is_alnum(char c);
 
 void EvaluateExprIntoRax(Expr *expr);
 
-extern Token tokens[1000];
+extern Token all_tokens[1000];
 
 int aa(int a, int b);
 int aaa(int a, int b, int c);
