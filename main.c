@@ -3,18 +3,20 @@
 
 #include "9cc.h"
 
-Token tokens[1000];
+Token all_tokens[1000];
+Token *tokens_end;
+Token *tokens;
 
-int aa(int a, int b) {
+int enum2(int a, int b) {
     return a * 256 + b;
 }
 
-int aaa(int a, int b, int c) {
-    return aa(aa(a, b), c);
+int enum3(int a, int b, int c) {
+    return enum2(enum2(a, b), c);
 }
 
-int aaaa(int a, int b, int c, int d) {
-    return aa(aaa(a, b, c), d);
+int enum4(int a, int b, int c, int d) {
+    return enum2(enum3(a, b, c), d);
 }
 
 int main(int argc, char **argv) {
@@ -25,16 +27,16 @@ int main(int argc, char **argv) {
 
     char *p = argv[1];
 
-    int token_length = tokenize(p);
+    int tokens_length = tokenize(p);
 
-    if (token_length == 0) {
+    if (tokens_length == 0) {
         fprintf(stderr, "No token found");
         return 1;
     }
 
-    Token *ptr = tokens;
-    Token *token_end = tokens + token_length;
-    Stmt *expr = parseProgram(&ptr, token_end);
+    tokens = all_tokens;
+    tokens_end = all_tokens + tokens_length;
+    Stmt *expr = parseProgram();
 
     printf(".intel_syntax noprefix\n");
     printf(".globl main\n");
