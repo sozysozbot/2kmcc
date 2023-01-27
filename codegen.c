@@ -187,11 +187,6 @@ void EvaluateExprIntoRax(Expr *expr)
             printf("  movzb rax, al\n");
             break;
         }
-        case BO_AndThen:
-        {
-            printf("  mov rax, rdi\n");
-            break;
-        }
         default:
         {
             fprintf(stderr, "Invalid binaryop kind:%d", expr->binary_op);

@@ -9,7 +9,6 @@ enum BinaryOperation{
   BO_Greater,
   BO_GreaterEqual,
   BO_NotEqual,
-  BO_AndThen,
   BO_Assign
 };
 
