@@ -61,12 +61,12 @@ typedef struct Token
 int isDigit(char c);
 int intLength(char *str);
 int parseInt(char *str);
-Expr *parseMultiplicative(Token **ptrptr);
-Expr *parseAdditive(Token **ptrptr);
-Expr *parseExpr(Token **ptrptr);
-Expr *parseUnary(Token **ptrptr);
+Expr *parseMultiplicative();
+Expr *parseAdditive();
+Expr *parseExpr();
+Expr *parseUnary();
 Stmt *parseProgram();
-Expr *parseAssign(Token **ptrptr);
+Expr *parseAssign();
 Stmt *parseFor();
 Stmt *parseStmt();
 
