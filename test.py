@@ -136,6 +136,7 @@ assert check("main() { a = 0; b = 0; c = 3; if (a) {if (b) { c = 2; } else { c =
 assert check("main() { a = 0; b = 0; c = 3; if (a) if (b) { c = 2; } else { c = 7; } return c; }", 3)
 assert check("main() { a = 0; b = 0; c = 3; if (a) {if (b) { c = 2; }} else { c = 7; } return c; }", 7)
 
+#link with what's built in gcc
 assert check_and_link_with(
     "main() { return identity(3); }", 
     linked_lib="int identity(int a) { return a; }",
@@ -155,5 +156,8 @@ assert check_and_link_with(
     "main() { return add6(1, 2, 3, 4, 5, 6); }", 
     linked_lib="int add6(int a, int b, int c, int d, int e, int f) { return a + b + c + d + e + f; }",
     expected=21)
+
+assert check("three() { return 3; } main() { return three(); }", 3)
+assert check("one() { return 1; } three() { return one() + 2; } main() { return three() + three(); }", 6)
 
 print("OK")

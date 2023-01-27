@@ -21,10 +21,10 @@ typedef struct Expr {
 typedef int StmtKind;
 
 typedef struct FuncDef {
-  struct Stmt *content;
-  char *name;
-  char **params;
-  int param_len;
+    struct Stmt *content;
+    char *name;
+    char **params;
+    int param_len;
 } FuncDef;
 
 typedef struct Stmt {
@@ -65,7 +65,7 @@ Expr *parseMultiplicative();
 Expr *parseAdditive();
 Expr *parseExpr();
 Expr *parseUnary();
-Stmt *parseProgram();
+void parseProgram();
 Expr *parseAssign();
 Stmt *parseFor();
 Stmt *parseStmt();
@@ -82,6 +82,7 @@ int is_alnum(char c);
 void EvaluateExprIntoRax(Expr *expr);
 
 extern Token all_tokens[1000];
+extern FuncDef *all_funcdefs[100];
 
 int enum2(int a, int b);
 int enum3(int a, int b, int c);

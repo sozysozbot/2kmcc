@@ -36,6 +36,13 @@ void consume_otherwise_panic(int kind) {
     }
 }
 
+void expect_otherwise_panic(int kind) {
+    if (tokens->kind != kind) {
+        fprintf(stderr, "expected TokenKind#%x, got TokenKind#%x\n", kind, tokens->kind);
+        exit(1);
+    }
+}
+
 void panic_if_eof() {
     if (tokens >= tokens_end) {
         fprintf(stderr, "EOF encountered");
@@ -309,24 +316,47 @@ FuncDef *parseFunction() {
     if (tokens->kind == enum4('i', 'd', 'n', 't')) {
         char *name = tokens->identifier_name;
         tokens++;
-
         char **params = calloc(6, sizeof(char *));
-
-        if (maybe_consume('(')) {
-        }
+        consume_otherwise_panic('(');
         if (maybe_consume(')')) {
+            Stmt *content = parseFunctionContent();
+            FuncDef *funcdef = calloc(1, sizeof(FuncDef));
+            funcdef->content = content;
+            funcdef->name = name;
+            funcdef->param_len = 0;
+            funcdef->params = params;
+            return funcdef;
+        }
+
+        int i = 0;
+        for (; i < 6; i++) {
+            expect_otherwise_panic(enum4('i', 'd', 'n', 't'));
+            char *name = tokens->identifier_name;
+            if (maybe_consume(')')) {
+                params[i] = name;
+                break;
+            }
+            consume_otherwise_panic(',');
+            params[i] = name;
         }
 
         Stmt *content = parseFunctionContent();
-
         FuncDef *funcdef = calloc(1, sizeof(FuncDef));
         funcdef->content = content;
         funcdef->name = name;
-        funcdef->param_len = 0;
+        funcdef->param_len = i + 1;
         funcdef->params = params;
         return funcdef;
     } else {
         fprintf(stderr, "toplevel but not function\n");
         exit(1);
+    }
+}
+
+void parseProgram() {
+    int i = 0;
+    while (tokens < tokens_end) {
+       all_funcdefs[i] = parseFunction();
+       i++;
     }
 }

@@ -7,6 +7,8 @@ Token all_tokens[1000];
 Token *tokens_end;
 Token *tokens;
 
+FuncDef *all_funcdefs[100];
+
 int enum2(int a, int b) {
     return a * 256 + b;
 }
@@ -36,13 +38,18 @@ int main(int argc, char **argv) {
 
     tokens = all_tokens;
     tokens_end = all_tokens + tokens_length;
-    FuncDef *funcdef = parseFunction();
+
+    parseProgram();
+    
     printf(".intel_syntax noprefix\n");
-    printf(".globl %s\n", funcdef->name);
-    printf("%s:\n", funcdef->name);
-    printf("  push rbp\n");
-    printf("  mov rbp, rsp\n");
-    printf("  sub rsp, 208\n");
-    CodegenStmt(funcdef->content);
+    for (int i = 0; all_funcdefs[i]; i++) {
+        FuncDef *funcdef = all_funcdefs[i];
+        printf(".globl %s\n", funcdef->name);
+        printf("%s:\n", funcdef->name);
+        printf("  push rbp\n");
+        printf("  mov rbp, rsp\n");
+        printf("  sub rsp, 208\n");
+        CodegenStmt(funcdef->content);
+    }
     return 0;
 }
