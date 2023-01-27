@@ -76,31 +76,25 @@ Expr *parseEquality(Token **ptrptr, Token *token_end) {
     }
     Expr *result = parseRelational(&tokens, token_end);
 
-    for (; tokens < token_end;) {
+    while (tokens < token_end) {
         Token maybe_relational = *tokens;
-        switch (maybe_relational.kind) {
-            case '=' * 256 + '=': {
-                tokens++;
-                Expr *numberexp = parseRelational(&tokens, token_end);
-                result = binaryExpr(result, numberexp, '=' * 256 + '=');
-                break;
-            }
-            case '!' * 256 + '=': {
-                tokens++;
-                Expr *numberexp = parseRelational(&tokens, token_end);
-                result = binaryExpr(result, numberexp, '!' * 256 + '=');
-                break;
-            }
-            default:
-                *ptrptr = tokens;
-                return result;
-                break;
+        if (maybe_relational.kind == '=' * 256 + '=') {
+            tokens++;
+            Expr *numberexp = parseRelational(&tokens, token_end);
+            result = binaryExpr(result, numberexp, '=' * 256 + '=');
+        } else if (maybe_relational.kind == '!' * 256 + '=') {
+            tokens++;
+            Expr *numberexp = parseRelational(&tokens, token_end);
+            result = binaryExpr(result, numberexp, '!' * 256 + '=');
+        } else {
+            *ptrptr = tokens;
+            return result;
         }
     }
     *ptrptr = tokens;
     return result;
 }
-// primary    = num | ident | "(" expr ")"
+
 Expr *parsePrimary(Token **ptrptr, Token *token_end) {
     Token *maybe_number = *ptrptr;
     if (maybe_number >= token_end) {
