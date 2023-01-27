@@ -47,27 +47,12 @@ int tokenize(char *str) {
             continue;
         }
         if (c == '+') {
-            /* code */
             Token token = {'+', 0, NULL};
             tokens[token_index] = token;
             token_index++;
             i++;
-        } else if (c == ';') {
-            /* code */
-            Token token = {';', 0, NULL};
-            tokens[token_index] = token;
-            token_index++;
-            i++;
-        } else if (c == '(') {
-            /* code */
-            Token token = {'(', 0, NULL};
-            tokens[token_index] = token;
-            token_index++;
-            i++;
-        } else if (c == ')') {
-            /* code */
-            Token token = {')', 0, NULL};
-            tokens[token_index] = token;
+        } else if (c == ';' || c == '(' || c == ')' || c == '{' || c == '}') {
+            tokens[token_index].kind = c;
             token_index++;
             i++;
         } else if (c == '-') {
@@ -76,7 +61,6 @@ int tokenize(char *str) {
             token_index++;
             i++;
         } else if (c == '*') {
-            /* code */
             Token token = {'*', 0, NULL};
             tokens[token_index] = token;
             token_index++;

@@ -215,6 +215,25 @@ Stmt *parseStmt(Token **ptrptr, Token *token_end) {
         fprintf(stderr, "No token found");
         exit(1);
     }
+
+    if (tokens->kind == '{') {
+        tokens++;
+        Stmt *result = calloc(1, sizeof(Stmt));
+        result->stmt_kind = aaaa('e', 'x', 'p', 'r');
+        result->expr = numberexpr(1);
+        while (tokens->kind != '}') {
+            Stmt *statement = parseStmt(&tokens, token_end);
+            Stmt *newstmt = calloc(1, sizeof(Stmt));
+            newstmt->first_child = result;
+            newstmt->stmt_kind = aaaa('n', 'e', 'x', 't');
+            newstmt->second_child = statement;
+            result = newstmt;
+        }
+        tokens++;
+        *ptrptr = tokens;
+        return result;
+    }
+
     int is_return = 0;
     int is_if = 0;
     int is_while = 0;

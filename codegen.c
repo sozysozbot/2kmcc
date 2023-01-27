@@ -28,46 +28,48 @@ void Codegen(Stmt *stmt) {
         printf("  pop rbp\n");
         printf("  ret\n");
     } else if (stmt->stmt_kind == aa('i', 'f')) {
+        int label = ++labelCounter;
+
         EvaluateExprIntoRax(stmt->expr);
         printf("  cmp rax, 0\n");
-        printf("  je  .Lelse%d\n", labelCounter);
+        printf("  je  .Lelse%d\n", label);
         Codegen(stmt->second_child);
-        printf("  jmp .Lend%d\n", labelCounter);
-        printf(".Lelse%d:\n", labelCounter);
+        printf("  jmp .Lend%d\n", label);
+        printf(".Lelse%d:\n", label);
         if (stmt->third_child != NULL) {
             Codegen(stmt->third_child);
         }
-        printf(".Lend%d:\n", labelCounter);
-        labelCounter++;
+        printf(".Lend%d:\n", label);
     } else if (stmt->stmt_kind == aaaa('w', 'h', 'i', 'l')) {
-        printf(".Lbegin%d:\n", labelCounter);
+        int label = ++labelCounter;
+
+        printf(".Lbegin%d:\n", label);
         EvaluateExprIntoRax(stmt->expr);
         printf("  cmp rax, 0\n");
-        printf("  je  .Lend%d\n", labelCounter);
+        printf("  je  .Lend%d\n", label);
         Codegen(stmt->second_child);
-        printf("  jmp  .Lbegin%d\n", labelCounter);
-        printf(".Lend%d:\n", labelCounter);
-
-        labelCounter++;
+        printf("  jmp  .Lbegin%d\n", label);
+        printf(".Lend%d:\n", label);
     } else if (stmt->stmt_kind == aaa('f', 'o', 'r')) {
+        int label = ++labelCounter;
+
         if (stmt->expr) {
             EvaluateExprIntoRax(stmt->expr);
         }
-        printf(".Lbegin%d:\n", labelCounter);
+        printf(".Lbegin%d:\n", label);
         if (stmt->expr1) {
             EvaluateExprIntoRax(stmt->expr1);
         } else {
             printf("  mov rax, 1\n");
         }
         printf("  cmp rax, 0\n");
-        printf("  je  .Lend%d\n", labelCounter);
+        printf("  je  .Lend%d\n", label);
         Codegen(stmt->second_child);
         if (stmt->expr2) {
             EvaluateExprIntoRax(stmt->expr2);
         }
-        printf("  jmp  .Lbegin%d\n", labelCounter);
-        printf(".Lend%d:\n", labelCounter);
-        labelCounter++;
+        printf("  jmp  .Lbegin%d\n", label);
+        printf(".Lend%d:\n", label);
     }
 }
 
