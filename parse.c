@@ -110,6 +110,7 @@ Expr *parsePrimary(Token **ptrptr) {
         *ptrptr = tokens;
         return numberexpr(value);
     } else if (tokens->kind == aaaa('i', 'd', 'n', 't')) {
+        char *name = tokens->identifier_name;
         *ptrptr += 1;
         Token *maybe_leftparenthesis = *ptrptr;
         if (maybe_leftparenthesis->kind == '(') {
@@ -119,7 +120,7 @@ Expr *parsePrimary(Token **ptrptr) {
             if ((*ptrptr)->kind == ')') {
                 *ptrptr += 1;
                 Expr *callexp = calloc(1, sizeof(Expr));
-                callexp->name = tokens->identifier_name;
+                callexp->name = name;
                 callexp->expr_kind = EK_Call;
                 callexp->func_args = arguments;
                 callexp->func_arg_len = 0;
@@ -149,7 +150,7 @@ Expr *parsePrimary(Token **ptrptr) {
             callexp->func_arg_len = i + 1;
             return callexp;
         } else {
-            return identifierexpr(tokens->identifier_name);
+            return identifierexpr(name);
         }
     } else {
         Token *maybe_leftparenthesis = tokens;
