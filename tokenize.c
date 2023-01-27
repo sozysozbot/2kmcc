@@ -51,7 +51,7 @@ int tokenize(char *str) {
             tokens[token_index] = token;
             token_index++;
             i++;
-        } else if (c == ';' || c == '(' || c == ')' || c == '{' || c == '}') {
+        } else if (c == ';' || c == '(' || c == ')' || c == '{' || c == '}' || c == ',') {
             tokens[token_index].kind = c;
             token_index++;
             i++;

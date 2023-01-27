@@ -109,7 +109,7 @@ Expr *parsePrimary(Token **ptrptr, Token *token_end) {
         Token *maybe_leftparenthesis = *ptrptr;
         if (maybe_leftparenthesis->kind == '(') {
             *ptrptr += 1;
-            Expr **arguments = calloc(6, sizeof(Expr*));
+            Expr **arguments = calloc(6, sizeof(Expr *));
 
             if ((*ptrptr)->kind == ')') {
                 *ptrptr += 1;
@@ -121,19 +121,27 @@ Expr *parsePrimary(Token **ptrptr, Token *token_end) {
                 return callexp;
             }
 
-            Expr *expr = parseExpr(ptrptr, token_end);
-            if ((*ptrptr)->kind != ')') {
-                fprintf(stderr, "Expected: right parenthesis. Token Kind:%d", (*ptrptr)->kind);
-                exit(1);
+            int i = 0;
+            for (; i < 6; i++) {
+                Expr *expr = parseExpr(ptrptr, token_end);
+                if ((*ptrptr)->kind == ',') {
+                    *ptrptr += 1;
+                    arguments[i] = expr;
+                } else if ((*ptrptr)->kind == ')') {
+                    *ptrptr += 1;
+                    arguments[i] = expr;
+                    break;
+                } else {
+                    fprintf(stderr, "Expected: comma or right paren. Token Kind:%d", (*ptrptr)->kind);
+                    exit(1);
+                }
             }
-            *ptrptr += 1;
-            arguments[0] = expr;
 
             Expr *callexp = calloc(1, sizeof(Expr));
             callexp->name = maybe_number->identifier_name;
             callexp->expr_kind = EK_Call;
             callexp->func_args = arguments;
-            callexp->func_arg_len = 1;
+            callexp->func_arg_len = i + 1;
             return callexp;
         } else {
             return identifierexpr(maybe_number->identifier_name);

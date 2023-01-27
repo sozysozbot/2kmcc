@@ -138,13 +138,22 @@ assert check("a = 0; b = 0; c = 3; if (a) {if (b) { c = 2; }} else { c = 7; } re
 
 assert check_and_link_with(
     "return identity(3);", 
-    "int identity(int a) { return a; }",
-    3)
+    linked_lib="int identity(int a) { return a; }",
+    expected=3)
 
 assert check_and_link_with(
     "return three();", 
-    "int three() { return 3; }",
-    3)
+    linked_lib="int three() { return 3; }",
+    expected=3)
 
+assert check_and_link_with(
+    "return add(2, 3);", 
+    linked_lib="int add(int a, int b) { return a + b; }",
+    expected=5)
+
+assert check_and_link_with(
+    "return addsix(1, 2, 3, 4, 5, 6);", 
+    linked_lib="int addsix(int a, int b, int c, int d, int e, int f) { return a + b + c + d + e + f; }",
+    expected=21)
 
 print("OK")
