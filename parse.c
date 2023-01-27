@@ -355,8 +355,7 @@ Stmt *parseStmt(Token **ptrptr) {
     return stmt;
 }
 
-Stmt *parseFunctionContent(Token **ptrptr) {
-    Token *tokens = *ptrptr;
+Stmt *parseFunctionContent() {
     if (tokens->kind == '{') {
         tokens++;
         Stmt *result = calloc(1, sizeof(Stmt));
@@ -371,7 +370,6 @@ Stmt *parseFunctionContent(Token **ptrptr) {
             result = newstmt;
         }
         tokens++;
-        *ptrptr = tokens;
         return result;
     } else {
         fprintf(stderr, "no { after a parenthesis defining a function. kind=%d\n", tokens->kind);
@@ -389,7 +387,7 @@ Stmt *parseProgram() {
     if (tokens->kind == ')') {
         tokens++;
     }
-    return parseFunctionContent(&tokens);
+    return parseFunctionContent();
 }
 
 Expr *parseMultiplicative(Token **ptrptr) {
