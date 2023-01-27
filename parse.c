@@ -305,13 +305,28 @@ Stmt *parseFunctionContent() {
     return result;
 }
 
-Stmt *parseProgram() {
+FuncDef *parseFunction() {
     if (tokens->kind == enum4('i', 'd', 'n', 't')) {
+        char *name = tokens->identifier_name;
         tokens++;
+
+        char **params = calloc(6, sizeof(char *));
+
+        if (maybe_consume('(')) {
+        }
+        if (maybe_consume(')')) {
+        }
+
+        Stmt *content = parseFunctionContent();
+
+        FuncDef *funcdef = calloc(1, sizeof(FuncDef));
+        funcdef->content = content;
+        funcdef->name = name;
+        funcdef->param_len = 0;
+        funcdef->params = params;
+        return funcdef;
+    } else {
+        fprintf(stderr, "toplevel but not function\n");
+        exit(1);
     }
-    if (maybe_consume('(')) {
-    }
-    if (maybe_consume(')')) {
-    }
-    return parseFunctionContent();
 }

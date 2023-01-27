@@ -36,15 +36,13 @@ int main(int argc, char **argv) {
 
     tokens = all_tokens;
     tokens_end = all_tokens + tokens_length;
-    Stmt *expr = parseProgram();
-
+    FuncDef *funcdef = parseFunction();
     printf(".intel_syntax noprefix\n");
-    printf(".globl main\n");
-    printf("main:\n");
-    // prologue
+    printf(".globl %s\n", funcdef->name);
+    printf("%s:\n", funcdef->name);
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
     printf("  sub rsp, 208\n");
-    Codegen(expr);
+    Codegen(funcdef->content);
     return 0;
 }
