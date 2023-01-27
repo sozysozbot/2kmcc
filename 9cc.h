@@ -15,6 +15,8 @@ typedef struct Expr
   int value;
   struct Expr *first_child;
   struct Expr *second_child;
+  struct Expr **func_args;
+  int func_arg_len;
   char* name;
 } Expr;
 

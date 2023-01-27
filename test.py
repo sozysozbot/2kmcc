@@ -141,5 +141,10 @@ assert check_and_link_with(
     "int identity(int a) { return a; }",
     3)
 
+assert check_and_link_with(
+    "return three();", 
+    "int three() { return 3; }",
+    3)
+
 
 print("OK")

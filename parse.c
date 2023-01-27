@@ -17,14 +17,6 @@ Expr *identifierexpr(char *name) {
     return numberexp;
 }
 
-Expr *callexpr(char *name, Expr *first_child) {
-    Expr *newexp = calloc(1, sizeof(Expr));
-    newexp->name = name;
-    newexp->expr_kind = EK_Call;
-    newexp->first_child = first_child;
-    return newexp;
-}
-
 Expr *binaryExpr(Expr *first_child, Expr *second_child, BinaryOperation binaryop) {
     Expr *newexp = calloc(1, sizeof(Expr));
     newexp->first_child = first_child;
@@ -117,14 +109,32 @@ Expr *parsePrimary(Token **ptrptr, Token *token_end) {
         Token *maybe_leftparenthesis = *ptrptr;
         if (maybe_leftparenthesis->kind == '(') {
             *ptrptr += 1;
+            Expr **arguments = calloc(6, sizeof(Expr*));
+
+            if ((*ptrptr)->kind == ')') {
+                *ptrptr += 1;
+                Expr *callexp = calloc(1, sizeof(Expr));
+                callexp->name = maybe_number->identifier_name;
+                callexp->expr_kind = EK_Call;
+                callexp->func_args = arguments;
+                callexp->func_arg_len = 0;
+                return callexp;
+            }
+
             Expr *expr = parseExpr(ptrptr, token_end);
-            Token *maybe_rightparenthesis = *ptrptr;
-            if (maybe_rightparenthesis->kind != ')') {
-                fprintf(stderr, "Expected: right parenthesis. Token Kind:%d", maybe_rightparenthesis->kind);
+            if ((*ptrptr)->kind != ')') {
+                fprintf(stderr, "Expected: right parenthesis. Token Kind:%d", (*ptrptr)->kind);
                 exit(1);
             }
             *ptrptr += 1;
-            return callexpr(maybe_number->identifier_name, expr);
+            arguments[0] = expr;
+
+            Expr *callexp = calloc(1, sizeof(Expr));
+            callexp->name = maybe_number->identifier_name;
+            callexp->expr_kind = EK_Call;
+            callexp->func_args = arguments;
+            callexp->func_arg_len = 1;
+            return callexp;
         } else {
             return identifierexpr(maybe_number->identifier_name);
         }
