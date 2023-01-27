@@ -78,6 +78,14 @@ void EvaluateExprIntoRax(Expr *expr) {
         EvaluateLValueAddressIntoRax(expr);
         printf("  mov rax,[rax]\n");
         return;
+    } else if (expr->expr_kind == EK_Call) {
+        EvaluateExprIntoRax(expr->first_child);
+        printf("    push rax\n");
+
+        // todo
+        printf("    pop rdi\n");
+        printf(" call %s\n", expr->name);
+        return;
     } else if (expr->expr_kind == EK_Number) {
         printf("  mov rax, %d\n", expr->value);
         return;

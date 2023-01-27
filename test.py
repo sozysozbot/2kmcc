@@ -23,6 +23,23 @@ def check(input: str, expected: int):
     print(f"{bcolors.FAIL}FAIL:check:{input=} {expected=} {returned_value=}{bcolors.ENDC}")
     return False
 
+def check_and_link_with(input: str, linked_lib: str, expected: int):
+    os.system(f'./9cc "{input}" > tmp.s')
+    lib_file = open("libtest.c", "w")
+    lib_file.write(linked_lib)
+    lib_file.close()
+    os.system("cc -S -o libtest.s libtest.c")
+    os.system("cc -o tmp tmp.s libtest.s")
+    os.system("rm libtest.c libtest.s")
+    returned_value = (os.system("./tmp") >> 8) & 0xff
+
+    if expected == returned_value:
+        print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
+        return True
+
+    print(f"{bcolors.FAIL}FAIL:check:{input=} {expected=} {returned_value=}{bcolors.ENDC}")
+    return False
+
 
 assert check("return 0;", 0)
 
@@ -119,6 +136,10 @@ assert check("a = 0; b = 0; c = 3; if (a) {if (b) { c = 2; } else { c = 7; }} re
 assert check("a = 0; b = 0; c = 3; if (a) if (b) { c = 2; } else { c = 7; } return c;", 3)
 assert check("a = 0; b = 0; c = 3; if (a) {if (b) { c = 2; }} else { c = 7; } return c;", 7)
 
+assert check_and_link_with(
+    "return identity(3);", 
+    "int identity(int a) { return a; }",
+    3)
 
 
 print("OK")
