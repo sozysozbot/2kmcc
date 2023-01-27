@@ -2,8 +2,7 @@
 #include <stdlib.h>
 
 #include "9cc.h"
-extern Token **PTR_PTR;
-extern Token *token_end;
+extern Token *tokens_end;
 extern Token *tokens;
 
 Expr *numberexpr(int value) {
@@ -30,13 +29,13 @@ Expr *binaryExpr(Expr *first_child, Expr *second_child, BinaryOperation binaryop
 }
 
 Expr *parseRelational() {
-    if (token_end == tokens) {
+    if (tokens_end == tokens) {
         fprintf(stderr, "No token found");
         exit(1);
     }
     Expr *result = parseAdditive();
 
-    for (; tokens < token_end;) {
+    for (; tokens < tokens_end;) {
         Token maybe_relational = *tokens;
 
         if (maybe_relational.kind == '>') {
@@ -69,13 +68,13 @@ Expr *parseRelational() {
 }
 
 Expr *parseEquality() {
-    if (token_end == tokens) {
+    if (tokens_end == tokens) {
         fprintf(stderr, "No token found");
         exit(1);
     }
     Expr *result = parseRelational();
 
-    while (tokens < token_end) {
+    while (tokens < tokens_end) {
         Token maybe_relational = *tokens;
         if (maybe_relational.kind == aa('=', '=')) {
             tokens++;
@@ -93,7 +92,7 @@ Expr *parseEquality() {
 }
 
 Expr *parsePrimary() {
-    if (tokens >= token_end) {
+    if (tokens >= tokens_end) {
         fprintf(stderr, "Expected: number, but got EOF");
         exit(1);
     }
@@ -160,7 +159,7 @@ Expr *parsePrimary() {
 }
 
 Expr *parseUnary() {
-    if (tokens >= token_end) {
+    if (tokens >= tokens_end) {
         fprintf(stderr, "Expected: number, but got EOF");
         exit(1);
     }
@@ -183,7 +182,7 @@ Expr *parseExpr() {
 }
 
 Expr *parseAssign() {
-    if (token_end == tokens) {
+    if (tokens_end == tokens) {
         fprintf(stderr, "No token found");
         exit(1);
     }
@@ -235,7 +234,7 @@ Stmt *parseFor() {
 }
 
 Stmt *parseStmt() {
-    if (token_end == tokens) {
+    if (tokens_end == tokens) {
         fprintf(stderr, "No token found");
         exit(1);
     }
@@ -369,13 +368,13 @@ Stmt *parseProgram() {
 }
 
 Expr *parseMultiplicative() {
-    if (token_end == tokens) {
+    if (tokens_end == tokens) {
         fprintf(stderr, "No token found");
         exit(1);
     }
     Expr *result = parseUnary();
 
-    while (tokens < token_end) {
+    while (tokens < tokens_end) {
         if (tokens->kind == aaa('n', 'u', 'm')) {
             fprintf(stderr, "Expected operator got Number");
             exit(1);
@@ -395,13 +394,13 @@ Expr *parseMultiplicative() {
 }
 
 Expr *parseAdditive() {
-    if (token_end == tokens) {
+    if (tokens_end == tokens) {
         fprintf(stderr, "No token found");
         exit(1);
     }
     Expr *result = parseMultiplicative();
 
-    while (tokens < token_end) {
+    while (tokens < tokens_end) {
         if (tokens->kind == aaa('n', 'u', 'm')) {
             fprintf(stderr, "Expected operator got Number");
             exit(1);
