@@ -1,5 +1,11 @@
 typedef int BinaryOperation;
 typedef int UnaryOperation;
+typedef int BaseType;
+
+typedef struct Type {
+    BaseType ty;
+    struct Type *ptr_to;
+} Type;
 
 enum ExprKind {
     EK_Number,

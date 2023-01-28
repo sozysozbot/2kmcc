@@ -63,6 +63,8 @@ void EvaluateLValueAddressIntoRax(Expr *expr) {
         LVar *local = findLVar(expr->name);
         printf("  mov rax, rbp\n");
         printf("  sub rax, %d\n", local->offset_from_rbp);
+    } else if (expr->expr_kind == EK_UnaryOperator && expr->op == '*') {
+        EvaluateExprIntoRax(expr->first_child);
     } else {
         fprintf(stderr, "not lvalue");
         exit(1);

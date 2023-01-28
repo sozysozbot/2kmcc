@@ -236,6 +236,21 @@ Expr *parseOptionalExprAndToken(TokenKind target) {
     return expr;
 }
 
+Type *consume_type_otherwise_panic() {
+    consume_otherwise_panic(enum3('i', 'n', 't'));
+
+    Type *t = calloc(1, sizeof(Type));
+    t->ty = enum3('i', 'n', 't');
+
+    while (maybe_consume('*')) {
+        Type *new_t = calloc(1, sizeof(Type));
+        new_t->ty = '*';
+        new_t->ptr_to = t;
+        t = new_t;
+    }
+    return t;
+}
+
 Stmt *parseStmt() {
     if (maybe_consume('{')) {
         Stmt *result = calloc(1, sizeof(Stmt));
@@ -291,6 +306,8 @@ Stmt *parseStmt() {
         return stmt;
     }
     if (maybe_consume(enum3('i', 'n', 't'))) {
+        tokens--;
+        Type *t = consume_type_otherwise_panic();
         if (lvar_names == lvar_names_start + 100) {
             fprintf(stderr, "too many local variables");
             exit(1);
@@ -329,7 +346,7 @@ Stmt *parseFunctionContent() {
 }
 
 FuncDef *parseFunction() {
-    consume_otherwise_panic(enum3('i', 'n', 't'));
+    Type *t = consume_type_otherwise_panic();
     char *name = expect_identifier_and_get_name();
     char **params = calloc(6, sizeof(char *));
     consume_otherwise_panic('(');
@@ -348,7 +365,7 @@ FuncDef *parseFunction() {
 
     int i = 0;
     for (; i < 6; i++) {
-        consume_otherwise_panic(enum3('i', 'n', 't'));
+        Type *t = consume_type_otherwise_panic();
         char *name = expect_identifier_and_get_name();
         if (maybe_consume(')')) {
             params[i] = name;

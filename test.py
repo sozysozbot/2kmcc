@@ -171,4 +171,6 @@ assert check("int main() { int x; int y; x = 3; y = &x; return *y; }", 3)
 assert check_and_link_with("int main() { int x; x = 3; write4(&x); return x; }",
     linked_lib="int write4(int *p) { return *p = 4; } ", expected= 4)
 
+assert check("int main() { int x; int *y; y = &x; *y = 3; return x; }", 3)
+
 print("OK")
