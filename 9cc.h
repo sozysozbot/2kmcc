@@ -37,15 +37,11 @@ typedef struct Stmt {
     struct Stmt *third_child;
 } Stmt;
 
-typedef struct LVar LVar;
-
-// ローカル変数の型
-struct LVar {
-    LVar *next;  // 次の変数か0
-    char *name;  // 変数の名前
-    int len;     // 名前の長さ
-    int offset;  // RBPからのオフセット
-};
+typedef struct LVar {
+    struct LVar *next;
+    char *name;
+    int offset_from_rbp;
+} LVar;
 
 typedef int TokenKind;
 
@@ -55,19 +51,15 @@ typedef struct Token {
     char *identifier_name;
 } Token;
 
-// prototype declaration
-int isDigit(char c);
-int intLength(char *str);
-int parseInt(char *str);
-Expr *parseMultiplicative();
-Expr *parseAdditive();
-Expr *parseExpr();
-Expr *parseUnary();
-void parseProgram();
-Expr *parseAssign();
-Stmt *parseFor();
-Stmt *parseStmt();
-FuncDef *parseFunction();
+Expr *parseMultiplicative(void);
+Expr *parseAdditive(void);
+Expr *parseExpr(void);
+Expr *parseUnary(void);
+void parseProgram(void);
+Expr *parseAssign(void);
+Stmt *parseFor(void);
+Stmt *parseStmt(void);
+FuncDef *parseFunction(void);
 
 void CodegenFunc(FuncDef *funcdef);
 

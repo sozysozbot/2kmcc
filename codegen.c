@@ -25,12 +25,11 @@ LVar *findLVar(char *name) {
 LVar *insertLVar(char *name) {
     LVar *newlocal = calloc(1, sizeof(LVar));
     LVar *last = lastLVar();
-    newlocal->len = strlen(name);
     newlocal->name = name;
     if (!last) {
-        newlocal->offset = 0;
+        newlocal->offset_from_rbp = 0;
     } else {
-        newlocal->offset = last->offset + 8;  // offset+last size
+        newlocal->offset_from_rbp = last->offset_from_rbp + 8;  // offset+last size
     }
     newlocal->next = 0;
 
@@ -62,7 +61,7 @@ void EvaluateLValueAddressIntoRax(Expr *expr) {
         }
         LVar *local = findLVar(expr->name);
         printf("  mov rax, rbp\n");
-        printf("  sub rax, %d\n", local->offset);
+        printf("  sub rax, %d\n", local->offset_from_rbp);
     } else {
         fprintf(stderr, "not lvalue");
         exit(1);
