@@ -27,6 +27,8 @@ typedef struct FuncDef {
     char *name;
     char **params;
     int param_len;
+    char **lvar_names_start;
+    char **lvar_names_end;
 } FuncDef;
 
 typedef struct Stmt {

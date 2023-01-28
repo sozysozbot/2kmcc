@@ -11,7 +11,7 @@ int tokenize(char *str) {
         char c = str[i];
         char *ptr = str + i;
         if (strncmp(ptr, "return", 6) == 0 && !is_alnum(ptr[6])) {
-            Token token = {enum3('r', 'e', 't'), 0, 0};
+            Token token = {enum3('R', 'E', 'T'), 0, 0};
             all_tokens[token_index] = token;
             token_index++;
             i += 6;
@@ -25,7 +25,7 @@ int tokenize(char *str) {
             continue;
         }
         if (strncmp(ptr, "while", 5) == 0 && !is_alnum(ptr[5])) {
-            Token token = {enum4('w', 'h', 'i', 'l'), 0, 0};
+            Token token = {enum4('W', 'H', 'I', 'L'), 0, 0};
             all_tokens[token_index] = token;
             token_index++;
             i += 5;
@@ -40,6 +40,13 @@ int tokenize(char *str) {
         }
         if (strncmp(ptr, "for", 3) == 0 && !is_alnum(ptr[3])) {
             Token token = {enum3('f', 'o', 'r'), 0, 0};
+            all_tokens[token_index] = token;
+            token_index++;
+            i += 3;
+            continue;
+        }
+        if (strncmp(ptr, "int", 3) == 0 && !is_alnum(ptr[3])) {
+            Token token = {enum3('i', 'n', 't'), 0, 0};
             all_tokens[token_index] = token;
             token_index++;
             i += 3;
@@ -133,7 +140,7 @@ int tokenize(char *str) {
                 parsed_length++;
             }
             i += parsed_length;
-            Token token = {enum3('n', 'u', 'm'), parsed_num, 0};
+            Token token = {enum3('N', 'U', 'M'), parsed_num, 0};
             all_tokens[token_index] = token;
             token_index++;
         } else if (c == ' ') {
@@ -143,10 +150,9 @@ int tokenize(char *str) {
             for (i++; is_alnum(str[i]); i++) {
             }
             int length = &str[i] - start;
-            char *name = malloc(length + 1);
+            char *name = calloc(length + 1, sizeof(char));
             memcpy(name, start, length);
-            name[length] = '\0';
-            Token token = {enum4('i', 'd', 'n', 't'), 0, 0};
+            Token token = {enum4('I', 'D', 'N', 'T'), 0, 0};
             token.identifier_name = name;
             all_tokens[token_index] = token;
             token_index++;

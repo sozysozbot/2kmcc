@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "9cc.h"
 extern Token *tokens_end;
@@ -37,18 +38,33 @@ int maybe_consume(TokenKind kind) {
     return 0;
 }
 
+char *decode_kind(int kind) {
+    void *r = &kind;
+    char *q = r;
+    char *ans = calloc(5, sizeof(char));
+    strncpy(ans, q, 4);
+    return ans;
+}
+
 void consume_otherwise_panic(int kind) {
     if (!maybe_consume(kind)) {
-        fprintf(stderr, "expected TokenKind `%x`, got TokenKind `%x`\n", kind, tokens->kind);
+        fprintf(stderr, "expected TokenKind `%s`, got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens->kind));
         exit(1);
     }
 }
 
 void expect_otherwise_panic(int kind) {
     if (tokens->kind != kind) {
-        fprintf(stderr, "expected TokenKind `%x`, got TokenKind `%x`\n", kind, tokens->kind);
+        fprintf(stderr, "expected TokenKind `%s`, got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens->kind));
         exit(1);
     }
+}
+
+char *expect_identifier_and_get_name() {
+    expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
+    char *name = tokens->identifier_name;
+    tokens++;
+    return name;
 }
 
 void panic_if_eof() {
@@ -60,11 +76,11 @@ void panic_if_eof() {
 
 Expr *parsePrimary() {
     panic_if_eof();
-    if (tokens->kind == enum3('n', 'u', 'm')) {
+    if (tokens->kind == enum3('N', 'U', 'M')) {
         int value = tokens->value;
         tokens += 1;
         return numberexpr(value);
-    } else if (tokens->kind == enum4('i', 'd', 'n', 't')) {
+    } else if (tokens->kind == enum4('I', 'D', 'N', 'T')) {
         char *name = tokens->identifier_name;
         tokens += 1;
         if (maybe_consume('(')) {
@@ -129,7 +145,7 @@ Expr *parseMultiplicative() {
     panic_if_eof();
     Expr *result = parseUnary();
     while (tokens < tokens_end) {
-        if (tokens->kind == enum3('n', 'u', 'm')) {
+        if (tokens->kind == enum3('N', 'U', 'M')) {
             fprintf(stderr, "Expected operator got Number");
             exit(1);
         } else if (maybe_consume('*')) {
@@ -147,7 +163,7 @@ Expr *parseAdditive() {
     panic_if_eof();
     Expr *result = parseMultiplicative();
     while (tokens < tokens_end) {
-        if (tokens->kind == enum3('n', 'u', 'm')) {
+        if (tokens->kind == enum3('N', 'U', 'M')) {
             fprintf(stderr, "Expected operator, got Number");
             exit(1);
         } else if (maybe_consume('-')) {
@@ -208,6 +224,9 @@ Expr *parseExpr() {
     return parseAssign();
 }
 
+char **lvar_names_start;
+char **lvar_names;
+
 Expr *parseOptionalExprAndToken(TokenKind target) {
     if (maybe_consume(target)) {
         return 0;
@@ -217,95 +236,78 @@ Expr *parseOptionalExprAndToken(TokenKind target) {
     return expr;
 }
 
-Stmt *parseFor() {
-    tokens++;
-    consume_otherwise_panic('(');
-    Expr *exprs[3] = {0, 0, 0};
-    exprs[0] = parseOptionalExprAndToken(';');
-    exprs[1] = parseOptionalExprAndToken(';');
-    exprs[2] = parseOptionalExprAndToken(')');
-
-    Stmt *stmt = calloc(1, sizeof(Stmt));
-    stmt->stmt_kind = enum3('f', 'o', 'r');
-    stmt->expr = exprs[0];
-    stmt->expr1 = exprs[1];
-    stmt->expr2 = exprs[2];
-
-    Stmt *loop_body = parseStmt();
-    stmt->second_child = loop_body;
-    return stmt;
-}
-
 Stmt *parseStmt() {
     if (maybe_consume('{')) {
         Stmt *result = calloc(1, sizeof(Stmt));
         result->stmt_kind = enum4('e', 'x', 'p', 'r');
-        result->expr = numberexpr(1);
+        result->expr = numberexpr(42);
         while (tokens->kind != '}') {
-            Stmt *statement = parseStmt();
             Stmt *newstmt = calloc(1, sizeof(Stmt));
             newstmt->first_child = result;
             newstmt->stmt_kind = enum4('n', 'e', 'x', 't');
-            newstmt->second_child = statement;
+            newstmt->second_child = parseStmt();
             result = newstmt;
         }
         tokens++;
         return result;
     }
-
-    int is_return = 0;
-    int is_if = 0;
-    int is_while = 0;
-
-    if (tokens->kind == enum3('r', 'e', 't')) {
-        tokens++;
-        is_return = 1;
-    }
-    if (tokens->kind == enum2('i', 'f')) {
-        tokens++;
-        is_if = 1;
-        consume_otherwise_panic('(');
-    }
-    if (tokens->kind == enum4('w', 'h', 'i', 'l')) {
-        tokens++;
-        is_while = 1;
-        consume_otherwise_panic('(');
-    }
-    if (tokens->kind == enum3('f', 'o', 'r')) {
-        Stmt *stmt = parseFor();
+    if (maybe_consume(enum3('R', 'E', 'T'))) {
+        Stmt *stmt = calloc(1, sizeof(Stmt));
+        stmt->stmt_kind = enum3('R', 'E', 'T');
+        stmt->expr = parseExpr();
+        consume_otherwise_panic(';');
         return stmt;
     }
-    Expr *expr = parseExpr();
-
-    if (is_if || is_while) {
+    if (maybe_consume(enum2('i', 'f'))) {
+        Stmt *stmt = calloc(1, sizeof(Stmt));
+        consume_otherwise_panic('(');
+        stmt->expr = parseExpr();
         consume_otherwise_panic(')');
-    } else {
-        consume_otherwise_panic(';');
-    }
-
-    Stmt *stmt = calloc(1, sizeof(Stmt));
-    stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
-    stmt->expr = expr;
-    if (is_if) {
         stmt->stmt_kind = enum2('i', 'f');
-        {
-            Stmt *statement = parseStmt();
-            stmt->second_child = statement;
+        stmt->second_child = parseStmt();  // then-block
+        if (maybe_consume(enum4('e', 'l', 's', 'e'))) {
+            stmt->third_child = parseStmt();  // else-block
         }
-        if (tokens->kind == enum4('e', 'l', 's', 'e')) {
-            tokens++;
-            Stmt *statement1 = parseStmt();
-            stmt->third_child = statement1;
-        }
+        return stmt;
     }
-    if (is_while) {
-        stmt->stmt_kind = enum4('w', 'h', 'i', 'l');
+    if (maybe_consume(enum4('W', 'H', 'I', 'L'))) {
+        Stmt *stmt = calloc(1, sizeof(Stmt));
+        consume_otherwise_panic('(');
+        stmt->expr = parseExpr();
+        consume_otherwise_panic(')');
+        stmt->stmt_kind = enum4('W', 'H', 'I', 'L');
         Stmt *statement = parseStmt();
         stmt->second_child = statement;
+        return stmt;
     }
-    if (is_return) {
-        stmt->stmt_kind = enum3('r', 'e', 't');
+    if (maybe_consume(enum3('f', 'o', 'r'))) {
+        Stmt *stmt = calloc(1, sizeof(Stmt));
+        stmt->stmt_kind = enum3('f', 'o', 'r');
+        consume_otherwise_panic('(');
+        stmt->expr = parseOptionalExprAndToken(';');
+        stmt->expr1 = parseOptionalExprAndToken(';');
+        stmt->expr2 = parseOptionalExprAndToken(')');
+        stmt->second_child = parseStmt();
+        return stmt;
     }
+    if (maybe_consume(enum3('i', 'n', 't'))) {
+        if (lvar_names == lvar_names_start + 100) {
+            fprintf(stderr, "too many local variables");
+            exit(1);
+        }
+        char *name = expect_identifier_and_get_name();
+        *lvar_names = name;
+        lvar_names++;
+        consume_otherwise_panic(';');
+        Stmt *stmt = calloc(1, sizeof(Stmt));
+        stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
+        stmt->expr = numberexpr(42);
+        return stmt;
+    }
+    Stmt *stmt = calloc(1, sizeof(Stmt));
+    stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
+    stmt->expr = parseExpr();
+    consume_otherwise_panic(';');
     return stmt;
 }
 
@@ -327,51 +329,51 @@ Stmt *parseFunctionContent() {
 }
 
 FuncDef *parseFunction() {
-    if (tokens->kind == enum4('i', 'd', 'n', 't')) {
-        char *name = tokens->identifier_name;
-        tokens++;
-        char **params = calloc(6, sizeof(char *));
-        consume_otherwise_panic('(');
-        if (maybe_consume(')')) {
-            Stmt *content = parseFunctionContent();
-            FuncDef *funcdef = calloc(1, sizeof(FuncDef));
-            funcdef->content = content;
-            funcdef->name = name;
-            funcdef->param_len = 0;
-            funcdef->params = params;
-            return funcdef;
-        }
-
-        int i = 0;
-        for (; i < 6; i++) {
-            expect_otherwise_panic(enum4('i', 'd', 'n', 't'));
-            char *name = tokens->identifier_name;
-            tokens++;
-            if (maybe_consume(')')) {
-                params[i] = name;
-                break;
-            }
-            consume_otherwise_panic(',');
-            params[i] = name;
-        }
-
+    consume_otherwise_panic(enum3('i', 'n', 't'));
+    char *name = expect_identifier_and_get_name();
+    char **params = calloc(6, sizeof(char *));
+    consume_otherwise_panic('(');
+    if (maybe_consume(')')) {
+        lvar_names = lvar_names_start = calloc(100, sizeof(char *));
         Stmt *content = parseFunctionContent();
         FuncDef *funcdef = calloc(1, sizeof(FuncDef));
         funcdef->content = content;
         funcdef->name = name;
-        funcdef->param_len = i + 1;
+        funcdef->param_len = 0;
         funcdef->params = params;
+        funcdef->lvar_names_start = lvar_names_start;
+        funcdef->lvar_names_end = lvar_names;
         return funcdef;
-    } else {
-        fprintf(stderr, "toplevel but not function\n");
-        exit(1);
     }
+
+    int i = 0;
+    for (; i < 6; i++) {
+        consume_otherwise_panic(enum3('i', 'n', 't'));
+        char *name = expect_identifier_and_get_name();
+        if (maybe_consume(')')) {
+            params[i] = name;
+            break;
+        }
+        consume_otherwise_panic(',');
+        params[i] = name;
+    }
+
+    lvar_names = lvar_names_start = calloc(100, sizeof(char *));
+    Stmt *content = parseFunctionContent();
+    FuncDef *funcdef = calloc(1, sizeof(FuncDef));
+    funcdef->content = content;
+    funcdef->name = name;
+    funcdef->param_len = i + 1;
+    funcdef->params = params;
+    funcdef->lvar_names_start = lvar_names_start;
+    funcdef->lvar_names_end = lvar_names;
+    return funcdef;
 }
 
 void parseProgram() {
     int i = 0;
     while (tokens < tokens_end) {
-       all_funcdefs[i] = parseFunction();
-       i++;
+        all_funcdefs[i] = parseFunction();
+        i++;
     }
 }
