@@ -4,7 +4,6 @@
 
 #include "9cc.h"
 
-LVar *locals;
 
 int tokenize(char *str) {
     int token_index = 0;

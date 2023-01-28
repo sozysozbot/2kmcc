@@ -47,8 +47,6 @@ struct LVar {
     int offset;  // RBPからのオフセット
 };
 
-extern LVar *locals;
-
 typedef int TokenKind;
 
 typedef struct Token {

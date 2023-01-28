@@ -5,6 +5,9 @@
 
 int labelCounter = 0;
 
+LVar *locals;
+
+
 LVar *findLVar(char *name) {
     LVar *local = locals;
     if (!local) {
