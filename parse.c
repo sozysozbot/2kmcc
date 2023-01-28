@@ -337,45 +337,42 @@ Stmt *parseFunctionContent() {
 
 FuncDef *parseFunction() {
     consume_otherwise_panic(enum3('i', 'n', 't'));
-    if (tokens->kind == enum4('I', 'D', 'N', 'T')) {
-        char *name = tokens->identifier_name;
-        tokens++;
-        char **params = calloc(6, sizeof(char *));
-        consume_otherwise_panic('(');
-        if (maybe_consume(')')) {
-            Stmt *content = parseFunctionContent();
-            FuncDef *funcdef = calloc(1, sizeof(FuncDef));
-            funcdef->content = content;
-            funcdef->name = name;
-            funcdef->param_len = 0;
-            funcdef->params = params;
-            return funcdef;
-        }
-
-        int i = 0;
-        for (; i < 6; i++) {
-            expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
-            char *name = tokens->identifier_name;
-            tokens++;
-            if (maybe_consume(')')) {
-                params[i] = name;
-                break;
-            }
-            consume_otherwise_panic(',');
-            params[i] = name;
-        }
-
+    expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
+    char *name = tokens->identifier_name;
+    tokens++;
+    char **params = calloc(6, sizeof(char *));
+    consume_otherwise_panic('(');
+    if (maybe_consume(')')) {
         Stmt *content = parseFunctionContent();
         FuncDef *funcdef = calloc(1, sizeof(FuncDef));
         funcdef->content = content;
         funcdef->name = name;
-        funcdef->param_len = i + 1;
+        funcdef->param_len = 0;
         funcdef->params = params;
         return funcdef;
-    } else {
-        fprintf(stderr, "toplevel but not function\n");
-        exit(1);
     }
+
+    int i = 0;
+    for (; i < 6; i++) {
+        consume_otherwise_panic(enum3('i', 'n', 't'));
+        expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
+        char *name = tokens->identifier_name;
+        tokens++;
+        if (maybe_consume(')')) {
+            params[i] = name;
+            break;
+        }
+        consume_otherwise_panic(',');
+        params[i] = name;
+    }
+
+    Stmt *content = parseFunctionContent();
+    FuncDef *funcdef = calloc(1, sizeof(FuncDef));
+    funcdef->content = content;
+    funcdef->name = name;
+    funcdef->param_len = i + 1;
+    funcdef->params = params;
+    return funcdef;
 }
 
 void parseProgram() {

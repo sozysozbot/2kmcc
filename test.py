@@ -157,10 +157,10 @@ assert check_and_link_with(
 
 assert check("int three() { return 3; } int main() { return three(); }", 3)
 assert check("int one() { return 1; } int three() { return one() + 2; } int main() { return three() + three(); }", 6)
-assert check("int identity(a) { return a; } int main() { return identity(3); }", 3)
-assert check("int add2(a, b) { return a + b; } int main() { return add2(1, 2); }", 3)
-assert check("int add6(a,b,c,d,e,f) { return a + b + c + d + e + f; } int main() { return add6(1, 2, 3, 4, 5, 6); }", 21)
-assert check("int fib(n) { if (n <= 1) { return n; } return fib(n-1) + fib(n-2); } int main() { return fib(8); }", 21)
+assert check("int identity(int a) { return a; } int main() { return identity(3); }", 3)
+assert check("int add2(int a, int b) { return a + b; } int main() { return add2(1, 2); }", 3)
+assert check("int add6(int a, int b, int c, int d, int e, int f) { return a + b + c + d + e + f; } int main() { return add6(1, 2, 3, 4, 5, 6); }", 21)
+assert check("int fib(int n) { if (n <= 1) { return n; } return fib(n-1) + fib(n-2); } int main() { return fib(8); }", 21)
 assert check("int main() { x = 3; y = &x; return *y; }", 3)
 assert check_and_link_with("int main() { x = 3; write4(&x); return x; }",
     linked_lib="int write4(int *p) { return *p = 4; } ", expected= 4)
