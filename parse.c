@@ -206,7 +206,7 @@ Expr *parseOptionalExprAndToken(TokenKind target) {
 Stmt *parseFor() {
     tokens++;
     consume_otherwise_panic('(');
-    Expr *exprs[3] = {NULL, NULL, NULL};
+    Expr *exprs[3] = {0, 0, 0};
     exprs[0] = parseOptionalExprAndToken(';');
     exprs[1] = parseOptionalExprAndToken(';');
     exprs[2] = parseOptionalExprAndToken(')');

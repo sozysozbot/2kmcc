@@ -8,7 +8,7 @@ int labelCounter = 0;
 LVar *findLVar(char *name) {
     LVar *local = locals;
     if (!local) {
-        return NULL;
+        return 0;
     }
     while (local) {
         if (!strcmp(name, local->name)) {
@@ -16,7 +16,7 @@ LVar *findLVar(char *name) {
         }
         local = local->next;
     }
-    return NULL;
+    return 0;
 }
 
 LVar *insertLVar(char *name) {
@@ -29,7 +29,7 @@ LVar *insertLVar(char *name) {
     } else {
         newlocal->offset = last->offset + 8;  // offset+last size
     }
-    newlocal->next = NULL;
+    newlocal->next = 0;
 
     if (!last) {
         locals = newlocal;
@@ -42,7 +42,7 @@ LVar *insertLVar(char *name) {
 LVar *lastLVar() {
     LVar *local = locals;
     if (!local) {
-        return NULL;
+        return 0;
     }
     while (1) {
         if (!local->next) {
@@ -86,7 +86,7 @@ void CodegenStmt(Stmt *stmt) {
         CodegenStmt(stmt->second_child);
         printf("  jmp .Lend%d\n", label);
         printf(".Lelse%d:\n", label);
-        if (stmt->third_child != NULL) {
+        if (stmt->third_child != 0) {
             CodegenStmt(stmt->third_child);
         }
         printf(".Lend%d:\n", label);
