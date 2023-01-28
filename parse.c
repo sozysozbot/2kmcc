@@ -15,9 +15,17 @@ Expr *numberexpr(int value) {
 Expr *binaryExpr(Expr *first_child, Expr *second_child, BinaryOperation binaryop) {
     Expr *newexp = calloc(1, sizeof(Expr));
     newexp->first_child = first_child;
-    newexp->expr_kind = EK_Operator;
-    newexp->binary_op = binaryop;
+    newexp->expr_kind = EK_BinaryOperator;
+    newexp->op = binaryop;
     newexp->second_child = second_child;
+    return newexp;
+}
+
+Expr *unaryExpr(Expr *first_child, UnaryOperation unaryop) {
+    Expr *newexp = calloc(1, sizeof(Expr));
+    newexp->first_child = first_child;
+    newexp->expr_kind = EK_UnaryOperator;
+    newexp->op = unaryop;
     return newexp;
 }
 
@@ -107,6 +115,12 @@ Expr *parseUnary() {
     }
     if (maybe_consume('-')) {
         return binaryExpr(numberexpr(0), parsePrimary(), '-');
+    }
+    if (maybe_consume('*')) {
+        return unaryExpr(parsePrimary(), '*');
+    }
+    if (maybe_consume('&')) {
+        return unaryExpr(parsePrimary(), '&');
     }
     return parsePrimary();
 }

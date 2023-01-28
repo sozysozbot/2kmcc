@@ -164,8 +164,18 @@ void EvaluateExprIntoRax(Expr *expr) {
     } else if (expr->expr_kind == EK_Number) {
         printf("  mov rax, %d\n", expr->value);
         return;
-    } else if (expr->expr_kind == EK_Operator) {
-        if (expr->binary_op == '=') {
+    } else if (expr->expr_kind == EK_UnaryOperator) {
+        if (expr->op == '*') {
+            EvaluateExprIntoRax(expr->first_child);
+            printf("  mov rax, [rax]\n");
+        } else if (expr->op == '&') {
+            EvaluateLValueAddressIntoRax(expr->first_child);
+        } else {
+            fprintf(stderr, "Invalid unaryop kind:%d", expr->op);
+            exit(1);
+        }
+    } else if (expr->expr_kind == EK_BinaryOperator) {
+        if (expr->op == '=') {
             EvaluateLValueAddressIntoRax(expr->first_child);
             printf("    push rax\n");
             EvaluateExprIntoRax(expr->second_child);
@@ -181,34 +191,34 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    pop rdi\n");
             printf("    pop rax\n");
 
-            if (expr->binary_op == '+') {
+            if (expr->op == '+') {
                 printf("    add rax,rdi\n");
-            } else if (expr->binary_op == '-') {
+            } else if (expr->op == '-') {
                 printf("    sub rax,rdi\n");
 
-            } else if (expr->binary_op == '*') {
+            } else if (expr->op == '*') {
                 printf("    imul rax,rdi\n");
-            } else if (expr->binary_op == '/') {
+            } else if (expr->op == '/') {
                 printf("  cqo\n");
                 printf("  idiv rdi\n");
-            } else if (expr->binary_op == enum2('=', '=')) {
+            } else if (expr->op == enum2('=', '=')) {
                 printf("  cmp rax, rdi\n");
                 printf("  sete al\n");
                 printf("  movzb rax, al\n");
-            } else if (expr->binary_op == enum2('!', '=')) {
+            } else if (expr->op == enum2('!', '=')) {
                 printf("  cmp rax, rdi\n");
                 printf("  setne al\n");
                 printf("  movzb rax, al\n");
-            } else if (expr->binary_op == '>') {
+            } else if (expr->op == '>') {
                 printf("  cmp rax, rdi\n");
                 printf("  setg al\n");
                 printf("  movzb rax, al\n");
-            } else if (expr->binary_op == enum2('>', '=')) {
+            } else if (expr->op == enum2('>', '=')) {
                 printf("  cmp rax, rdi\n");
                 printf("  setge al\n");
                 printf("  movzb rax, al\n");
             } else {
-                fprintf(stderr, "Invalid binaryop kind:%d", expr->binary_op);
+                fprintf(stderr, "Invalid binaryop kind:%d", expr->op);
                 exit(1);
             }
         }

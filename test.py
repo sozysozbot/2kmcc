@@ -161,5 +161,8 @@ assert check("identity(a) { return a; } main() { return identity(3); }", 3)
 assert check("add2(a, b) { return a + b; } main() { return add2(1, 2); }", 3)
 assert check("add6(a,b,c,d,e,f) { return a + b + c + d + e + f; } main() { return add6(1, 2, 3, 4, 5, 6); }", 21)
 assert check("fib(n) { if (n <= 1) { return n; } return fib(n-1) + fib(n-2); } main() { return fib(8); }", 21)
+assert check("main() { x = 3; y = &x; return *y; }", 3)
+assert check_and_link_with("main() { x = 3; write4(&x); return x; }",
+    linked_lib="int write4(int *p) { return *p = 4; } ", expected= 4)
 
 print("OK")

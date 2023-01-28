@@ -64,6 +64,11 @@ int tokenize(char *str) {
             all_tokens[token_index] = token;
             token_index++;
             i++;
+        } else if (c == '&') {
+            Token token = {'&', 0, 0};
+            all_tokens[token_index] = token;
+            token_index++;
+            i++;
         } else if (c == '/') {
             Token token = {'/', 0, 0};
             all_tokens[token_index] = token;

@@ -1,14 +1,16 @@
 typedef int BinaryOperation;
+typedef int UnaryOperation;
 
 enum ExprKind {
     EK_Number,
-    EK_Operator,
+    EK_BinaryOperator,
+    EK_UnaryOperator,
     EK_Identifier,
     EK_Call,
 };
 
 typedef struct Expr {
-    BinaryOperation binary_op;
+    BinaryOperation op;
     enum ExprKind expr_kind;
     int value;
     struct Expr *first_child;
