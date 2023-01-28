@@ -1,76 +1,67 @@
 typedef int BinaryOperation;
 
-enum ExprKind
-{
-  EK_Number,
-  EK_Operator,
-  EK_Identifier,
-  EK_Call,
+enum ExprKind {
+    EK_Number,
+    EK_Operator,
+    EK_Identifier,
+    EK_Call,
 };
 
-typedef struct Expr
-{
-  BinaryOperation binary_op;
-  enum ExprKind expr_kind;
-  int value;
-  struct Expr *first_child;
-  struct Expr *second_child;
-  struct Expr **func_args;
-  int func_arg_len;
-  char* name;
+typedef struct Expr {
+    BinaryOperation binary_op;
+    enum ExprKind expr_kind;
+    int value;
+    struct Expr *first_child;
+    struct Expr *second_child;
+    struct Expr **func_args;
+    int func_arg_len;
+    char *name;
 } Expr;
 
 typedef int StmtKind;
 
-typedef struct Stmt
-{
-  StmtKind stmt_kind;
-  
-  struct Expr *expr;
-  struct Expr *expr1;
-  struct Expr *expr2;
+typedef struct FuncDef {
+    struct Stmt *content;
+    char *name;
+    char **params;
+    int param_len;
+} FuncDef;
 
-  struct Stmt *first_child;
-  struct Stmt *second_child;
-
-  struct Stmt *third_child;
+typedef struct Stmt {
+    StmtKind stmt_kind;
+    struct Expr *expr;
+    struct Expr *expr1;
+    struct Expr *expr2;
+    struct Stmt *first_child;
+    struct Stmt *second_child;
+    struct Stmt *third_child;
 } Stmt;
 
-typedef struct LVar LVar;
-
-// ローカル変数の型
-struct LVar {
-  LVar *next; // 次の変数かNULL
-  char* name; // 変数の名前
-  int len;    // 名前の長さ
-  int offset; // RBPからのオフセット
-};
-
-extern LVar *locals;
+typedef struct LVar {
+    struct LVar *next;
+    char *name;
+    int offset_from_rbp;
+} LVar;
 
 typedef int TokenKind;
 
-typedef struct Token
-{
-  TokenKind kind;
-  int value;
-  char* identifier_name;
+typedef struct Token {
+    TokenKind kind;
+    int value;
+    char *identifier_name;
 } Token;
 
-// prototype declaration
-int isDigit(char c);
-int intLength(char *str);
-int parseInt(char *str);
-Expr *parseMultiplicative(Token **ptrptr, Token *token_end);
-Expr *parseAdditive(Token **ptrptr, Token *token_end);
-Expr *parseExpr(Token **ptrptr, Token *token_end);
-Expr *parseUnary(Token **ptrptr, Token *token_end);
-Stmt *parseProgram(Token **ptrptr, Token *token_end);
-Expr *parseAssign(Token **ptrptr, Token *token_end);
-Stmt *parseFor(Token **ptrptr,Token *token_end);
-Stmt *parseStmt(Token **ptrptr, Token *token_end);
+Expr *parseMultiplicative(void);
+Expr *parseAdditive(void);
+Expr *parseExpr(void);
+Expr *parseUnary(void);
+void parseProgram(void);
+Expr *parseAssign(void);
+Stmt *parseFor(void);
+Stmt *parseStmt(void);
+FuncDef *parseFunction(void);
 
-void Codegen(Stmt* stmt);
+void CodegenFunc(FuncDef *funcdef);
 
 int tokenize(char *str);
 LVar *findLVar(char *name);
@@ -78,11 +69,11 @@ LVar *insertLVar(char *name);
 LVar *lastLVar();
 int is_alnum(char c);
 
-
 void EvaluateExprIntoRax(Expr *expr);
 
-extern Token tokens[1000];
+extern Token all_tokens[1000];
+extern FuncDef *all_funcdefs[100];
 
-int aa(int a, int b);
-int aaa(int a, int b, int c);
-int aaaa(int a, int b, int c, int d);
+int enum2(int a, int b);
+int enum3(int a, int b, int c);
+int enum4(int a, int b, int c, int d);
