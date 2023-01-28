@@ -146,9 +146,6 @@ int tokenize(char *str) {
             char *name = malloc(length + 1);
             memcpy(name, start, length);
             name[length] = '\0';
-            if (!findLVar(name)) {
-                insertLVar(name);
-            }
             Token token = {enum4('i', 'd', 'n', 't'), 0, NULL};
             token.identifier_name = name;
             all_tokens[token_index] = token;
@@ -193,51 +190,4 @@ int intLength(char *str) {
 }
 int isDigit(char c) {
     return '0' <= c && c <= '9';
-}
-
-LVar *findLVar(char *name) {
-    LVar *local = locals;
-    if (!local) {
-        return NULL;
-    }
-    while (local) {
-        if (!strcmp(name, local->name)) {
-            return local;
-        }
-        local = local->next;
-    }
-    return NULL;
-}
-
-LVar *insertLVar(char *name) {
-    LVar *newlocal = calloc(1, sizeof(LVar));
-    LVar *last = lastLVar();
-    newlocal->len = strlen(name);
-    newlocal->name = name;
-    if (!last) {
-        newlocal->offset = 0;
-    } else {
-        newlocal->offset = last->offset + 8;  // offset+last size
-    }
-    newlocal->next = NULL;
-
-    if (!last) {
-        locals = newlocal;
-    } else {
-        last->next = newlocal;
-    }
-    return newlocal;
-}
-
-LVar *lastLVar() {
-    LVar *local = locals;
-    if (!local) {
-        return NULL;
-    }
-    while (1) {
-        if (!local->next) {
-            return local;
-        }
-        local = local->next;
-    }
 }
