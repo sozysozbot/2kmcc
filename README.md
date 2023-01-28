@@ -1,5 +1,7 @@
 # 2kmcc
 
+[作戦部屋](https://docs.google.com/document/d/1hgJ0aRh7KJBRPPZLc7yDAkGntGJLEPjdysq1h8404i4/edit)
+
 ## Goal
 C compiler self-host struct% 
 - compile a subset of C into x64 asm System-V ABI
