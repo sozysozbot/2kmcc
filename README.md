@@ -1,7 +1,7 @@
 # 2kmcc
 
 ## Goal
-C compiler self-host any% 
+C compiler self-host struct% 
 - compile a subset of C into x64 asm System-V ABI
 - the source code of the compiler must be *correctly* compilable by the compiler itself
 
