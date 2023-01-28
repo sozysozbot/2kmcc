@@ -327,6 +327,7 @@ Stmt *parseFunctionContent() {
 }
 
 FuncDef *parseFunction() {
+    consume_otherwise_panic(enum3('i', 'n', 't'));
     if (tokens->kind == enum4('i', 'd', 'n', 't')) {
         char *name = tokens->identifier_name;
         tokens++;

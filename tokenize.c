@@ -45,6 +45,13 @@ int tokenize(char *str) {
             i += 3;
             continue;
         }
+        if (strncmp(ptr, "int", 3) == 0 && !is_alnum(ptr[3])) {
+            Token token = {enum3('i', 'n', 't'), 0, 0};
+            all_tokens[token_index] = token;
+            token_index++;
+            i += 3;
+            continue;
+        }
         if (c == '+') {
             Token token = {'+', 0, 0};
             all_tokens[token_index] = token;
