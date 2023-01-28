@@ -12,7 +12,7 @@ C compiler self-host any%
 ## Rules for the compiler source code
 - Must self-host
 - Must be legible enough (codegolf techniques not permitted if it severely hurts legibility)
-- Should be short. I ambitiously aim for less than 2k lines for now, but I don't know 
+- Should be short. I ambitiously aim for **less than 2k lines**
 
 ## Rules for the language that this compiler accepts
 The subset of C that this compiler can compile must be such that it is not painfully unfun to write a realistic program in.
