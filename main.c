@@ -2,28 +2,21 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef int BinaryOperation;
-typedef int UnaryOperation;
-typedef int BaseType;
+typedef int BinaryOpKind;
+typedef int UnaryOpKind;
+typedef int BaseTypeKind;
 typedef int TokenKind;
 typedef int StmtKind;
+typedef int ExprKind;
 
 typedef struct Type {
-    BaseType ty;
+    BaseTypeKind ty;
     struct Type *ptr_to;
 } Type;
 
-enum ExprKind {
-    EK_Number,
-    EK_BinaryOperator,
-    EK_UnaryOperator,
-    EK_Identifier,
-    EK_Call,
-};
-
 typedef struct Expr {
-    BinaryOperation op;
-    enum ExprKind expr_kind;
+    BinaryOpKind op;
+    ExprKind expr_kind;
     int value;
     struct Expr *first_child;
     struct Expr *second_child;
@@ -266,23 +259,23 @@ int tokenize(char *str) {
 Expr *numberexpr(int value) {
     Expr *numberexp = calloc(1, sizeof(Expr));
     numberexp->value = value;
-    numberexp->expr_kind = EK_Number;
+    numberexp->expr_kind = enum3('N', 'U', 'M');
     return numberexp;
 }
 
-Expr *binaryExpr(Expr *first_child, Expr *second_child, BinaryOperation binaryop) {
+Expr *binaryExpr(Expr *first_child, Expr *second_child, BinaryOpKind binaryop) {
     Expr *newexp = calloc(1, sizeof(Expr));
     newexp->first_child = first_child;
-    newexp->expr_kind = EK_BinaryOperator;
+    newexp->expr_kind = enum4('2', 'A', 'R', 'Y');
     newexp->op = binaryop;
     newexp->second_child = second_child;
     return newexp;
 }
 
-Expr *unaryExpr(Expr *first_child, UnaryOperation unaryop) {
+Expr *unaryExpr(Expr *first_child, UnaryOpKind unaryop) {
     Expr *newexp = calloc(1, sizeof(Expr));
     newexp->first_child = first_child;
-    newexp->expr_kind = EK_UnaryOperator;
+    newexp->expr_kind = enum4('1', 'A', 'R', 'Y');
     newexp->op = unaryop;
     return newexp;
 }
@@ -345,7 +338,7 @@ Expr *parsePrimary() {
             if (maybe_consume(')')) {
                 Expr *callexp = calloc(1, sizeof(Expr));
                 callexp->name = name;
-                callexp->expr_kind = EK_Call;
+                callexp->expr_kind = enum4('C', 'A', 'L', 'L');
                 callexp->func_args = arguments;
                 callexp->func_arg_len = 0;
                 return callexp;
@@ -363,14 +356,14 @@ Expr *parsePrimary() {
             }
             Expr *callexp = calloc(1, sizeof(Expr));
             callexp->name = name;
-            callexp->expr_kind = EK_Call;
+            callexp->expr_kind = enum4('C', 'A', 'L', 'L');
             callexp->func_args = arguments;
             callexp->func_arg_len = i + 1;
             return callexp;
         } else {
             Expr *numberexp = calloc(1, sizeof(Expr));
             numberexp->name = name;
-            numberexp->expr_kind = EK_Identifier;
+            numberexp->expr_kind = enum4('1', 'D', 'N', 'T');
             return numberexp;
         }
     }
@@ -705,7 +698,7 @@ LVar *insertLVar(char *name) {
 }
 
 void EvaluateLValueAddressIntoRax(Expr *expr) {
-    if (expr->expr_kind == EK_Identifier) {
+    if (expr->expr_kind == enum4('1', 'D', 'N', 'T')) {
         if (!findLVar(expr->name)) {
             fprintf(stderr, "undefined variable %s\n", expr->name);
             exit(1);
@@ -713,7 +706,7 @@ void EvaluateLValueAddressIntoRax(Expr *expr) {
         LVar *local = findLVar(expr->name);
         printf("  mov rax, rbp\n");
         printf("  sub rax, %d\n", local->offset_from_rbp);
-    } else if (expr->expr_kind == EK_UnaryOperator && expr->op == '*') {
+    } else if (expr->expr_kind == enum4('1', 'A', 'R', 'Y') && expr->op == '*') {
         EvaluateExprIntoRax(expr->first_child);
     } else {
         fprintf(stderr, "not lvalue");
@@ -803,11 +796,11 @@ void CodegenFunc(FuncDef *funcdef) {
 }
 
 void EvaluateExprIntoRax(Expr *expr) {
-    if (expr->expr_kind == EK_Identifier) {
+    if (expr->expr_kind == enum4('1', 'D', 'N', 'T')) {
         EvaluateLValueAddressIntoRax(expr);
         printf("  mov rax,[rax]\n");
         return;
-    } else if (expr->expr_kind == EK_Call) {
+    } else if (expr->expr_kind == enum4('C', 'A', 'L', 'L')) {
         for (int i = 0; i < expr->func_arg_len; i++) {
             EvaluateExprIntoRax(expr->func_args[i]);
             printf("    push rax\n");
@@ -817,10 +810,10 @@ void EvaluateExprIntoRax(Expr *expr) {
         }
         printf(" call %s\n", expr->name);
         return;
-    } else if (expr->expr_kind == EK_Number) {
+    } else if (expr->expr_kind == enum3('N', 'U', 'M')) {
         printf("  mov rax, %d\n", expr->value);
         return;
-    } else if (expr->expr_kind == EK_UnaryOperator) {
+    } else if (expr->expr_kind == enum4('1', 'A', 'R', 'Y')) {
         if (expr->op == '*') {
             EvaluateExprIntoRax(expr->first_child);
             printf("  mov rax, [rax]\n");
@@ -830,7 +823,7 @@ void EvaluateExprIntoRax(Expr *expr) {
             fprintf(stderr, "Invalid unaryop kind:%d", expr->op);
             exit(1);
         }
-    } else if (expr->expr_kind == EK_BinaryOperator) {
+    } else if (expr->expr_kind == enum4('2', 'A', 'R', 'Y')) {
         if (expr->op == '=') {
             EvaluateLValueAddressIntoRax(expr->first_child);
             printf("    push rax\n");
@@ -883,6 +876,8 @@ void EvaluateExprIntoRax(Expr *expr) {
         exit(1);
     }
 }
+
+/*** ^ CODEGEN | v MAIN ***/
 
 FuncDef *all_funcdefs[100];
 

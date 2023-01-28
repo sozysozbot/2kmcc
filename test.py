@@ -22,7 +22,7 @@ def msg(input: str, expected: int, returned_value: int):
     return False
 
 def check(input: str, expected: int):
-    compiler_returns = (os.system(f'./9cc "{input}" > tmp.s') >> 8) & 0xff
+    compiler_returns = (os.system(f'./2kmcc "{input}" > tmp.s') >> 8) & 0xff
     if compiler_returns != 0:
         print(f"{bcolors.FAIL}FAIL:check (compile error):{input=}{bcolors.ENDC}")
         return False
@@ -32,7 +32,7 @@ def check(input: str, expected: int):
 
 
 def check_and_link_with(input: str, linked_lib: str, expected: int):
-    compiler_returns = (os.system(f'./9cc "{input}" > tmp.s') >> 8) & 0xff
+    compiler_returns = (os.system(f'./2kmcc "{input}" > tmp.s') >> 8) & 0xff
     if compiler_returns != 0:
         print(f"{bcolors.FAIL}FAIL:check (compile error):{input=}{bcolors.ENDC}")
         return False

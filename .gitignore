@@ -2,6 +2,6 @@
 *.o
 tmp*
 a.out
-9cc
+2kmcc
 test1
 test2
