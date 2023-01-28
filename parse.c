@@ -31,14 +31,14 @@ int maybe_consume(TokenKind kind) {
 
 void consume_otherwise_panic(int kind) {
     if (!maybe_consume(kind)) {
-        fprintf(stderr, "expected TokenKind#%x, got TokenKind#%x\n", kind, tokens->kind);
+        fprintf(stderr, "expected TokenKind `%x`, got TokenKind `%x`\n", kind, tokens->kind);
         exit(1);
     }
 }
 
 void expect_otherwise_panic(int kind) {
     if (tokens->kind != kind) {
-        fprintf(stderr, "expected TokenKind#%x, got TokenKind#%x\n", kind, tokens->kind);
+        fprintf(stderr, "expected TokenKind `%x`, got TokenKind `%x`\n", kind, tokens->kind);
         exit(1);
     }
 }
@@ -332,6 +332,7 @@ FuncDef *parseFunction() {
         for (; i < 6; i++) {
             expect_otherwise_panic(enum4('i', 'd', 'n', 't'));
             char *name = tokens->identifier_name;
+            tokens++;
             if (maybe_consume(')')) {
                 params[i] = name;
                 break;

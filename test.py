@@ -11,17 +11,22 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+def msg(input: str, expected: int, returned_value: int):
+    if expected == returned_value:
+        print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
+        os.system("rm tmp tmp.s")
+        return True
+
+    print(f"{bcolors.FAIL}FAIL:check:{input=} {expected=} {returned_value=}{bcolors.ENDC}")
+    print(f"{bcolors.FAIL}Consult tmp.s to find out what when wrong{bcolors.ENDC}")
+    return False
+
 def check(input: str, expected: int):
     os.system(f'./9cc "{input}" > tmp.s')
     os.system("cc -o tmp tmp.s")
     returned_value = (os.system("./tmp") >> 8) & 0xff
+    return msg(input, expected, returned_value)
 
-    if expected == returned_value:
-        print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
-        return True
-
-    print(f"{bcolors.FAIL}FAIL:check:{input=} {expected=} {returned_value=}{bcolors.ENDC}")
-    return False
 
 def check_and_link_with(input: str, linked_lib: str, expected: int):
     os.system(f'./9cc "{input}" > tmp.s')
@@ -32,14 +37,7 @@ def check_and_link_with(input: str, linked_lib: str, expected: int):
     os.system("cc -o tmp tmp.s libtest.s")
     os.system("rm libtest.c libtest.s")
     returned_value = (os.system("./tmp") >> 8) & 0xff
-
-    if expected == returned_value:
-        print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
-        return True
-
-    print(f"{bcolors.FAIL}FAIL:check:{input=} {expected=} {returned_value=}{bcolors.ENDC}")
-    return False
-
+    return msg(input, expected, returned_value)
 
 assert check("main() { return 0; }", 0)
 
@@ -159,5 +157,8 @@ assert check_and_link_with(
 
 assert check("three() { return 3; } main() { return three(); }", 3)
 assert check("one() { return 1; } three() { return one() + 2; } main() { return three() + three(); }", 6)
+assert check("identity(a) { return a; } main() { return identity(3); }", 3)
+assert check("add2(a, b) { return a + b; } main() { return add2(1, 2); }", 3)
+assert check("add6(a,b,c,d,e,f) { return a + b + c + d + e + f; } main() { return add6(1, 2, 3, 4, 5, 6); }", 21)
 
 print("OK")

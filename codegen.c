@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "9cc.h"
 
 int labelCounter = 0;
 
 LVar *locals;
-
 
 LVar *findLVar(char *name) {
     LVar *local = locals;
@@ -27,7 +27,7 @@ LVar *insertLVar(char *name) {
     LVar *last = lastLVar();
     newlocal->name = name;
     if (!last) {
-        newlocal->offset_from_rbp = 0;
+        newlocal->offset_from_rbp = 8;
     } else {
         newlocal->offset_from_rbp = last->offset_from_rbp + 8;  // offset+last size
     }
@@ -125,17 +125,25 @@ void CodegenStmt(Stmt *stmt) {
     }
 }
 
+const char *nth_arg_reg(int n) {
+    return "rdi\0rsi\0rdx\0rcx\0r8 \0r9" + 4 * n;
+}
+
 void CodegenFunc(FuncDef *funcdef) {
     printf(".globl %s\n", funcdef->name);
     printf("%s:\n", funcdef->name);
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
     printf("  sub rsp, 208\n");
+    for (int i = 0; i < funcdef->param_len; i++) {
+        char *param_name = funcdef->params[i];
+        insertLVar(param_name);
+        LVar *local = findLVar(param_name);
+        printf("  mov rax, rbp\n");
+        printf("  sub rax, %d\n", local->offset_from_rbp);
+        printf("  mov [rax], %s\n", nth_arg_reg(i));
+    }
     CodegenStmt(funcdef->content);
-}
-
-const char *nth_arg_reg(int n) {
-    return "rdi\0rsi\0rdx\0rcx\0r8 \0r9" + 4 * n;
 }
 
 void EvaluateExprIntoRax(Expr *expr) {
