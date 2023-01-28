@@ -17,19 +17,25 @@ def msg(input: str, expected: int, returned_value: int):
         os.system("rm tmp tmp.s")
         return True
 
-    print(f"{bcolors.FAIL}FAIL:check:{input=} {expected=} {returned_value=}{bcolors.ENDC}")
+    print(f"{bcolors.FAIL}FAIL:check (wrong answer):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
     print(f"{bcolors.FAIL}Consult tmp.s to find out what when wrong{bcolors.ENDC}")
     return False
 
 def check(input: str, expected: int):
-    os.system(f'./9cc "{input}" > tmp.s')
+    compiler_returns = (os.system(f'./9cc "{input}" > tmp.s') >> 8) & 0xff
+    if compiler_returns != 0:
+        print(f"{bcolors.FAIL}FAIL:check (compile error):{input=}{bcolors.ENDC}")
+        return False
     os.system("cc -o tmp tmp.s")
     returned_value = (os.system("./tmp") >> 8) & 0xff
     return msg(input, expected, returned_value)
 
 
 def check_and_link_with(input: str, linked_lib: str, expected: int):
-    os.system(f'./9cc "{input}" > tmp.s')
+    compiler_returns = (os.system(f'./9cc "{input}" > tmp.s') >> 8) & 0xff
+    if compiler_returns != 0:
+        print(f"{bcolors.FAIL}FAIL:check (compile error):{input=}{bcolors.ENDC}")
+        return False
     lib_file = open("libtest.c", "w")
     lib_file.write(linked_lib)
     lib_file.close()
@@ -96,43 +102,43 @@ assert check("int main() { return 1<=1; }", 1)
 assert check("int main() { 1+1;return 5-2; }",3)
 
 #variables
-assert check("int main() { a=3;return a; }",3)
-assert check("int main() { a=3;b=4;return a+b; }",7)
+assert check("int main() { int a; a=3;return a; }",3)
+assert check("int main() { int a; int b; a=3;b=4;return a+b; }",7)
 
-assert check("int main() { ab=3;bd=4;return ab+bd; }",7)
-assert check("int main() { abz=3;bdz =4;return abz+bdz; }",7)
+assert check("int main() { int ab; int bd; ab=3;bd=4;return ab+bd; }",7)
+assert check("int main() { int abz; int bdz; abz=3;bdz =4;return abz+bdz; }",7)
 
 assert check("int main() { return 1;return 2; }",1)
 assert check("int main() { return 1;return 2+3; }",1)
-assert check("int main() { a=0;if(1)a=1;return a; }",1)
-assert check("int main() { a=0;if(0)a=1;return a; }",0)
+assert check("int main() { int a; a=0;if(1)a=1;return a; }",1)
+assert check("int main() { int a; a=0;if(0)a=1;return a; }",0)
 
-assert check("int main() { a=1;if(a)a=5;return a; }",5)
-assert check("int main() { a=0;if(a)a=5;return a; }",0)
+assert check("int main() { int a; a=1;if(a)a=5;return a; }",5)
+assert check("int main() { int a; a=0;if(a)a=5;return a; }",0)
 
-assert check("int main() { a=1;if(a)return 5;return 10; }",5)
-assert check("int main() { a=0;if(a)return 5;return 10; }",10)
+assert check("int main() { int a; a=1;if(a)return 5;return 10; }",5)
+assert check("int main() { int a; a=0;if(a)return 5;return 10; }",10)
 
-assert check("int main() { a=0;if(a)return 5;a=1;if(a)return 3;return 10; }",3)
-assert check("int main() { a=0;while(a)return 1; return 3; }",3)
-assert check("int main() { a=0;while(a<5)a=a+1; return a; }",5)
+assert check("int main() { int a; a=0;if(a)return 5;a=1;if(a)return 3;return 10; }",3)
+assert check("int main() { int a; a=0;while(a)return 1; return 3; }",3)
+assert check("int main() { int a; a=0;while(a<5)a=a+1; return a; }",5)
 
-assert check("int main() { a=0;if(a)return 5;else a=10;return a; }",10)
-assert check("int main() { a=1;if(a)a=0;else return 10;return a; }",0)
+assert check("int main() { int a; a=0;if(a)return 5;else a=10;return a; }",10)
+assert check("int main() { int a; a=1;if(a)a=0;else return 10;return a; }",0)
 
-assert check("int main() { for(a=0;a<10;a=a+1)b=a;return b; }",9)
+assert check("int main() { int a; int b; for(a=0;a<10;a=a+1)b=a;return b; }",9)
 assert check("int main() { for(;;)return 0; }",0)
 
 #block
 assert check("int main() { { { { return 3; } } } }", 3)
-assert check("int main() { a = 3; if (a) { b = 1; c = 2; } else { b = 5; c = 7; } return b + c; }", 3)
-assert check("int main() { a = 0; if (a) { b = 1; c = 2; } else { b = 5; c = 7; } return b + c; }", 12)
-assert check("int main() { a = 0; b = 0; c = 3; if (a) { } return c; }", 3)
-assert check("int main() { a = 0; b = 0; c = 3; if (a) { if (b) { c = 2; } } return c; }", 3)
-assert check("int main() { a = 0; b = 0; c = 3; if (a) { if (b) { c = 2; } } else { c = 7; } return c; }", 7)
-assert check("int main() { a = 0; b = 0; c = 3; if (a) {if (b) { c = 2; } else { c = 7; }} return c; }", 3)
-assert check("int main() { a = 0; b = 0; c = 3; if (a) if (b) { c = 2; } else { c = 7; } return c; }", 3)
-assert check("int main() { a = 0; b = 0; c = 3; if (a) {if (b) { c = 2; }} else { c = 7; } return c; }", 7)
+assert check("int main() { int a; int b; int c; a = 3; if (a) { b = 1; c = 2; } else { b = 5; c = 7; } return b + c; }", 3)
+assert check("int main() { int a; int b; int c; a = 0; if (a) { b = 1; c = 2; } else { b = 5; c = 7; } return b + c; }", 12)
+assert check("int main() { int a; int b; int c; a = 0; b = 0; c = 3; if (a) { } return c; }", 3)
+assert check("int main() { int a; int b; int c; a = 0; b = 0; c = 3; if (a) { if (b) { c = 2; } } return c; }", 3)
+assert check("int main() { int a; int b; int c; a = 0; b = 0; c = 3; if (a) { if (b) { c = 2; } } else { c = 7; } return c; }", 7)
+assert check("int main() { int a; int b; int c; a = 0; b = 0; c = 3; if (a) {if (b) { c = 2; } else { c = 7; }} return c; }", 3)
+assert check("int main() { int a; int b; int c; a = 0; b = 0; c = 3; if (a) if (b) { c = 2; } else { c = 7; } return c; }", 3)
+assert check("int main() { int a; int b; int c; a = 0; b = 0; c = 3; if (a) {if (b) { c = 2; }} else { c = 7; } return c; }", 7)
 
 #link with what's built in gcc
 assert check_and_link_with(
@@ -161,8 +167,8 @@ assert check("int identity(int a) { return a; } int main() { return identity(3);
 assert check("int add2(int a, int b) { return a + b; } int main() { return add2(1, 2); }", 3)
 assert check("int add6(int a, int b, int c, int d, int e, int f) { return a + b + c + d + e + f; } int main() { return add6(1, 2, 3, 4, 5, 6); }", 21)
 assert check("int fib(int n) { if (n <= 1) { return n; } return fib(n-1) + fib(n-2); } int main() { return fib(8); }", 21)
-assert check("int main() { x = 3; y = &x; return *y; }", 3)
-assert check_and_link_with("int main() { x = 3; write4(&x); return x; }",
+assert check("int main() { int x; int y; x = 3; y = &x; return *y; }", 3)
+assert check_and_link_with("int main() { int x; x = 3; write4(&x); return x; }",
     linked_lib="int write4(int *p) { return *p = 4; } ", expected= 4)
 
 print("OK")

@@ -57,7 +57,8 @@ LVar *lastLVar() {
 void EvaluateLValueAddressIntoRax(Expr *expr) {
     if (expr->expr_kind == EK_Identifier) {
         if (!findLVar(expr->name)) {
-            insertLVar(expr->name);
+            fprintf(stderr, "undefined variable %s\n", expr->name);
+            exit(1);
         }
         LVar *local = findLVar(expr->name);
         printf("  mov rax, rbp\n");
@@ -142,6 +143,9 @@ void CodegenFunc(FuncDef *funcdef) {
         printf("  mov rax, rbp\n");
         printf("  sub rax, %d\n", local->offset_from_rbp);
         printf("  mov [rax], %s\n", nth_arg_reg(i));
+    }
+    for (char **names = funcdef->lvar_names_start; names != funcdef->lvar_names_end; names++) {
+        insertLVar(*names);
     }
     CodegenStmt(funcdef->content);
 }
