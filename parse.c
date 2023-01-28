@@ -226,96 +226,66 @@ Expr *parseOptionalExprAndToken(TokenKind target) {
     return expr;
 }
 
-Stmt *parseFor() {
-    tokens++;
-    consume_otherwise_panic('(');
-    Expr *exprs[3] = {0, 0, 0};
-    exprs[0] = parseOptionalExprAndToken(';');
-    exprs[1] = parseOptionalExprAndToken(';');
-    exprs[2] = parseOptionalExprAndToken(')');
-
-    Stmt *stmt = calloc(1, sizeof(Stmt));
-    stmt->stmt_kind = enum3('f', 'o', 'r');
-    stmt->expr = exprs[0];
-    stmt->expr1 = exprs[1];
-    stmt->expr2 = exprs[2];
-
-    Stmt *loop_body = parseStmt();
-    stmt->second_child = loop_body;
-    return stmt;
-}
-
 Stmt *parseStmt() {
     if (maybe_consume('{')) {
         Stmt *result = calloc(1, sizeof(Stmt));
         result->stmt_kind = enum4('e', 'x', 'p', 'r');
         result->expr = numberexpr(1);
         while (tokens->kind != '}') {
-            Stmt *statement = parseStmt();
             Stmt *newstmt = calloc(1, sizeof(Stmt));
             newstmt->first_child = result;
             newstmt->stmt_kind = enum4('n', 'e', 'x', 't');
-            newstmt->second_child = statement;
+            newstmt->second_child = parseStmt();
             result = newstmt;
         }
         tokens++;
         return result;
     }
-
-    int is_return = 0;
-    int is_if = 0;
-    int is_while = 0;
-
-    if (tokens->kind == enum3('R', 'E', 'T')) {
-        tokens++;
-        is_return = 1;
-    }
-    if (tokens->kind == enum2('i', 'f')) {
-        tokens++;
-        is_if = 1;
-        consume_otherwise_panic('(');
-    }
-    if (tokens->kind == enum4('W', 'H', 'I', 'L')) {
-        tokens++;
-        is_while = 1;
-        consume_otherwise_panic('(');
-    }
-    if (tokens->kind == enum3('f', 'o', 'r')) {
-        Stmt *stmt = parseFor();
+    if (maybe_consume(enum3('R', 'E', 'T'))) {
+        Stmt *stmt = calloc(1, sizeof(Stmt));
+        stmt->stmt_kind = enum3('R', 'E', 'T');
+        stmt->expr = parseExpr();
+        consume_otherwise_panic(';');
         return stmt;
     }
-    Expr *expr = parseExpr();
-
-    if (is_if || is_while) {
+    if (maybe_consume(enum2('i', 'f'))) {
+        Stmt *stmt = calloc(1, sizeof(Stmt));
+        consume_otherwise_panic('(');
+        stmt->expr = parseExpr();
         consume_otherwise_panic(')');
-    } else {
-        consume_otherwise_panic(';');
-    }
-
-    Stmt *stmt = calloc(1, sizeof(Stmt));
-    stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
-    stmt->expr = expr;
-    if (is_if) {
         stmt->stmt_kind = enum2('i', 'f');
-        {
-            Stmt *statement = parseStmt();
-            stmt->second_child = statement;
+        stmt->second_child = parseStmt();  // then-block
+        if (maybe_consume(enum4('e', 'l', 's', 'e'))) {
+            stmt->third_child = parseStmt();  // else-block
         }
-        if (tokens->kind == enum4('e', 'l', 's', 'e')) {
-            tokens++;
-            Stmt *statement1 = parseStmt();
-            stmt->third_child = statement1;
-        }
+        return stmt;
     }
-    if (is_while) {
+    if (maybe_consume(enum4('W', 'H', 'I', 'L'))) {
+        Stmt *stmt = calloc(1, sizeof(Stmt));
+        consume_otherwise_panic('(');
+        stmt->expr = parseExpr();
+        consume_otherwise_panic(')');
         stmt->stmt_kind = enum4('W', 'H', 'I', 'L');
         Stmt *statement = parseStmt();
         stmt->second_child = statement;
+        return stmt;
     }
-    if (is_return) {
-        stmt->stmt_kind = enum3('R', 'E', 'T');
+    if (maybe_consume(enum3('f', 'o', 'r'))) {
+        Stmt *stmt = calloc(1, sizeof(Stmt));
+        stmt->stmt_kind = enum3('f', 'o', 'r');
+        consume_otherwise_panic('(');
+        stmt->expr = parseOptionalExprAndToken(';');
+        stmt->expr1 = parseOptionalExprAndToken(';');
+        stmt->expr2 = parseOptionalExprAndToken(')');
+        stmt->second_child = parseStmt();
+        return stmt;
+    } else {
+        Stmt *stmt = calloc(1, sizeof(Stmt));
+        stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
+        stmt->expr = parseExpr();
+        consume_otherwise_panic(';');
+        return stmt;
     }
-    return stmt;
 }
 
 Stmt *parseFunctionContent() {
