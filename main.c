@@ -10,15 +10,15 @@ Token *tokens;
 FuncDef *all_funcdefs[100];
 
 int enum2(int a, int b) {
-    return a * 256 + b;
+    return a + b * 256;
 }
 
 int enum3(int a, int b, int c) {
-    return enum2(enum2(a, b), c);
+    return enum2(a, enum2(b, c));
 }
 
 int enum4(int a, int b, int c, int d) {
-    return enum2(enum3(a, b, c), d);
+    return enum2(a, enum3(b, c, d));
 }
 
 int main(int argc, char **argv) {

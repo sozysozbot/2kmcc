@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "9cc.h"
 extern Token *tokens_end;
@@ -37,16 +38,24 @@ int maybe_consume(TokenKind kind) {
     return 0;
 }
 
+char *decode_kind(int kind) {
+    void *r = &kind;
+    char *q = r;
+    char *ans = calloc(5, sizeof(char));
+    strncpy(ans, q, 4);
+    return ans;
+}
+
 void consume_otherwise_panic(int kind) {
     if (!maybe_consume(kind)) {
-        fprintf(stderr, "expected TokenKind `%x`, got TokenKind `%x`\n", kind, tokens->kind);
+        fprintf(stderr, "expected TokenKind `%s`, got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens->kind));
         exit(1);
     }
 }
 
 void expect_otherwise_panic(int kind) {
     if (tokens->kind != kind) {
-        fprintf(stderr, "expected TokenKind `%x`, got TokenKind `%x`\n", kind, tokens->kind);
+        fprintf(stderr, "expected TokenKind `%s`, got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens->kind));
         exit(1);
     }
 }
@@ -60,11 +69,11 @@ void panic_if_eof() {
 
 Expr *parsePrimary() {
     panic_if_eof();
-    if (tokens->kind == enum3('n', 'u', 'm')) {
+    if (tokens->kind == enum3('N', 'U', 'M')) {
         int value = tokens->value;
         tokens += 1;
         return numberexpr(value);
-    } else if (tokens->kind == enum4('i', 'd', 'n', 't')) {
+    } else if (tokens->kind == enum4('I', 'D', 'N', 'T')) {
         char *name = tokens->identifier_name;
         tokens += 1;
         if (maybe_consume('(')) {
@@ -129,7 +138,7 @@ Expr *parseMultiplicative() {
     panic_if_eof();
     Expr *result = parseUnary();
     while (tokens < tokens_end) {
-        if (tokens->kind == enum3('n', 'u', 'm')) {
+        if (tokens->kind == enum3('N', 'U', 'M')) {
             fprintf(stderr, "Expected operator got Number");
             exit(1);
         } else if (maybe_consume('*')) {
@@ -147,7 +156,7 @@ Expr *parseAdditive() {
     panic_if_eof();
     Expr *result = parseMultiplicative();
     while (tokens < tokens_end) {
-        if (tokens->kind == enum3('n', 'u', 'm')) {
+        if (tokens->kind == enum3('N', 'U', 'M')) {
             fprintf(stderr, "Expected operator, got Number");
             exit(1);
         } else if (maybe_consume('-')) {
@@ -257,7 +266,7 @@ Stmt *parseStmt() {
     int is_if = 0;
     int is_while = 0;
 
-    if (tokens->kind == enum3('r', 'e', 't')) {
+    if (tokens->kind == enum3('R', 'E', 'T')) {
         tokens++;
         is_return = 1;
     }
@@ -266,7 +275,7 @@ Stmt *parseStmt() {
         is_if = 1;
         consume_otherwise_panic('(');
     }
-    if (tokens->kind == enum4('w', 'h', 'i', 'l')) {
+    if (tokens->kind == enum4('W', 'H', 'I', 'L')) {
         tokens++;
         is_while = 1;
         consume_otherwise_panic('(');
@@ -299,12 +308,12 @@ Stmt *parseStmt() {
         }
     }
     if (is_while) {
-        stmt->stmt_kind = enum4('w', 'h', 'i', 'l');
+        stmt->stmt_kind = enum4('W', 'H', 'I', 'L');
         Stmt *statement = parseStmt();
         stmt->second_child = statement;
     }
     if (is_return) {
-        stmt->stmt_kind = enum3('r', 'e', 't');
+        stmt->stmt_kind = enum3('R', 'E', 'T');
     }
     return stmt;
 }
@@ -328,7 +337,7 @@ Stmt *parseFunctionContent() {
 
 FuncDef *parseFunction() {
     consume_otherwise_panic(enum3('i', 'n', 't'));
-    if (tokens->kind == enum4('i', 'd', 'n', 't')) {
+    if (tokens->kind == enum4('I', 'D', 'N', 'T')) {
         char *name = tokens->identifier_name;
         tokens++;
         char **params = calloc(6, sizeof(char *));
@@ -345,7 +354,7 @@ FuncDef *parseFunction() {
 
         int i = 0;
         for (; i < 6; i++) {
-            expect_otherwise_panic(enum4('i', 'd', 'n', 't'));
+            expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
             char *name = tokens->identifier_name;
             tokens++;
             if (maybe_consume(')')) {
@@ -372,7 +381,7 @@ FuncDef *parseFunction() {
 void parseProgram() {
     int i = 0;
     while (tokens < tokens_end) {
-       all_funcdefs[i] = parseFunction();
-       i++;
+        all_funcdefs[i] = parseFunction();
+        i++;
     }
 }
