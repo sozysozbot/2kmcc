@@ -13,7 +13,9 @@ C compiler self-host struct%
 
 ## Rules for the compiler source code
 - Must self-host
-- Must be legible enough (codegolf techniques not permitted if it severely hurts legibility)
+- Must be legible enough
+    - codegolf techniques not permitted if it severely hurts legibility
+    - it should be such that it is easy to add a new feature
 - Should be short. I ambitiously aim for **less than 2k lines**
 
 ## Rules for the language that this compiler accepts
