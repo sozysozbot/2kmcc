@@ -208,6 +208,9 @@ assert check("int main() { int x; return sizeof(x+3); }", 4)
 assert check("int main() { int *p; return sizeof(p+3); }", 8)
 
 assert check("int main() { int arr[10]; return 8; }", 8)
+assert check("int main() { int arr[10]; return sizeof(arr); }", 40)
+assert check("int main() { int arr[5][2]; return sizeof(arr); }", 40)
+assert check("int main() { int *arr[5][2]; return sizeof(arr); }", 80)
 
 print(f"""
 {bcolors.OKGREEN}

@@ -276,6 +276,8 @@ int size(Type *t) {
         return 8;
     } else if (t->ty == enum3('i', 'n', 't')) {
         return 4;
+    } else if (t->ty == enum2('[', ']')) {
+        return t->array_size * size(t->ptr_to);
     } else {
         fprintf(stderr, "unknown size\n");
         exit(1);
