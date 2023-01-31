@@ -1,11 +1,16 @@
 # 2kmcc
 
+(WIP)
+
+2k-line mundane C compiler: a self-hosting toy C compiler that's so mundane, your puny C compiler can compile me
+
 [作戦部屋](https://docs.google.com/document/d/1hgJ0aRh7KJBRPPZLc7yDAkGntGJLEPjdysq1h8404i4/edit)
 
 ## Goal
 C compiler self-host struct% 
 - compile a subset of C into x64 asm System-V ABI
 - the source code of the compiler must be *correctly* compilable by the compiler itself
+- the source code of the compiler should be compilable by many other toy C compilers
 
 ## Current status
 - [Step 18 of Rui Ueyama's compilerbook](https://www.sigbus.info/compilerbook#%E3%82%B9%E3%83%86%E3%83%83%E3%83%9718-%E3%83%9D%E3%82%A4%E3%83%B3%E3%82%BF%E5%9E%8B%E3%82%92%E5%B0%8E%E5%85%A5%E3%81%99%E3%82%8B) completed
@@ -13,7 +18,9 @@ C compiler self-host struct%
 
 ## Rules for the compiler source code
 - Must self-host
-- Must be legible enough (codegolf techniques not permitted if it severely hurts legibility)
+- Must be legible enough
+    - codegolf techniques not permitted if it severely hurts legibility
+    - it should be such that it is easy to add a new feature
 - Should be short. I ambitiously aim for **less than 2k lines**
 
 ## Rules for the language that this compiler accepts
