@@ -312,6 +312,8 @@ assert check_and_link_with("int main() { int a[2][4]; int i; int j; for(i=0;i<2;
 int foo(int (*p)[2][4]) { int i; int j; for(i=0;i<2;i++) for(j=0;j<4;j++) { printf("i=%d, j=%d, (*p)[i][j]=%d\\n", i, j, (*p)[i][j]); if ((*p)[i][j] != i * 10 + j) return i * 10 + j * 3;} return 42; }''',
     expected=42)
 
+assert check("int main() { int a; int b; a = b = 3; return a + b; }", 6)
+
 print(f"""
 {bcolors.OKGREEN}
 ************

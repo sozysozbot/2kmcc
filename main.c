@@ -1029,6 +1029,17 @@ void CodegenFunc(FuncDef *funcdef) {
     CodegenStmt(funcdef->content);
 }
 
+const char *eax_or_rax(int sz) {
+    if (sz == 8) {
+        return "rax";
+    } else if (sz == 4) {
+        return "eax";
+    } else {
+        fprintf(stderr, "unhandlable size %d\n", sz);
+        exit(1);
+    }
+}
+
 void EvaluateExprIntoRax(Expr *expr) {
     if (expr->typ->kind == enum2('[', ']')) {
         EvaluateLValueAddressIntoRax(expr);
@@ -1037,14 +1048,7 @@ void EvaluateExprIntoRax(Expr *expr) {
 
     if (expr->expr_kind == enum4('I', 'D', 'N', 'T')) {
         EvaluateLValueAddressIntoRax(expr);
-        if (size(expr->typ) == 4) {
-            printf("  mov eax,[rax]\n");
-        } else if (size(expr->typ) == 8) {
-            printf("  mov rax,[rax]\n");
-        } else {
-            fprintf(stderr, "unhandlable size\n");
-            exit(1);
-        }
+        printf("  mov %s,[rax]\n", eax_or_rax(size(expr->typ)));
         return;
     } else if (expr->expr_kind == enum4('C', 'A', 'L', 'L')) {
         for (int i = 0; i < expr->func_arg_len; i++) {
@@ -1076,10 +1080,8 @@ void EvaluateExprIntoRax(Expr *expr) {
             EvaluateLValueAddressIntoRax(expr->first_child);
             printf("    push rax\n");
             EvaluateExprIntoRax(expr->second_child);
-            printf("    push rax\n");
             printf("    pop rdi\n");
-            printf("    pop rax\n");
-            printf("    mov [rax], %s\n", nth_arg_reg(0, size(expr->second_child->typ)));  // rdi or edi
+            printf("    mov [rdi], %s\n", eax_or_rax(size(expr->second_child->typ))); 
         } else {
             EvaluateExprIntoRax(expr->first_child);
             printf("    push rax\n");
