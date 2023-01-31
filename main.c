@@ -5,7 +5,7 @@
 typedef int Kind;
 
 typedef struct Type {
-    Kind base_type;
+    Kind ty;
     struct Type *ptr_to;
 } Type;
 
@@ -18,6 +18,7 @@ typedef struct Expr {
     struct Expr **func_args;
     int func_arg_len;
     char *func_or_ident_name;
+    Type *typ;
 } Expr;
 
 typedef struct FuncDef {
@@ -234,27 +235,63 @@ int tokenize(char *str) {
 
 /*** ^ TOKENIZE | v PARSE ***/
 
+Type *type_int() {
+    Type *t = calloc(1, sizeof(Type));
+    t->ty = enum3('i', 'n', 't');
+    return t;
+}
+
+Type *ptr_of(Type *t) {
+    Type *new_t = calloc(1, sizeof(Type));
+    new_t->ty = '*';
+    new_t->ptr_to = t;
+    return new_t;
+}
+
+Type *deref(Type *t) {
+    if (t->ty == '*') {
+        return t->ptr_to;
+    } else {
+        fprintf(stderr, "Cannot deref a non-pointer type\n");
+        exit(1);
+    }
+}
+
+int size(Type *t) {
+    if (t->ty == '*') {
+        return 8;
+    } else if (t->ty == enum3('i', 'n', 't')) {
+        return 4;
+    } else {
+        fprintf(stderr, "unknown size\n");
+        exit(1);
+    }
+}
+
 Expr *numberexpr(int value) {
     Expr *numberexp = calloc(1, sizeof(Expr));
     numberexp->value = value;
     numberexp->expr_kind = enum3('N', 'U', 'M');
+    numberexp->typ = type_int();
     return numberexp;
 }
 
-Expr *binaryExpr(Expr *first_child, Expr *second_child, Kind binaryop) {
+Expr *binaryExpr(Expr *first_child, Expr *second_child, Kind binaryop, Type *typ) {
     Expr *newexp = calloc(1, sizeof(Expr));
     newexp->first_child = first_child;
     newexp->expr_kind = enum4('2', 'A', 'R', 'Y');
     newexp->op = binaryop;
     newexp->second_child = second_child;
+    newexp->typ = typ;
     return newexp;
 }
 
-Expr *unaryExpr(Expr *first_child, Kind unaryop) {
+Expr *unaryExpr(Expr *first_child, Kind unaryop, Type *typ) {
     Expr *newexp = calloc(1, sizeof(Expr));
     newexp->first_child = first_child;
     newexp->expr_kind = enum4('1', 'A', 'R', 'Y');
     newexp->op = unaryop;
+    newexp->typ = typ;
     return newexp;
 }
 
@@ -321,6 +358,7 @@ Expr *parsePrimary() {
                 callexp->expr_kind = enum4('C', 'A', 'L', 'L');
                 callexp->func_args = arguments;
                 callexp->func_arg_len = 0;
+                callexp->typ = TODO(name);
                 return callexp;
             }
 
@@ -339,11 +377,13 @@ Expr *parsePrimary() {
             callexp->expr_kind = enum4('C', 'A', 'L', 'L');
             callexp->func_args = arguments;
             callexp->func_arg_len = i + 1;
+            callexp->typ = TODO(name);
             return callexp;
         } else {
             Expr *ident_exp = calloc(1, sizeof(Expr));
             ident_exp->func_or_ident_name = name;
             ident_exp->expr_kind = enum4('I', 'D', 'N', 'T');
+            ident_exp->typ = TODO(name);
             return ident_exp;
         }
     }
@@ -354,16 +394,35 @@ Expr *parsePrimary() {
     return expr;
 }
 
+Expr *assert_int(Expr *e) {
+    if (e->typ->ty != enum3('i', 'n', 't')) {
+        fprintf(stderr, "int is expected, but not an int\n");
+        exit(1);
+    }
+    return e;
+}
+
+void assert_same_type(Type *t1, Type *t2) {
+    if (t1->ty == '*' && t2->ty == '*') {
+        assert_same_type(t1->ptr_to, t2->ptr_to);
+    } else if (t1->ty != t2->ty) {
+        fprintf(stderr, "two different types detected\n");
+        exit(1);
+    }
+}
+
 Expr *parseUnary() {
     panic_if_eof();
     if (maybe_consume('+')) {
-        return parsePrimary();
+        return assert_int(parsePrimary());
     } else if (maybe_consume('-')) {
-        return binaryExpr(numberexpr(0), parsePrimary(), '-');
+        return binaryExpr(numberexpr(0), assert_int(parsePrimary()), '-', type_int());
     } else if (maybe_consume('*')) {
-        return unaryExpr(parsePrimary(), '*');
+        Expr *expr = parsePrimary();
+        return unaryExpr(expr, '*', deref(expr->typ));
     } else if (maybe_consume('&')) {
-        return unaryExpr(parsePrimary(), '&');
+        Expr *expr = parsePrimary();
+        return unaryExpr(expr, '&', ptr_of(expr->typ));
     }
     return parsePrimary();
 }
@@ -376,14 +435,60 @@ Expr *parseMultiplicative() {
             fprintf(stderr, "Expected operator got Number");
             exit(1);
         } else if (maybe_consume('*')) {
-            result = binaryExpr(result, parseUnary(), '*');
+            result = binaryExpr(assert_int(result), assert_int(parseUnary()), '*', type_int());
         } else if (maybe_consume('/')) {
-            result = binaryExpr(result, parseUnary(), '/');
+            result = binaryExpr(assert_int(result), assert_int(parseUnary()), '/', type_int());
         } else {
             return result;
         }
     }
     return result;
+}
+
+Expr *add(Expr *lhs, Expr *rhs) {
+    if (lhs->typ->ty == enum3('i', 'n', 't')) {
+        if (rhs->typ->ty == enum3('i', 'n', 't')) {
+            return binaryExpr(lhs, rhs, '+', type_int());
+        } else if (rhs->typ->ty == '*') {
+            return add(rhs, lhs);
+        } else {
+            fprintf(stderr, "unknown type in addition\n");
+            exit(1);
+        }
+    } else if (lhs->typ->ty == '*') {
+        if (rhs->typ->ty == enum3('i', 'n', 't')) {
+            return binaryExpr(lhs, binaryExpr(numberexpr(size(deref(lhs->typ))), rhs, '*', type_int()), '+', lhs->typ);
+        } else {
+            fprintf(stderr, "cannot add\n");
+            exit(1);
+        }
+    } else {
+        fprintf(stderr, "unknown type\n");
+        exit(1);
+    }
+}
+
+Expr *subtract(Expr *lhs, Expr *rhs) {
+    if (lhs->typ->ty == enum3('i', 'n', 't')) {
+        if (rhs->typ->ty == enum3('i', 'n', 't')) {
+            return binaryExpr(lhs, rhs, '-', type_int());
+        } else if (rhs->typ->ty == '*') {
+            fprintf(stderr, "cannot subtract\n");
+            exit(1);
+        }
+    } else if (lhs->typ->ty == '*') {
+        if (rhs->typ->ty == enum3('i', 'n', 't')) {
+            return binaryExpr(lhs, binaryExpr(numberexpr(size(deref(lhs->typ))), rhs, '*', type_int()), '-', lhs->typ);
+        } else if (rhs->typ->ty == '*') {
+            assert_same_type(lhs->typ, rhs->typ);
+            return binaryExpr(binaryExpr(lhs, rhs, '-', type_int()), numberexpr(size(deref(lhs->typ))), '/', type_int());
+        } else {
+            fprintf(stderr, "cannot add\n");
+            exit(1);
+        }
+    }
+    fprintf(stderr, "unknown type\n");
+    exit(1);
 }
 
 Expr *parseAdditive() {
@@ -394,9 +499,9 @@ Expr *parseAdditive() {
             fprintf(stderr, "Expected operator, got Number");
             exit(1);
         } else if (maybe_consume('-')) {
-            result = binaryExpr(result, parseMultiplicative(), '-');
+            result = subtract(result, parseMultiplicative());
         } else if (maybe_consume('+')) {
-            result = binaryExpr(result, parseMultiplicative(), '+');
+            result = add(result, parseMultiplicative());
         } else {
             return result;
         }
@@ -409,13 +514,13 @@ Expr *parseRelational() {
     Expr *result = parseAdditive();
     while (tokens < tokens_end) {
         if (maybe_consume('>')) {
-            result = binaryExpr(result, parseAdditive(), '>');
+            result = binaryExpr(result, parseAdditive(), '>', type_int());
         } else if (maybe_consume(enum2('>', '='))) {
-            result = binaryExpr(result, parseAdditive(), enum2('>', '='));
+            result = binaryExpr(result, parseAdditive(), enum2('>', '='), type_int());
         } else if (maybe_consume('<')) {
-            result = binaryExpr(parseAdditive(), result, '>');  // children & operator swapped
+            result = binaryExpr(parseAdditive(), result, '>', type_int());  // children & operator swapped
         } else if (maybe_consume(enum2('<', '='))) {
-            result = binaryExpr(parseAdditive(), result, enum2('>', '='));  // children & operator swapped
+            result = binaryExpr(parseAdditive(), result, enum2('>', '='), type_int());  // children & operator swapped
         } else {
             return result;
         }
@@ -428,9 +533,9 @@ Expr *parseEquality() {
     Expr *result = parseRelational();
     while (tokens < tokens_end) {
         if (maybe_consume(enum2('=', '='))) {
-            result = binaryExpr(result, parseRelational(), enum2('=', '='));
+            result = binaryExpr(result, parseRelational(), enum2('=', '='), type_int());
         } else if (maybe_consume(enum2('!', '='))) {
-            result = binaryExpr(result, parseRelational(), enum2('!', '='));
+            result = binaryExpr(result, parseRelational(), enum2('!', '='), type_int());
         } else {
             return result;
         }
@@ -442,7 +547,9 @@ Expr *parseAssign() {
     panic_if_eof();
     Expr *result = parseEquality();
     if (maybe_consume('=')) {
-        return binaryExpr(result, parseAssign(), '=');
+        Expr *rhs = parseAssign();
+        assert_same_type(result->typ, rhs->typ);
+        return binaryExpr(result, rhs, '=', result->typ);
     }
     return result;
 }
@@ -467,13 +574,10 @@ Type *consume_type_otherwise_panic() {
     consume_otherwise_panic(enum3('i', 'n', 't'));
 
     Type *t = calloc(1, sizeof(Type));
-    t->base_type = enum3('i', 'n', 't');
+    t->ty = enum3('i', 'n', 't');
 
     while (maybe_consume('*')) {
-        Type *new_t = calloc(1, sizeof(Type));
-        new_t->base_type = '*';
-        new_t->ptr_to = t;
-        t = new_t;
+        t = ptr_of(t);
     }
     return t;
 }
