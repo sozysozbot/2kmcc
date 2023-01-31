@@ -21,13 +21,19 @@ typedef struct Expr {
     Type *typ;
 } Expr;
 
+typedef struct NameAndType {
+    char *name;
+    Type *type;
+} NameAndType;
+
 typedef struct FuncDef {
     struct Stmt *content;
     char *name;
     char **params;
     int param_len;
-    char **lvar_names_start;
-    char **lvar_names_end;
+    NameAndType *lvar_table_start;
+    NameAndType *lvar_table_end;
+    Type *return_type;
 } FuncDef;
 
 typedef struct Stmt {
@@ -341,6 +347,30 @@ void panic_if_eof() {
 
 Expr *parseExpr(void);
 
+NameAndType *lvars_start;
+NameAndType *lvars;
+FuncDef *all_funcdefs[100];
+
+Type *lookup_ident_type(char *name) {
+    for (int i = 0; lvars_start[i].name; i++) {
+        if (strcmp(lvars_start[i].name, name) == 0) {
+            return lvars_start[i].type;
+        }
+    }
+    fprintf(stderr, "cannot find an identifier named %s; cannot determine the return type\n", name);
+    exit(1);
+}
+
+Type *lookup_func_type(char *name) {
+    for (int i = 0; all_funcdefs[i]->name; i++) {
+        if (strcmp(all_funcdefs[i]->name, name) == 0) {
+            return all_funcdefs[i]->return_type;
+        }
+    }
+    fprintf(stderr, "cannot find a function named %s; cannot determine the return type. Implicitly assumes that it return an int\n", name);
+    return type_int();
+}
+
 Expr *parsePrimary() {
     panic_if_eof();
     if (tokens->kind == enum3('N', 'U', 'M')) {
@@ -358,7 +388,7 @@ Expr *parsePrimary() {
                 callexp->expr_kind = enum4('C', 'A', 'L', 'L');
                 callexp->func_args = arguments;
                 callexp->func_arg_len = 0;
-                callexp->typ = TODO(name);
+                callexp->typ = lookup_func_type(name);
                 return callexp;
             }
 
@@ -377,13 +407,13 @@ Expr *parsePrimary() {
             callexp->expr_kind = enum4('C', 'A', 'L', 'L');
             callexp->func_args = arguments;
             callexp->func_arg_len = i + 1;
-            callexp->typ = TODO(name);
+            callexp->typ = lookup_func_type(name);
             return callexp;
         } else {
             Expr *ident_exp = calloc(1, sizeof(Expr));
             ident_exp->func_or_ident_name = name;
             ident_exp->expr_kind = enum4('I', 'D', 'N', 'T');
-            ident_exp->typ = TODO(name);
+            ident_exp->typ = lookup_ident_type(name);
             return ident_exp;
         }
     }
@@ -558,9 +588,6 @@ Expr *parseExpr() {
     return parseAssign();
 }
 
-char **lvar_names_start;
-char **lvar_names;
-
 Expr *parseOptionalExprAndToken(Kind target) {
     if (maybe_consume(target)) {
         return 0;
@@ -639,13 +666,14 @@ Stmt *parseStmt() {
     if (maybe_consume(enum3('i', 'n', 't'))) {
         tokens--;
         Type *t = consume_type_otherwise_panic();
-        if (lvar_names == lvar_names_start + 100) {
+        if (lvars == lvars_start + 100) {
             fprintf(stderr, "too many local variables");
             exit(1);
         }
         char *name = expect_identifier_and_get_name();
-        *lvar_names = name;
-        lvar_names++;
+        lvars->name = name;
+        lvars->type = t;
+        lvars++;
         consume_otherwise_panic(';');
         Stmt *stmt = calloc(1, sizeof(Stmt));
         stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
@@ -677,23 +705,25 @@ Stmt *parseFunctionContent() {
 }
 
 FuncDef *parseFunction() {
-    Type *t = consume_type_otherwise_panic();
+    Type *return_type = consume_type_otherwise_panic();
     char *name = expect_identifier_and_get_name();
     char **params = calloc(6, sizeof(char *));
     consume_otherwise_panic('(');
     if (maybe_consume(')')) {
-        lvar_names = lvar_names_start = calloc(100, sizeof(char *));
+        lvars = lvars_start = calloc(100, sizeof(NameAndType));
         Stmt *content = parseFunctionContent();
         FuncDef *funcdef = calloc(1, sizeof(FuncDef));
         funcdef->content = content;
         funcdef->name = name;
+        funcdef->return_type = return_type;
         funcdef->param_len = 0;
         funcdef->params = params;
-        funcdef->lvar_names_start = lvar_names_start;
-        funcdef->lvar_names_end = lvar_names;
+        funcdef->lvar_table_start = lvars_start;
+        funcdef->lvar_table_end = lvars;
         return funcdef;
     }
 
+    lvars = lvars_start = calloc(100, sizeof(char *));
     int i = 0;
     for (; i < 6; i++) {
         Type *t = consume_type_otherwise_panic();
@@ -704,21 +734,22 @@ FuncDef *parseFunction() {
         }
         consume_otherwise_panic(',');
         params[i] = name;
+        lvars->name = name;
+        lvars->type = t;
+        lvars++;
     }
 
-    lvar_names = lvar_names_start = calloc(100, sizeof(char *));
     Stmt *content = parseFunctionContent();
     FuncDef *funcdef = calloc(1, sizeof(FuncDef));
     funcdef->content = content;
     funcdef->name = name;
+    funcdef->return_type = return_type;
     funcdef->param_len = i + 1;
     funcdef->params = params;
-    funcdef->lvar_names_start = lvar_names_start;
-    funcdef->lvar_names_end = lvar_names;
+    funcdef->lvar_table_start = lvars_start;
+    funcdef->lvar_table_end = lvars;
     return funcdef;
 }
-
-FuncDef *all_funcdefs[100];
 
 void parseProgram() {
     int i = 0;
@@ -874,8 +905,8 @@ void CodegenFunc(FuncDef *funcdef) {
         printf("  sub rax, %d\n", local->offset_from_rbp);
         printf("  mov [rax], %s\n", nth_arg_reg(i));
     }
-    for (char **names = funcdef->lvar_names_start; names != funcdef->lvar_names_end; names++) {
-        insertLVar(*names);
+    for (NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++) {
+        insertLVar(ptr->name);
     }
     CodegenStmt(funcdef->content);
 }
