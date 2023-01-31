@@ -212,6 +212,14 @@ assert check("int main() { int arr[10]; return sizeof(arr); }", 40)
 assert check("int main() { int arr[5][2]; return sizeof(arr); }", 40)
 assert check("int main() { int *arr[5][2]; return sizeof(arr); }", 80)
 
+assert check("int main() { int arr[5][2]; return sizeof((arr)); }", 40)
+assert check("int main() { int arr[5][2]; return sizeof(arr + 0); }", 8)
+assert check("int main() { int arr[5][2]; return sizeof(*&arr); }", 40)
+
+assert check("int main() { int arr[10]; return sizeof(*arr); }", 4)
+assert check("int main() { int arr[5][2]; return sizeof(*arr); }", 8)
+assert check("int main() { int arr[2][5]; return sizeof(*arr); }", 20)
+
 print(f"""
 {bcolors.OKGREEN}
 ************
