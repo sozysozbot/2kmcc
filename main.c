@@ -7,6 +7,7 @@ typedef int Kind;
 typedef struct Type {
     Kind ty;
     struct Type *ptr_to;
+    int array_size;
 } Type;
 
 typedef struct Expr {
@@ -139,7 +140,7 @@ int tokenize(char *str) {
             all_tokens[token_index] = token;
             token_index++;
             i++;
-        } else if (c == ';' || c == '(' || c == ')' || c == '{' || c == '}' || c == ',') {
+        } else if (c == ';' || c == '(' || c == ')' || c == '{' || c == '}' || c == ',' || c == '[' || c == ']') {
             all_tokens[token_index].kind = c;
             token_index++;
             i++;
@@ -434,11 +435,27 @@ Expr *assert_int(Expr *e) {
     return e;
 }
 
+void display_type(Type *t) {
+    if (t->ty == enum2('[', ']')) {
+        fprintf(stderr, "[%d] ", t->array_size);
+        display_type(t->ptr_to);
+    } else if (t->ty == '*') {
+        fprintf(stderr, "* ");
+        display_type(t->ptr_to);
+    } else {
+        fprintf(stderr, "%s", decode_kind(t->ty));
+    }
+}
+
 void assert_same_type(Type *t1, Type *t2) {
     if (t1->ty == '*' && t2->ty == '*') {
         assert_same_type(t1->ptr_to, t2->ptr_to);
     } else if (t1->ty != t2->ty) {
-        fprintf(stderr, "two different types detected\n");
+        fprintf(stderr, "two different types detected: `");
+        display_type(t1);
+        fprintf(stderr, "` and `");
+        display_type(t2);
+        fprintf(stderr, "`.\n");
         exit(1);
     }
 }
@@ -619,6 +636,32 @@ NameAndType *consume_type_and_ident() {
     NameAndType *ans = calloc(1, sizeof(NameAndType));
     ans->name = name;
     ans->type = type;
+    Type *elem_t = type;
+    Type *insertion_point;
+
+    if (maybe_consume('[')) {
+        expect_otherwise_panic(enum3('N', 'U', 'M'));
+        Type *t = calloc(1, sizeof(Type));
+        t->array_size = tokens->value;
+        t->ptr_to = elem_t;
+        t->ty = enum2('[', ']');
+        insertion_point = t;
+        tokens++;
+        consume_otherwise_panic(']');
+        ans->type = t;
+    }
+    while (maybe_consume('[')) {
+        expect_otherwise_panic(enum3('N', 'U', 'M'));
+        Type *t = calloc(1, sizeof(Type));
+        t->array_size = tokens->value;
+        t->ptr_to = elem_t;
+        t->ty = enum2('[', ']');
+        insertion_point->ptr_to = t;
+        insertion_point = t;
+        tokens++;
+        consume_otherwise_panic(']');
+    }
+
     return ans;
 }
 
