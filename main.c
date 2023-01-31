@@ -616,9 +616,9 @@ Expr *parseAssign() {
     panic_if_eof();
     Expr *result = parseEquality();
     if (maybe_consume('=')) {
-        Expr *rhs = parseAssign();
+        Expr *rhs = decay_if_arr(parseAssign());
         assert_same_type(result->typ, rhs->typ);
-        return binaryExpr(result, decay_if_arr(rhs), '=', result->typ);
+        return binaryExpr(result, rhs, '=', result->typ);
     }
     return result;
 }
