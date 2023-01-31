@@ -60,6 +60,19 @@ def check_and_link_with(input: str, linked_lib: str, expected: int):
 
 print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
+assert check_and_link_with("int main() { int i; int j; foo(5); for(i=0;i<2;i=i+1) { foo(i); } return 1; }",
+    linked_lib='''
+#include <stdio.h>
+int foo(int i) { printf("i=%d\\n", i); return 0; }''',
+    expected=1)
+
+assert check_and_link_with("int main() { int i; int j; for(i=0;i<2;i=i+1) {for(j=0;j<4;j=j+1) { foo(i, j); } } return 1; }",
+    linked_lib='''
+#include <stdio.h>
+int foo(int i, int j) { printf("i=%d, j=%d\\n", i, j); return 0; }''',
+    expected=1)
+
+
 assert check_and_link_with("int main() { int a[2][4]; int i; int j; for(i=0;i<2;1) {for(j=0;j<4;1) {*(*(a + i) + j) = i * 10 + j; j=j+1;}i=i+1;} return foo(&a); }",
     linked_lib='''
 #include <stdio.h>
