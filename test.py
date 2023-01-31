@@ -24,7 +24,7 @@ def check(input: str, expected: int):
         return True
 
     print(f"{bcolors.FAIL}FAIL:check (wrong answer):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
-    print(f"{bcolors.FAIL}Consult tmp.s to find out what when wrong{bcolors.ENDC}")
+    print(f"{bcolors.FAIL}Consult tmp.s to find out what went wrong{bcolors.ENDC}")
     return False
 
 def should_not_compile(input: str):
@@ -55,7 +55,7 @@ def check_and_link_with(input: str, linked_lib: str, expected: int):
         return True
 
     print(f"{bcolors.FAIL}FAIL:check (wrong answer):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
-    print(f"{bcolors.FAIL}Consult tmp.s to find out what when wrong{bcolors.ENDC}")
+    print(f"{bcolors.FAIL}Consult tmp.s to find out what went wrong{bcolors.ENDC}")
     return False
 
 print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
@@ -206,6 +206,54 @@ assert check("int main() { int x; return sizeof x; }", 4)
 assert check("int main() { int *p; return sizeof p; }", 8)
 assert check("int main() { int x; return sizeof(x+3); }", 4)
 assert check("int main() { int *p; return sizeof(p+3); }", 8)
+
+assert check("int main() { int arr[10]; return 8; }", 8)
+assert check("int main() { int arr[10]; return sizeof(arr); }", 40)
+assert check("int main() { int arr[5][2]; return sizeof(arr); }", 40)
+assert check("int main() { int *arr[5][2]; return sizeof(arr); }", 80)
+
+assert check("int main() { int arr[5][2]; return sizeof((arr)); }", 40)
+assert check("int main() { int arr[5][2]; return sizeof(arr + 0); }", 8)
+assert check("int main() { int arr[5][2]; return sizeof(*&arr); }", 40)
+
+assert check("int main() { int arr[10]; return sizeof(*arr); }", 4)
+assert check("int main() { int arr[5][2]; return sizeof(*arr); }", 8)
+assert check("int main() { int arr[2][5]; return sizeof(*arr); }", 20)
+
+assert check("int main() { int a[2]; *a = 1; *(a + 1) = 2; int *p; p = a; return *p + *(p + 1); }", 3)
+assert check("int main() { int a[2]; *(a + 1) = 2; *a = 1; int *p; p = a; return *p + *(p + 1); }", 3)
+
+assert check_and_link_with("int main() { int a[2][4]; **a = 3; return foo(&a); }",
+    linked_lib="int foo(int (*p)[2][4]) { return (*p)[0][0] == 3; }",
+    expected=1)
+
+assert check_and_link_with("int main() { int a[2][4]; **(a+0) = 3; return foo(&a); }",
+    linked_lib="int foo(int (*p)[2][4]) { return (*p)[0][0] == 3; }",
+    expected=1)
+
+assert check_and_link_with("int main() { int a[2][4]; **(a+1) = 3; return foo(&a); }",
+    linked_lib="int foo(int (*p)[2][4]) { return (*p)[1][0] == 3; }",
+    expected=1)
+
+assert check_and_link_with("int main() { int a[2][4]; *(*(a+1)) = 3; return foo(&a); }",
+    linked_lib="int foo(int (*p)[2][4]) { return (*p)[1][0] == 3; }",
+    expected=1)
+
+assert check_and_link_with("int main() { int a[2][4]; *(*(a+1)+2) = 3; return foo(&a); }",
+    linked_lib="int foo(int (*p)[2][4]) { return (*p)[1][2] == 3; }",
+    expected=1)
+
+assert check_and_link_with("int main() { int a[3][4]; *(*(a+2)+1) = 4; *(*(a+1)+2) = 3; return foo(&a); }",
+    linked_lib="int foo(int (*p)[3][4]) { return (*p)[2][1] == 4 && (*p)[1][2] == 3; }",
+    expected=1)
+
+assert check_and_link_with("int main() { int a[1][2]; *(*(a+0)+0) = 4; *(*(a+0)+1) = 3; return foo(&a); }",
+    linked_lib="int foo(int (*p)[1][2]) { return (*p)[0][0] == 4 && (*p)[0][1] == 3; }",
+    expected=1)
+
+assert check_and_link_with("int main() { int a[2][2]; *(*(a+0)+0) = 4; *(*(a+0)+1) = 3; *(*(a+1)+0) = 2; *(*(a+1)+1) = 1; return foo(&a); }",
+    linked_lib="int foo(int (*p)[1][2]) { return (*p)[0][0] == 4 && (*p)[0][1] == 3 && (*p)[1][0] == 2 && (*p)[1][1] == 1; }",
+    expected=1)
 
 print(f"""
 {bcolors.OKGREEN}
