@@ -24,7 +24,7 @@ def check(input: str, expected: int):
         return True
 
     print(f"{bcolors.FAIL}FAIL:check (wrong answer):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
-    print(f"{bcolors.FAIL}Consult tmp.s to find out what when wrong{bcolors.ENDC}")
+    print(f"{bcolors.FAIL}Consult tmp.s to find out what went wrong{bcolors.ENDC}")
     return False
 
 def should_not_compile(input: str):
@@ -55,7 +55,7 @@ def check_and_link_with(input: str, linked_lib: str, expected: int):
         return True
 
     print(f"{bcolors.FAIL}FAIL:check (wrong answer):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
-    print(f"{bcolors.FAIL}Consult tmp.s to find out what when wrong{bcolors.ENDC}")
+    print(f"{bcolors.FAIL}Consult tmp.s to find out what went wrong{bcolors.ENDC}")
     return False
 
 print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
@@ -221,6 +221,7 @@ assert check("int main() { int arr[5][2]; return sizeof(*arr); }", 8)
 assert check("int main() { int arr[2][5]; return sizeof(*arr); }", 20)
 
 assert check("int main() { int a[2]; *a = 1; *(a + 1) = 2; int *p; p = a; return *p + *(p + 1); }", 3)
+assert check("int main() { int a[2]; *(a + 1) = 2; *a = 1; int *p; p = a; return *p + *(p + 1); }", 3)
 
 print(f"""
 {bcolors.OKGREEN}

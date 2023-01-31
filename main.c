@@ -780,7 +780,6 @@ Stmt *parseFunctionContent() {
 FuncDef *parseFunction() {
     NameAndType *rettype_and_funcname = consume_type_and_ident();
     NameAndType *params = calloc(6, sizeof(NameAndType));
-    NameAndType *params_start = params;
     consume_otherwise_panic('(');
     if (maybe_consume(')')) {
         lvars = lvars_start = calloc(100, sizeof(NameAndType));
@@ -980,8 +979,15 @@ void CodegenStmt(Stmt *stmt) {
     }
 }
 
-const char *nth_arg_reg(int n) {
-    return "rdi\0rsi\0rdx\0rcx\0r8 \0r9" + 4 * n;
+const char *nth_arg_reg(int n, int sz) {
+    if (sz == 8) {
+        return "rdi\0rsi\0rdx\0rcx\0r8 \0r9" + 4 * n;
+    } else if (sz == 4) {
+        return "edi\0esi\0edx\0ecx\0r8d\0r9d" + 4 * n;
+    } else {
+        fprintf(stderr, "unhandlable size %d\n", sz);
+        exit(1);
+    }
 }
 
 void CodegenFunc(FuncDef *funcdef) {
@@ -991,7 +997,7 @@ void CodegenFunc(FuncDef *funcdef) {
     printf("  mov rbp, rsp\n");
     int stack_adjust = 0;
     for (int i = 0; i < funcdef->param_len; i++) {
-        stack_adjust += (size(funcdef->params_start[i].type) + 7) / 8 * 8;
+        stack_adjust += 8;
     }
     for (NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++) {
         stack_adjust += (size(ptr->type) + 7) / 8 * 8;
@@ -999,12 +1005,12 @@ void CodegenFunc(FuncDef *funcdef) {
     printf("  sub rsp, %d\n", stack_adjust);
     for (int i = 0; i < funcdef->param_len; i++) {
         char *param_name = funcdef->params_start[i].name;
-        Type *param_type = funcdef->params_start[i].type;
-        insertLVar(param_name, size(param_type));
+        // Type *param_type = funcdef->params_start[i].type;
+        insertLVar(param_name, 8);
         LVar *local = findLVar(param_name);
         printf("  mov rax, rbp\n");
         printf("  sub rax, %d\n", local->offset_from_rbp);
-        printf("  mov [rax], %s\n", nth_arg_reg(i));
+        printf("  mov [rax], %s\n", nth_arg_reg(i, 8));
     }
     for (NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++) {
         insertLVar(ptr->name, size(ptr->type));
@@ -1028,7 +1034,7 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    push rax\n");
         }
         for (int i = expr->func_arg_len - 1; i >= 0; i--) {
-            printf("    pop %s\n", nth_arg_reg(i));
+            printf("    pop %s\n", nth_arg_reg(i, 8));
         }
         printf(" call %s\n", expr->func_or_ident_name);
         return;
@@ -1055,7 +1061,7 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    push rax\n");
             printf("    pop rdi\n");
             printf("    pop rax\n");
-            printf("    mov [rax], rdi\n");
+            printf("    mov [rax], %s\n", nth_arg_reg(0, size(expr->second_child->typ))); // rdi or edi
         } else {
             EvaluateExprIntoRax(expr->first_child);
             printf("    push rax\n");
