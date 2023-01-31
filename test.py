@@ -314,6 +314,8 @@ int foo(int (*p)[2][4]) { int i; int j; for(i=0;i<2;i++) for(j=0;j<4;j++) { prin
 
 assert check("int main() { int a; int b; a = b = 3; return a + b; }", 6)
 
+assert check("int *foo; int bar[10]; int main() { return 0; }", 0)
+
 print(f"""
 {bcolors.OKGREEN}
 ************

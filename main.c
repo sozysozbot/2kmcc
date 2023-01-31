@@ -798,42 +798,51 @@ void store_func_decl(NameAndType *rettype_and_funcname) {
     funcdecls_cursor++;
 }
 
-FuncDef *parseToplevel() {
-    NameAndType *first_half = consume_type_and_ident_1st_half();
-    NameAndType *rettype_and_funcname = consume_type_and_ident_2nd_half(first_half);
-    NameAndType *params_start = calloc(6, sizeof(NameAndType));
-    consume_otherwise_panic('(');
-    if (maybe_consume(')')) {
-        lvars_cursor = lvars_start = calloc(100, sizeof(NameAndType));
-        store_func_decl(rettype_and_funcname);
-        *funcdefs_cursor = constructFuncDef(parseFunctionContent(), rettype_and_funcname, 0, params_start);
-        funcdefs_cursor++;
-        return;
-    }
+NameAndType *global_vars_start[100];
+NameAndType **global_vars_cursor;
 
-    lvars_cursor = lvars_start = calloc(100, sizeof(char *));
-    int i = 0;
-    for (; i < 6; i++) {
-        NameAndType *param = consume_type_and_ident();
+void parseToplevel() {
+    NameAndType *first_half = consume_type_and_ident_1st_half();
+    if (maybe_consume('(')) {
+        NameAndType *rettype_and_funcname = first_half;
+        NameAndType *params_start = calloc(6, sizeof(NameAndType));
         if (maybe_consume(')')) {
+            lvars_cursor = lvars_start = calloc(100, sizeof(NameAndType));
+            store_func_decl(rettype_and_funcname);
+            *funcdefs_cursor = constructFuncDef(parseFunctionContent(), rettype_and_funcname, 0, params_start);
+            funcdefs_cursor++;
+            return;
+        }
+        lvars_cursor = lvars_start = calloc(100, sizeof(char *));
+        int i = 0;
+        for (; i < 6; i++) {
+            NameAndType *param = consume_type_and_ident();
+            if (maybe_consume(')')) {
+                params_start[i].name = param->name;
+                params_start[i].type = param->type;
+                lvars_cursor->name = param->name;
+                lvars_cursor->type = param->type;
+                lvars_cursor++;
+                break;
+            }
+            consume_otherwise_panic(',');
             params_start[i].name = param->name;
             params_start[i].type = param->type;
             lvars_cursor->name = param->name;
             lvars_cursor->type = param->type;
             lvars_cursor++;
-            break;
         }
-        consume_otherwise_panic(',');
-        params_start[i].name = param->name;
-        params_start[i].type = param->type;
-        lvars_cursor->name = param->name;
-        lvars_cursor->type = param->type;
-        lvars_cursor++;
+        store_func_decl(rettype_and_funcname);
+        *funcdefs_cursor = constructFuncDef(parseFunctionContent(), rettype_and_funcname, i + 1, params_start);
+        funcdefs_cursor++;
+        return;
+    } else {
+        NameAndType *global_var_type_and_name = consume_type_and_ident_2nd_half(first_half);
+        *global_vars_cursor = global_var_type_and_name;
+        global_vars_cursor++;
+        consume_otherwise_panic(';');
+        return;
     }
-    store_func_decl(rettype_and_funcname);
-    *funcdefs_cursor = constructFuncDef(parseFunctionContent(), rettype_and_funcname, i + 1, params_start);
-    funcdefs_cursor++;
-    return;
 }
 
 /*** ^ PARSE | v CODEGEN ***/
@@ -1117,6 +1126,7 @@ int main(int argc, char **argv) {
 
     funcdecls_cursor = funcdecls_start;
     funcdefs_cursor = funcdefs_start;
+    global_vars_cursor = global_vars_start;
     while (tokens_cursor < tokens_end) {
         parseToplevel();
     }
