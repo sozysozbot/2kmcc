@@ -82,58 +82,40 @@ int is_alnum(char c) {
            ('0' <= c && c <= '9') ||
            (c == '_');
 }
+int is_reserved_then_handle(char *ptr, int *ptr_token_index, int *ptr_i, const char *keyword, int keyword_len, int kind) {
+    if (strncmp(ptr, keyword, keyword_len) == 0 && !is_alnum(ptr[keyword_len])) {
+        Token token = {kind, 0, 0};
+        all_tokens[*ptr_token_index] = token;
+        (*ptr_token_index)++;
+        *ptr_i += keyword_len;
+        return 1;
+    }
+    return 0;
+}
 int tokenize(char *str) {
     int token_index = 0;
     for (int i = 0; str[i];) {
         char c = str[i];
         char *ptr = str + i;
-        if (strncmp(ptr, "return", 6) == 0 && !is_alnum(ptr[6])) {
-            Token token = {enum3('R', 'E', 'T'), 0, 0};
-            all_tokens[token_index] = token;
-            token_index++;
-            i += 6;
+        if (is_reserved_then_handle(ptr, &token_index, &i, "return", 6, enum3('R', 'E', 'T'))) {
             continue;
         }
-        if (strncmp(ptr, "sizeof", 6) == 0 && !is_alnum(ptr[6])) {
-            Token token = {enum4('S', 'Z', 'O', 'F'), 0, 0};
-            all_tokens[token_index] = token;
-            token_index++;
-            i += 6;
+        if (is_reserved_then_handle(ptr, &token_index, &i, "sizeof", 6, enum4('S', 'Z', 'O', 'F'))) {
             continue;
         }
-        if (strncmp(ptr, "if", 2) == 0 && !is_alnum(ptr[2])) {
-            Token token = {enum2('i', 'f'), 0, 0};
-            all_tokens[token_index] = token;
-            token_index++;
-            i += 2;
+        if (is_reserved_then_handle(ptr, &token_index, &i, "if", 2, enum2('i', 'f'))) {
             continue;
         }
-        if (strncmp(ptr, "while", 5) == 0 && !is_alnum(ptr[5])) {
-            Token token = {enum4('W', 'H', 'I', 'L'), 0, 0};
-            all_tokens[token_index] = token;
-            token_index++;
-            i += 5;
+        if (is_reserved_then_handle(ptr, &token_index, &i, "while", 5, enum4('W', 'H', 'I', 'L'))) {
             continue;
         }
-        if (strncmp(ptr, "else", 4) == 0 && !is_alnum(ptr[4])) {
-            Token token = {enum4('e', 'l', 's', 'e'), 0, 0};
-            all_tokens[token_index] = token;
-            token_index++;
-            i += 4;
+        if (is_reserved_then_handle(ptr, &token_index, &i, "else", 4, enum4('e', 'l', 's', 'e'))) {
             continue;
         }
-        if (strncmp(ptr, "for", 3) == 0 && !is_alnum(ptr[3])) {
-            Token token = {enum3('f', 'o', 'r'), 0, 0};
-            all_tokens[token_index] = token;
-            token_index++;
-            i += 3;
+        if (is_reserved_then_handle(ptr, &token_index, &i, "for", 3, enum3('f', 'o', 'r'))) {
             continue;
         }
-        if (strncmp(ptr, "int", 3) == 0 && !is_alnum(ptr[3])) {
-            Token token = {enum3('i', 'n', 't'), 0, 0};
-            all_tokens[token_index] = token;
-            token_index++;
-            i += 3;
+        if (is_reserved_then_handle(ptr, &token_index, &i, "int", 3, enum3('i', 'n', 't'))) {
             continue;
         }
         if (c == '+') {
@@ -1081,7 +1063,7 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    push rax\n");
             EvaluateExprIntoRax(expr->second_child);
             printf("    pop rdi\n");
-            printf("    mov [rdi], %s\n", eax_or_rax(size(expr->second_child->typ))); 
+            printf("    mov [rdi], %s\n", eax_or_rax(size(expr->second_child->typ)));
         } else {
             EvaluateExprIntoRax(expr->first_child);
             printf("    push rax\n");
