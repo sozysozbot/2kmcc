@@ -473,54 +473,12 @@ void assert_same_type(Type *t1, Type *t2) {
     }
 }
 
-Expr *parseUnary();
-Expr *parseCast() {
-    return parseUnary();
-}
-
-Expr *parseUnary() {
-    panic_if_eof();
-    if (maybe_consume('+')) {
-        return assert_int(parseCast());
-    } else if (maybe_consume('-')) {
-        return binaryExpr(numberexpr(0), assert_int(parseCast()), '-', type_int());
-    } else if (maybe_consume('*')) {
-        Expr *expr = decay_if_arr(parseCast());
-        return unaryExpr(expr, '*', deref(expr->typ));
-    } else if (maybe_consume('&')) {
-        Expr *expr = parseCast();                        // NO DECAY
-        return unaryExpr(expr, '&', ptr_of(expr->typ));  // NO DECAY
-    } else if (maybe_consume(enum4('S', 'Z', 'O', 'F'))) {
-        Expr *expr = parseUnary();  // NO DECAY
-        return numberexpr(size(expr->typ));
-    }
-    return parsePrimary();
-}
-
-Expr *parseMultiplicative() {
-    panic_if_eof();
-    Expr *result = parseUnary();
-    while (tokens < tokens_end) {
-        if (tokens->kind == enum3('N', 'U', 'M')) {
-            fprintf(stderr, "Expected operator got Number");
-            exit(1);
-        } else if (maybe_consume('*')) {
-            result = binaryExpr(assert_int(result), assert_int(parseUnary()), '*', type_int());
-        } else if (maybe_consume('/')) {
-            result = binaryExpr(assert_int(result), assert_int(parseUnary()), '/', type_int());
-        } else {
-            return result;
-        }
-    }
-    return result;
-}
-
-Expr *add(Expr *lhs, Expr *rhs) {
+Expr *expr_add(Expr *lhs, Expr *rhs) {
     if (lhs->typ->kind == enum3('i', 'n', 't')) {
         if (rhs->typ->kind == enum3('i', 'n', 't')) {
             return binaryExpr(lhs, rhs, '+', type_int());
         } else if (rhs->typ->kind == '*') {
-            return add(rhs, lhs);
+            return expr_add(rhs, lhs);
         } else {
             fprintf(stderr, "unknown type in addition\n");
             exit(1);
@@ -538,7 +496,7 @@ Expr *add(Expr *lhs, Expr *rhs) {
     }
 }
 
-Expr *subtract(Expr *lhs, Expr *rhs) {
+Expr *expr_subtract(Expr *lhs, Expr *rhs) {
     if (lhs->typ->kind == enum3('i', 'n', 't')) {
         if (rhs->typ->kind == enum3('i', 'n', 't')) {
             return binaryExpr(lhs, rhs, '-', type_int());
@@ -561,6 +519,59 @@ Expr *subtract(Expr *lhs, Expr *rhs) {
     exit(1);
 }
 
+Expr *parsePostfix() {
+    Expr *result = parsePrimary();
+    while (maybe_consume('[')) {
+        Expr *addition = expr_add(decay_if_arr(result), decay_if_arr(parseExpr()));
+        consume_otherwise_panic(']');
+        Expr *expr = decay_if_arr(addition);
+        result = unaryExpr(expr, '*', deref(expr->typ));
+    }
+    return result;
+}
+
+Expr *parseUnary();
+Expr *parseCast() {
+    return parseUnary();
+}
+
+Expr *parseUnary() {
+    panic_if_eof();
+    if (maybe_consume('+')) {
+        return assert_int(parseCast());
+    } else if (maybe_consume('-')) {
+        return binaryExpr(numberexpr(0), assert_int(parseCast()), '-', type_int());
+    } else if (maybe_consume('*')) {
+        Expr *expr = decay_if_arr(parseCast());
+        return unaryExpr(expr, '*', deref(expr->typ));
+    } else if (maybe_consume('&')) {
+        Expr *expr = parseCast();                        // NO DECAY
+        return unaryExpr(expr, '&', ptr_of(expr->typ));  // NO DECAY
+    } else if (maybe_consume(enum4('S', 'Z', 'O', 'F'))) {
+        Expr *expr = parseUnary();  // NO DECAY
+        return numberexpr(size(expr->typ));
+    }
+    return parsePostfix();
+}
+
+Expr *parseMultiplicative() {
+    panic_if_eof();
+    Expr *result = parseUnary();
+    while (tokens < tokens_end) {
+        if (tokens->kind == enum3('N', 'U', 'M')) {
+            fprintf(stderr, "Expected operator got Number");
+            exit(1);
+        } else if (maybe_consume('*')) {
+            result = binaryExpr(assert_int(result), assert_int(parseUnary()), '*', type_int());
+        } else if (maybe_consume('/')) {
+            result = binaryExpr(assert_int(result), assert_int(parseUnary()), '/', type_int());
+        } else {
+            return result;
+        }
+    }
+    return result;
+}
+
 Expr *parseAdditive() {
     panic_if_eof();
     Expr *result = parseMultiplicative();
@@ -569,9 +580,9 @@ Expr *parseAdditive() {
             fprintf(stderr, "Expected operator, got Number");
             exit(1);
         } else if (maybe_consume('-')) {
-            result = subtract(decay_if_arr(result), decay_if_arr(parseMultiplicative()));
+            result = expr_subtract(decay_if_arr(result), decay_if_arr(parseMultiplicative()));
         } else if (maybe_consume('+')) {
-            result = add(decay_if_arr(result), decay_if_arr(parseMultiplicative()));
+            result = expr_add(decay_if_arr(result), decay_if_arr(parseMultiplicative()));
         } else {
             return result;
         }
