@@ -41,8 +41,8 @@ typedef struct FuncDef {
 typedef struct Stmt {
     Kind stmt_kind;
     struct Expr *expr;
-    struct Expr *expr1;
-    struct Expr *expr2;
+    struct Expr *for_cond;
+    struct Expr *for_after;
     struct Stmt *first_child;
     struct Stmt *second_child;
     struct Stmt *third_child;
@@ -722,8 +722,8 @@ Stmt *parseStmt() {
         stmt->stmt_kind = enum3('f', 'o', 'r');
         consume_otherwise_panic('(');
         stmt->expr = parseOptionalExprAndToken(';');
-        stmt->expr1 = parseOptionalExprAndToken(';');
-        stmt->expr2 = parseOptionalExprAndToken(')');
+        stmt->for_cond = parseOptionalExprAndToken(';');
+        stmt->for_after = parseOptionalExprAndToken(')');
         stmt->second_child = parseStmt();
         return stmt;
     }
@@ -942,16 +942,16 @@ void CodegenStmt(Stmt *stmt) {
             EvaluateExprIntoRax(stmt->expr);
         }
         printf(".Lbegin%d:\n", label);
-        if (stmt->expr1) {
-            EvaluateExprIntoRax(stmt->expr1);
+        if (stmt->for_cond) {
+            EvaluateExprIntoRax(stmt->for_cond);
         } else {
             printf("  mov rax, 1\n");
         }
         printf("  cmp rax, 0\n");
         printf("  je  .Lend%d\n", label);
         CodegenStmt(stmt->second_child);
-        if (stmt->expr2) {
-            EvaluateExprIntoRax(stmt->expr2);
+        if (stmt->for_after) {
+            EvaluateExprIntoRax(stmt->for_after);
         }
         printf("  jmp  .Lbegin%d\n", label);
         printf(".Lend%d:\n", label);
@@ -984,12 +984,9 @@ void CodegenFunc(FuncDef *funcdef) {
     printf("  sub rsp, %d\n", stack_adjust);
     for (int i = 0; i < funcdef->param_len; i++) {
         char *param_name = funcdef->params_start[i].name;
-        // Type *param_type = funcdef->params_start[i].type;
         insertLVar(param_name, 8);
         LVar *local = findLVar(param_name);
-        printf("  mov rax, rbp\n");
-        printf("  sub rax, %d\n", local->offset_from_rbp);
-        printf("  mov [rax], %s\n", nth_arg_reg(i, 8));
+        printf("  mov [rbp - %d], %s\n", local->offset_from_rbp, nth_arg_reg(i, 8));
     }
     for (NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++) {
         insertLVar(ptr->name, size(ptr->type));
