@@ -17,7 +17,7 @@ typedef struct Expr {
     struct Expr *second_child;
     struct Expr **func_args;
     int func_arg_len;
-    char *name;
+    char *func_or_ident_name;
 } Expr;
 
 typedef struct FuncDef {
@@ -317,7 +317,7 @@ Expr *parsePrimary() {
             Expr **arguments = calloc(6, sizeof(Expr *));
             if (maybe_consume(')')) {
                 Expr *callexp = calloc(1, sizeof(Expr));
-                callexp->name = name;
+                callexp->func_or_ident_name = name;
                 callexp->expr_kind = enum4('C', 'A', 'L', 'L');
                 callexp->func_args = arguments;
                 callexp->func_arg_len = 0;
@@ -335,16 +335,16 @@ Expr *parsePrimary() {
                 arguments[i] = expr;
             }
             Expr *callexp = calloc(1, sizeof(Expr));
-            callexp->name = name;
+            callexp->func_or_ident_name = name;
             callexp->expr_kind = enum4('C', 'A', 'L', 'L');
             callexp->func_args = arguments;
             callexp->func_arg_len = i + 1;
             return callexp;
         } else {
-            Expr *numberexp = calloc(1, sizeof(Expr));
-            numberexp->name = name;
-            numberexp->expr_kind = enum4('I', 'D', 'N', 'T');
-            return numberexp;
+            Expr *ident_exp = calloc(1, sizeof(Expr));
+            ident_exp->func_or_ident_name = name;
+            ident_exp->expr_kind = enum4('I', 'D', 'N', 'T');
+            return ident_exp;
         }
     }
 
@@ -358,14 +358,11 @@ Expr *parseUnary() {
     panic_if_eof();
     if (maybe_consume('+')) {
         return parsePrimary();
-    }
-    if (maybe_consume('-')) {
+    } else if (maybe_consume('-')) {
         return binaryExpr(numberexpr(0), parsePrimary(), '-');
-    }
-    if (maybe_consume('*')) {
+    } else if (maybe_consume('*')) {
         return unaryExpr(parsePrimary(), '*');
-    }
-    if (maybe_consume('&')) {
+    } else if (maybe_consume('&')) {
         return unaryExpr(parsePrimary(), '&');
     }
     return parsePrimary();
@@ -683,11 +680,11 @@ void EvaluateExprIntoRax(Expr *expr);
 
 void EvaluateLValueAddressIntoRax(Expr *expr) {
     if (expr->expr_kind == enum4('I', 'D', 'N', 'T')) {
-        if (!findLVar(expr->name)) {
-            fprintf(stderr, "undefined variable %s\n", expr->name);
+        if (!findLVar(expr->func_or_ident_name)) {
+            fprintf(stderr, "undefined variable %s\n", expr->func_or_ident_name);
             exit(1);
         }
-        LVar *local = findLVar(expr->name);
+        LVar *local = findLVar(expr->func_or_ident_name);
         printf("  mov rax, rbp\n");
         printf("  sub rax, %d\n", local->offset_from_rbp);
     } else if (expr->expr_kind == enum4('1', 'A', 'R', 'Y') && expr->op == '*') {
@@ -792,7 +789,7 @@ void EvaluateExprIntoRax(Expr *expr) {
         for (int i = expr->func_arg_len - 1; i >= 0; i--) {
             printf("    pop %s\n", nth_arg_reg(i));
         }
-        printf(" call %s\n", expr->name);
+        printf(" call %s\n", expr->func_or_ident_name);
         return;
     } else if (expr->expr_kind == enum3('N', 'U', 'M')) {
         printf("  mov rax, %d\n", expr->value);
