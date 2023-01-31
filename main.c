@@ -627,7 +627,7 @@ Expr *parseOptionalExprAndToken(Kind target) {
     return expr;
 }
 
-NameAndType *consume_type_and_ident() {
+NameAndType *consume_type_and_ident_1st_half() {
     consume_otherwise_panic(enum3('i', 'n', 't'));
 
     Type *type = calloc(1, sizeof(Type));
@@ -644,7 +644,11 @@ NameAndType *consume_type_and_ident() {
     NameAndType *ans = calloc(1, sizeof(NameAndType));
     ans->name = name;
     ans->type = type;
-    Type *elem_t = type;
+    return ans;
+}
+
+NameAndType *consume_type_and_ident_2nd_half(NameAndType *ans) {
+    Type *elem_t = ans->type;
     Type *insertion_point;
 
     if (maybe_consume('[')) {
@@ -671,6 +675,11 @@ NameAndType *consume_type_and_ident() {
     }
 
     return ans;
+}
+
+NameAndType *consume_type_and_ident() {
+    NameAndType *ans = consume_type_and_ident_1st_half();
+    return consume_type_and_ident_2nd_half(ans);
 }
 
 Stmt *parseStmt() {
