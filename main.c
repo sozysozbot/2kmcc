@@ -767,30 +767,35 @@ Stmt *parseFunctionContent() {
     return result;
 }
 
+FuncDef *constructFuncDef(Stmt *content, NameAndType *rettype_and_funcname, int len, NameAndType *params) {
+    FuncDef *funcdef = calloc(1, sizeof(FuncDef));
+    funcdef->content = content;
+    funcdef->name = rettype_and_funcname->name;
+    funcdef->return_type = rettype_and_funcname->type;
+    funcdef->param_len = len;
+    funcdef->params_start = params;
+    funcdef->params_end = params + len;
+    funcdef->lvar_table_start = lvars_start;
+    funcdef->lvar_table_end = lvars;
+    return funcdef;
+}
+
+void store_func_decl(NameAndType *rettype_and_funcname) {
+    NameAndType *decl = calloc(1, sizeof(NameAndType));
+    decl->type = rettype_and_funcname->type;
+    decl->name = rettype_and_funcname->name;
+    *all_funcdecls = decl;
+    all_funcdecls++;
+}
+
 FuncDef *parseFunction() {
     NameAndType *rettype_and_funcname = consume_type_and_ident();
     NameAndType *params = calloc(6, sizeof(NameAndType));
     consume_otherwise_panic('(');
     if (maybe_consume(')')) {
         lvars = lvars_start = calloc(100, sizeof(NameAndType));
-
-        NameAndType *decl = calloc(1, sizeof(NameAndType));
-        decl->type = rettype_and_funcname->type;
-        decl->name = rettype_and_funcname->name;
-        *all_funcdecls = decl;
-        all_funcdecls++;
-
-        Stmt *content = parseFunctionContent();
-        FuncDef *funcdef = calloc(1, sizeof(FuncDef));
-        funcdef->content = content;
-        funcdef->name = rettype_and_funcname->name;
-        funcdef->return_type = rettype_and_funcname->type;
-        funcdef->param_len = 0;
-        funcdef->params_start = params;
-        funcdef->params_end = params;
-        funcdef->lvar_table_start = lvars_start;
-        funcdef->lvar_table_end = lvars;
-        return funcdef;
+        store_func_decl(rettype_and_funcname);
+        return constructFuncDef(parseFunctionContent(), rettype_and_funcname, 0, params);
     }
 
     lvars = lvars_start = calloc(100, sizeof(char *));
@@ -812,24 +817,8 @@ FuncDef *parseFunction() {
         lvars->type = param_nt->type;
         lvars++;
     }
-
-    NameAndType *decl = calloc(1, sizeof(NameAndType));
-    decl->type = rettype_and_funcname->type;
-    decl->name = rettype_and_funcname->name;
-    *all_funcdecls = decl;
-    all_funcdecls++;
-
-    Stmt *content = parseFunctionContent();
-    FuncDef *funcdef = calloc(1, sizeof(FuncDef));
-    funcdef->content = content;
-    funcdef->name = rettype_and_funcname->name;
-    funcdef->return_type = rettype_and_funcname->type;
-    funcdef->param_len = i + 1;
-    funcdef->params_start = params;
-    funcdef->params_end = params + i + 1;
-    funcdef->lvar_table_start = lvars_start;
-    funcdef->lvar_table_end = lvars;
-    return funcdef;
+    store_func_decl(rettype_and_funcname);
+    return constructFuncDef(parseFunctionContent(), rettype_and_funcname, i + 1, params);
 }
 
 void parseProgram() {
