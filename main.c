@@ -345,9 +345,9 @@ Expr *parseExpr(void);
 
 NameAndType *lvars_start;
 NameAndType *lvars_cursor;
-NameAndType *all_funcdecls_start[100];
-NameAndType **all_funcdecls_cursor;
-FuncDef *all_funcdefs_start[100];
+NameAndType *funcdecls_start[100];
+NameAndType **funcdecls_cursor;
+FuncDef *funcdefs_start[100];
 
 Type *lookup_ident_type(char *name) {
     for (int i = 0; lvars_start[i].name; i++) {
@@ -360,9 +360,9 @@ Type *lookup_ident_type(char *name) {
 }
 
 Type *lookup_func_type(char *name) {
-    for (int i = 0; all_funcdecls_start[i]; i++) {
-        if (strcmp(all_funcdecls_start[i]->name, name) == 0) {
-            return all_funcdecls_start[i]->type;
+    for (int i = 0; funcdecls_start[i]; i++) {
+        if (strcmp(funcdecls_start[i]->name, name) == 0) {
+            return funcdecls_start[i]->type;
         }
     }
     fprintf(stderr, "cannot find a function named `%s`; cannot determine the return type. Implicitly assumes that it return an int\n", name);
@@ -793,8 +793,8 @@ void store_func_decl(NameAndType *rettype_and_funcname) {
     NameAndType *decl = calloc(1, sizeof(NameAndType));
     decl->type = rettype_and_funcname->type;
     decl->name = rettype_and_funcname->name;
-    *all_funcdecls_cursor = decl;
-    all_funcdecls_cursor++;
+    *funcdecls_cursor = decl;
+    funcdecls_cursor++;
 }
 
 FuncDef *parseToplevel() {
@@ -832,10 +832,10 @@ FuncDef *parseToplevel() {
 }
 
 void parseProgram() {
-    int i = 0;
+    FuncDef **funcdefs_cursor = funcdefs_start;
     while (tokens_cursor < tokens_end) {
-        all_funcdefs_start[i] = parseToplevel();
-        i++;
+        *funcdefs_cursor = parseToplevel();
+        funcdefs_cursor++;
     }
 }
 
@@ -1118,11 +1118,11 @@ int main(int argc, char **argv) {
     tokens_cursor = tokens_start;
     tokens_end = tokens_start + tokens_length;
 
-    all_funcdecls_cursor = all_funcdecls_start;
+    funcdecls_cursor = funcdecls_start;
     parseProgram();
     printf(".intel_syntax noprefix\n");
-    for (int i = 0; all_funcdefs_start[i]; i++) {
-        FuncDef *funcdef = all_funcdefs_start[i];
+    for (int i = 0; funcdefs_start[i]; i++) {
+        FuncDef *funcdef = funcdefs_start[i];
         CodegenFunc(funcdef);
     }
     return 0;
