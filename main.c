@@ -30,7 +30,8 @@ typedef struct NameAndType {
 typedef struct FuncDef {
     struct Stmt *content;
     char *name;
-    char **params;
+    NameAndType *params_start;
+    NameAndType *params_end;
     int param_len;
     NameAndType *lvar_table_start;
     NameAndType *lvar_table_end;
@@ -434,7 +435,7 @@ Expr *parsePrimary() {
     }
 
     consume_otherwise_panic('(');
-    Expr *expr = parseExpr(); // NO DECAY
+    Expr *expr = parseExpr();  // NO DECAY
     consume_otherwise_panic(')');
     return expr;
 }
@@ -487,8 +488,8 @@ Expr *parseUnary() {
         Expr *expr = decay_if_arr(parseCast());
         return unaryExpr(expr, '*', deref(expr->typ));
     } else if (maybe_consume('&')) {
-        Expr *expr = parseCast(); // NO DECAY
-        return unaryExpr(expr, '&', ptr_of(expr->typ)); // NO DECAY
+        Expr *expr = parseCast();                        // NO DECAY
+        return unaryExpr(expr, '&', ptr_of(expr->typ));  // NO DECAY
     } else if (maybe_consume(enum4('S', 'Z', 'O', 'F'))) {
         Expr *expr = parseUnary();  // NO DECAY
         return numberexpr(size(expr->typ));
@@ -778,7 +779,8 @@ Stmt *parseFunctionContent() {
 
 FuncDef *parseFunction() {
     NameAndType *rettype_and_funcname = consume_type_and_ident();
-    char **params = calloc(6, sizeof(char *));
+    NameAndType *params = calloc(6, sizeof(NameAndType));
+    NameAndType *params_start = params;
     consume_otherwise_panic('(');
     if (maybe_consume(')')) {
         lvars = lvars_start = calloc(100, sizeof(NameAndType));
@@ -795,7 +797,8 @@ FuncDef *parseFunction() {
         funcdef->name = rettype_and_funcname->name;
         funcdef->return_type = rettype_and_funcname->type;
         funcdef->param_len = 0;
-        funcdef->params = params;
+        funcdef->params_start = params;
+        funcdef->params_end = params;
         funcdef->lvar_table_start = lvars_start;
         funcdef->lvar_table_end = lvars;
         return funcdef;
@@ -806,14 +809,16 @@ FuncDef *parseFunction() {
     for (; i < 6; i++) {
         NameAndType *param_nt = consume_type_and_ident();
         if (maybe_consume(')')) {
-            params[i] = param_nt->name;
+            params[i].name = param_nt->name;
+            params[i].type = param_nt->type;
             lvars->name = param_nt->name;
             lvars->type = param_nt->type;
             lvars++;
             break;
         }
         consume_otherwise_panic(',');
-        params[i] = param_nt->name;
+        params[i].name = param_nt->name;
+        params[i].type = param_nt->type;
         lvars->name = param_nt->name;
         lvars->type = param_nt->type;
         lvars++;
@@ -831,7 +836,8 @@ FuncDef *parseFunction() {
     funcdef->name = rettype_and_funcname->name;
     funcdef->return_type = rettype_and_funcname->type;
     funcdef->param_len = i + 1;
-    funcdef->params = params;
+    funcdef->params_start = params;
+    funcdef->params_end = params + i + 1;
     funcdef->lvar_table_start = lvars_start;
     funcdef->lvar_table_end = lvars;
     return funcdef;
@@ -878,14 +884,15 @@ LVar *lastLVar() {
     }
 }
 
-LVar *insertLVar(char *name) {
+LVar *insertLVar(char *name, int sz) {
+    sz = (sz + 7) / 8 * 8;
     LVar *newlocal = calloc(1, sizeof(LVar));
     LVar *last = lastLVar();
     newlocal->name = name;
     if (!last) {
-        newlocal->offset_from_rbp = 8;
+        newlocal->offset_from_rbp = sz;
     } else {
-        newlocal->offset_from_rbp = last->offset_from_rbp + 8;  // offset+last size
+        newlocal->offset_from_rbp = last->offset_from_rbp + sz;
     }
     newlocal->next = 0;
 
@@ -982,22 +989,35 @@ void CodegenFunc(FuncDef *funcdef) {
     printf("%s:\n", funcdef->name);
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
-    printf("  sub rsp, 208\n");
+    int stack_adjust = 0;
     for (int i = 0; i < funcdef->param_len; i++) {
-        char *param_name = funcdef->params[i];
-        insertLVar(param_name);
+        stack_adjust += (size(funcdef->params_start[i].type) + 7) / 8 * 8;
+    }
+    for (NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++) {
+        stack_adjust += (size(ptr->type) + 7) / 8 * 8;
+    }
+    printf("  sub rsp, %d\n", stack_adjust);
+    for (int i = 0; i < funcdef->param_len; i++) {
+        char *param_name = funcdef->params_start[i].name;
+        Type *param_type = funcdef->params_start[i].type;
+        insertLVar(param_name, size(param_type));
         LVar *local = findLVar(param_name);
         printf("  mov rax, rbp\n");
         printf("  sub rax, %d\n", local->offset_from_rbp);
         printf("  mov [rax], %s\n", nth_arg_reg(i));
     }
     for (NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++) {
-        insertLVar(ptr->name);
+        insertLVar(ptr->name, size(ptr->type));
     }
     CodegenStmt(funcdef->content);
 }
 
 void EvaluateExprIntoRax(Expr *expr) {
+    if (expr->typ->kind == enum2('[', ']')) {
+        EvaluateLValueAddressIntoRax(expr);
+        return;
+    }
+
     if (expr->expr_kind == enum4('I', 'D', 'N', 'T')) {
         EvaluateLValueAddressIntoRax(expr);
         printf("  mov rax,[rax]\n");
@@ -1021,6 +1041,8 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("  mov rax, [rax]\n");
         } else if (expr->op == '&') {
             EvaluateLValueAddressIntoRax(expr->first_child);
+        } else if (expr->op == enum4('[', ']', '>', '*')) {
+            EvaluateExprIntoRax(expr->first_child);
         } else {
             fprintf(stderr, "Invalid unaryop kind:%d", expr->op);
             exit(1);

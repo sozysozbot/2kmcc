@@ -220,6 +220,8 @@ assert check("int main() { int arr[10]; return sizeof(*arr); }", 4)
 assert check("int main() { int arr[5][2]; return sizeof(*arr); }", 8)
 assert check("int main() { int arr[2][5]; return sizeof(*arr); }", 20)
 
+assert check("int main() { int a[2]; *a = 1; *(a + 1) = 2; int *p; p = a; return *p + *(p + 1); }", 3)
+
 print(f"""
 {bcolors.OKGREEN}
 ************
