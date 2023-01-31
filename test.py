@@ -58,6 +58,8 @@ def check_and_link_with(input: str, linked_lib: str, expected: int):
     print(f"{bcolors.FAIL}Consult tmp.s to find out what when wrong{bcolors.ENDC}")
     return False
 
+print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
+
 assert check("int main() { return 0; }", 0)
 
 assert check("int main() { return 42; }", 42)
@@ -199,6 +201,16 @@ int alloc4(int **p, int a, int b, int c, int d) {
     return 0; 
 } 
 """, expected= 15)
+
+print(f"""
+{bcolors.OKGREEN}
+************
+*    OK    *
+************
+{bcolors.ENDC}
+""")
+
+print(f"{bcolors.OKBLUE}Checking the inputs that should NOT work:{bcolors.ENDC}")
 
 assert should_not_compile("int main() { int x; int y; x = 3; y = &x; return *y; }")
 

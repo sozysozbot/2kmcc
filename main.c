@@ -713,6 +713,13 @@ FuncDef *parseFunction() {
     consume_otherwise_panic('(');
     if (maybe_consume(')')) {
         lvars = lvars_start = calloc(100, sizeof(NameAndType));
+
+        NameAndType *decl = calloc(1, sizeof(NameAndType));
+        decl->type = return_type;
+        decl->name = name;
+        *all_funcdecls = decl;
+        all_funcdecls++;
+
         Stmt *content = parseFunctionContent();
         FuncDef *funcdef = calloc(1, sizeof(FuncDef));
         funcdef->content = content;
@@ -722,11 +729,6 @@ FuncDef *parseFunction() {
         funcdef->params = params;
         funcdef->lvar_table_start = lvars_start;
         funcdef->lvar_table_end = lvars;
-        NameAndType *decl = calloc(1, sizeof(NameAndType));
-        decl->type = return_type;
-        decl->name = name;
-        *all_funcdecls = decl;
-        all_funcdecls++;
         return funcdef;
     }
 
@@ -749,6 +751,12 @@ FuncDef *parseFunction() {
         lvars++;
     }
 
+    NameAndType *decl = calloc(1, sizeof(NameAndType));
+    decl->type = return_type;
+    decl->name = name;
+    *all_funcdecls = decl;
+    all_funcdecls++;
+
     Stmt *content = parseFunctionContent();
     FuncDef *funcdef = calloc(1, sizeof(FuncDef));
     funcdef->content = content;
@@ -757,12 +765,7 @@ FuncDef *parseFunction() {
     funcdef->param_len = i + 1;
     funcdef->params = params;
     funcdef->lvar_table_start = lvars_start;
-    funcdef->lvar_table_end = lvars;
-    NameAndType *decl = calloc(1, sizeof(NameAndType));
-    decl->type = return_type;
-    decl->name = name;
-    *all_funcdecls = decl;
-    all_funcdecls++;
+    funcdef->lvar_table_end = lvars;  
     return funcdef;
 }
 
