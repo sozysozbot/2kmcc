@@ -60,6 +60,26 @@ def check_and_link_with(input: str, linked_lib: str, expected: int):
 
 print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
+assert check_and_link_with("int main() { int a[2][4]; int i; int j; for(i=0;i<2;1) {for(j=0;j<4;1) {*(*(a + i) + j) = i * 10 + j; j=j+1;}i=i+1;} return foo(&a); }",
+    linked_lib='''
+#include <stdio.h>
+int foo(int (*p)[2][4]) { int i; int j; for(i=0;i<2;i++) for(j=0;j<4;j++) { printf("i=%d, j=%d, (*p)[i][j]=%d\\n", i, j, (*p)[i][j]); if ((*p)[i][j] != i * 10 + j) return i * 10 + j * 3;} return 42; }''',
+    expected=42)
+
+
+assert check_and_link_with("int main() { int a[2][4]; int i; int j; for(i=0;i<2;i=i+1) {for(j=0;j<4;j=j+1) {*(*(a + i) + j) = i * 10 + j;}} return foo(&a); }",
+    linked_lib='''
+#include <stdio.h>
+int foo(int (*p)[2][4]) { int i; int j; for(i=0;i<2;i++) for(j=0;j<4;j++) { printf("i=%d, j=%d, (*p)[i][j]=%d\\n", i, j, (*p)[i][j]); if ((*p)[i][j] != i * 10 + j) return i * 10 + j * 3;} return 42; }''',
+    expected=42)
+
+
+assert check_and_link_with("int main() { int a[2][4]; int i; int j; for(i=0;i<2;i=i+1) for(j=0;j<4;j=j+1) *(*(a + i) + j) = i * 10 + j; return foo(&a); }",
+    linked_lib='''
+#include <stdio.h>
+int foo(int (*p)[2][4]) { int i; int j; for(i=0;i<2;i++) for(j=0;j<4;j++) { printf("i=%d, j=%d, (*p)[i][j]=%d\\n", i, j, (*p)[i][j]); if ((*p)[i][j] != i * 10 + j) return i * 10 + j * 3;} return 42; }''',
+    expected=42)
+
 assert check("int main() { return 0; }", 0)
 
 assert check("int main() { return 42; }", 42)
