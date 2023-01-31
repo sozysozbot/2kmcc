@@ -797,8 +797,9 @@ void store_func_decl(NameAndType *rettype_and_funcname) {
     all_funcdecls++;
 }
 
-FuncDef *parseFunction() {
-    NameAndType *rettype_and_funcname = consume_type_and_ident();
+FuncDef *parseToplevel() {
+    NameAndType *first_half = consume_type_and_ident_1st_half();
+    NameAndType *rettype_and_funcname = consume_type_and_ident_2nd_half(first_half);
     NameAndType *params = calloc(6, sizeof(NameAndType));
     consume_otherwise_panic('(');
     if (maybe_consume(')')) {
@@ -833,7 +834,7 @@ FuncDef *parseFunction() {
 void parseProgram() {
     int i = 0;
     while (tokens < tokens_end) {
-        all_funcdefs[i] = parseFunction();
+        all_funcdefs[i] = parseToplevel();
         i++;
     }
 }
