@@ -66,7 +66,7 @@ assert check_and_link_with("int main() { int i; int j; foo(5); for(i=0;i<2;i=i+1
 int foo(int i) { printf("i=%d\\n", i); return 0; }''',
     expected=1)
 
-assert check_and_link_with("int main() { int *p; int j; *p=3; for(j=0;j<2;j=j+1) { foo(p, j); } return *p; }",
+assert check_and_link_with("int main() { int p[1]; int j; *p=3; for(j=0;j<2;j=j+1) { foo(p, j); } return *p; }",
     linked_lib='''
 #include <stdio.h>
 int foo(int *p, int j) { *p = j; return 0; }''',
