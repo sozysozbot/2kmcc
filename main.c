@@ -349,11 +349,18 @@ NameAndType *funcdecls_start[100];
 NameAndType **funcdecls_cursor;
 FuncDef *funcdefs_start[100];
 FuncDef **funcdefs_cursor;
+NameAndType *global_vars_start[100];
+NameAndType **global_vars_cursor;
 
 Type *lookup_ident_type(char *name) {
     for (int i = 0; lvars_start[i].name; i++) {
         if (strcmp(lvars_start[i].name, name) == 0) {
             return lvars_start[i].type;
+        }
+    }
+    for (int i = 0; global_vars_start[i]; i++) {
+        if (strcmp(global_vars_start[i]->name, name) == 0) {
+            return global_vars_start[i]->type;
         }
     }
     fprintf(stderr, "cannot find an identifier named `%s`; cannot determine the type\n", name);
@@ -798,9 +805,6 @@ void store_func_decl(NameAndType *rettype_and_funcname) {
     funcdecls_cursor++;
 }
 
-NameAndType *global_vars_start[100];
-NameAndType **global_vars_cursor;
-
 void parseToplevel() {
     NameAndType *first_half = consume_type_and_ident_1st_half();
     if (maybe_consume('(')) {
@@ -865,6 +869,15 @@ LVar *findLVar(char *name) {
     return 0;
 }
 
+int isGVar(char *name) {
+    for (int i = 0; global_vars_start[i]; i++) {
+        if (strcmp(name, global_vars_start[i]->name) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 LVar *lastLVar() {
     LVar *local = locals;
     if (!local) {
@@ -902,13 +915,18 @@ void EvaluateExprIntoRax(Expr *expr);
 
 void EvaluateLValueAddressIntoRax(Expr *expr) {
     if (expr->expr_kind == enum4('I', 'D', 'N', 'T')) {
-        if (!findLVar(expr->func_or_ident_name)) {
-            fprintf(stderr, "undefined variable %s\n", expr->func_or_ident_name);
-            exit(1);
-        }
         LVar *local = findLVar(expr->func_or_ident_name);
-        printf("  mov rax, rbp\n");
-        printf("  sub rax, %d\n", local->offset_from_rbp);
+        if (local) {
+            printf("  mov rax, rbp\n");
+            printf("  sub rax, %d\n", local->offset_from_rbp);
+        } else {
+            if (!isGVar(expr->func_or_ident_name)) {
+                fprintf(stderr, "undefined variable %s\n", expr->func_or_ident_name);
+                exit(1);
+            } else {
+                printf("  mov eax, OFFSET FLAT:%s\n", expr->func_or_ident_name);
+            }
+        }
     } else if (expr->expr_kind == enum4('1', 'A', 'R', 'Y') && expr->op == '*') {
         EvaluateExprIntoRax(expr->first_child);
     } else {
@@ -1131,6 +1149,15 @@ int main(int argc, char **argv) {
         parseToplevel();
     }
     printf(".intel_syntax noprefix\n");
+
+    for (int i = 0; global_vars_start[i]; i++) {
+        printf(".globl %s\n", global_vars_start[i]->name);
+        printf(".data\n");
+        printf("%s:\n", global_vars_start[i]->name);
+        printf("  .zero %d\n", size(global_vars_start[i]->type));
+    }
+
+    printf(".text\n");
     for (int i = 0; funcdefs_start[i]; i++) {
         CodegenFunc(funcdefs_start[i]);
     }

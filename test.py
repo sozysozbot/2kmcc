@@ -16,7 +16,7 @@ def check(input: str, expected: int):
     if compiler_returns != 0:
         print(f"{bcolors.FAIL}FAIL:check (compile error):{input=}{bcolors.ENDC}")
         return False
-    os.system("cc -o tmp tmp.s")
+    os.system("cc -o tmp tmp.s -static")
     returned_value = (os.system("./tmp") >> 8) & 0xff
     if expected == returned_value:
         print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
@@ -45,7 +45,7 @@ def check_and_link_with(input: str, linked_lib: str, expected: int):
     lib_file.write(linked_lib)
     lib_file.close()
     os.system("cc -S -o libtest.s libtest.c")
-    os.system("cc -o tmp tmp.s libtest.s")
+    os.system("cc -o tmp tmp.s libtest.s -static")
     os.system("rm libtest.c libtest.s")
     returned_value = (os.system("./tmp") >> 8) & 0xff
     if expected == returned_value:
@@ -315,6 +315,8 @@ int foo(int (*p)[2][4]) { int i; int j; for(i=0;i<2;i++) for(j=0;j<4;j++) { prin
 assert check("int main() { int a; int b; a = b = 3; return a + b; }", 6)
 
 assert check("int *foo; int bar[10]; int main() { return 0; }", 0)
+
+assert check("int *foo; int bar[10]; int main() { foo = bar; bar[3] = 7; return foo[3]; }", 7)
 
 print(f"""
 {bcolors.OKGREEN}
