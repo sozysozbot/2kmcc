@@ -1026,7 +1026,14 @@ void EvaluateExprIntoRax(Expr *expr) {
 
     if (expr->expr_kind == enum4('I', 'D', 'N', 'T')) {
         EvaluateLValueAddressIntoRax(expr);
-        printf("  mov rax,[rax]\n");
+        if (size(expr->typ) == 4) {
+            printf("  mov eax,[rax]\n");
+        } else if (size(expr->typ) == 8) {
+            printf("  mov rax,[rax]\n");
+        } else {
+            fprintf(stderr, "unhandlable size\n");
+            exit(1);
+        }
         return;
     } else if (expr->expr_kind == enum4('C', 'A', 'L', 'L')) {
         for (int i = 0; i < expr->func_arg_len; i++) {
@@ -1061,7 +1068,7 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    push rax\n");
             printf("    pop rdi\n");
             printf("    pop rax\n");
-            printf("    mov [rax], %s\n", nth_arg_reg(0, size(expr->second_child->typ))); // rdi or edi
+            printf("    mov [rax], %s\n", nth_arg_reg(0, size(expr->second_child->typ)));  // rdi or edi
         } else {
             EvaluateExprIntoRax(expr->first_child);
             printf("    push rax\n");
