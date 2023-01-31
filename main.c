@@ -369,6 +369,16 @@ Type *lookup_func_type(char *name) {
     return type_int();
 }
 
+Expr *callingExpr(char *name, Expr **arguments, int len) {
+    Expr *callexp = calloc(1, sizeof(Expr));
+    callexp->func_or_ident_name = name;
+    callexp->expr_kind = enum4('C', 'A', 'L', 'L');
+    callexp->func_args = arguments;
+    callexp->func_arg_len = len;
+    callexp->typ = lookup_func_type(name);
+    return callexp;
+}
+
 Expr *parsePrimary() {
     panic_if_eof();
     if (tokens->kind == enum3('N', 'U', 'M')) {
@@ -381,15 +391,8 @@ Expr *parsePrimary() {
         if (maybe_consume('(')) {
             Expr **arguments = calloc(6, sizeof(Expr *));
             if (maybe_consume(')')) {
-                Expr *callexp = calloc(1, sizeof(Expr));
-                callexp->func_or_ident_name = name;
-                callexp->expr_kind = enum4('C', 'A', 'L', 'L');
-                callexp->func_args = arguments;
-                callexp->func_arg_len = 0;
-                callexp->typ = lookup_func_type(name);
-                return callexp;
+                return callingExpr(name, arguments, 0);
             }
-
             int i = 0;
             for (; i < 6; i++) {
                 Expr *expr = decay_if_arr(parseExpr());
@@ -400,13 +403,7 @@ Expr *parsePrimary() {
                 consume_otherwise_panic(',');
                 arguments[i] = decay_if_arr(expr);
             }
-            Expr *callexp = calloc(1, sizeof(Expr));
-            callexp->func_or_ident_name = name;
-            callexp->expr_kind = enum4('C', 'A', 'L', 'L');
-            callexp->func_args = arguments;
-            callexp->func_arg_len = i + 1;
-            callexp->typ = lookup_func_type(name);
-            return callexp;
+            return callingExpr(name, arguments, i + 1);
         } else {
             Expr *ident_exp = calloc(1, sizeof(Expr));
             ident_exp->func_or_ident_name = name;
