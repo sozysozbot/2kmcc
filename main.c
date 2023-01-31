@@ -349,6 +349,8 @@ Expr *parseExpr(void);
 
 NameAndType *lvars_start;
 NameAndType *lvars;
+NameAndType *all_funcdecls_start[100];
+NameAndType **all_funcdecls;
 FuncDef *all_funcdefs[100];
 
 Type *lookup_ident_type(char *name) {
@@ -357,17 +359,17 @@ Type *lookup_ident_type(char *name) {
             return lvars_start[i].type;
         }
     }
-    fprintf(stderr, "cannot find an identifier named %s; cannot determine the return type\n", name);
+    fprintf(stderr, "cannot find an identifier named `%s`; cannot determine the type\n", name);
     exit(1);
 }
 
 Type *lookup_func_type(char *name) {
-    for (int i = 0; all_funcdefs[i]->name; i++) {
-        if (strcmp(all_funcdefs[i]->name, name) == 0) {
-            return all_funcdefs[i]->return_type;
+    for (int i = 0; all_funcdecls_start[i]; i++) {
+        if (strcmp(all_funcdecls_start[i]->name, name) == 0) {
+            return all_funcdecls_start[i]->type;
         }
     }
-    fprintf(stderr, "cannot find a function named %s; cannot determine the return type. Implicitly assumes that it return an int\n", name);
+    fprintf(stderr, "cannot find a function named `%s`; cannot determine the return type. Implicitly assumes that it return an int\n", name);
     return type_int();
 }
 
@@ -720,6 +722,11 @@ FuncDef *parseFunction() {
         funcdef->params = params;
         funcdef->lvar_table_start = lvars_start;
         funcdef->lvar_table_end = lvars;
+        NameAndType *decl = calloc(1, sizeof(NameAndType));
+        decl->type = return_type;
+        decl->name = name;
+        *all_funcdecls = decl;
+        all_funcdecls++;
         return funcdef;
     }
 
@@ -748,6 +755,11 @@ FuncDef *parseFunction() {
     funcdef->params = params;
     funcdef->lvar_table_start = lvars_start;
     funcdef->lvar_table_end = lvars;
+    NameAndType *decl = calloc(1, sizeof(NameAndType));
+    decl->type = return_type;
+    decl->name = name;
+    *all_funcdecls = decl;
+    all_funcdecls++;
     return funcdef;
 }
 
@@ -1008,6 +1020,8 @@ int main(int argc, char **argv) {
     }
     tokens = all_tokens;
     tokens_end = all_tokens + tokens_length;
+
+    all_funcdecls = all_funcdecls_start;
     parseProgram();
     printf(".intel_syntax noprefix\n");
     for (int i = 0; all_funcdefs[i]; i++) {
