@@ -202,6 +202,11 @@ int alloc4(int **p, int a, int b, int c, int d) {
 } 
 """, expected= 15)
 
+assert check("int main() { int x; return sizeof x; }", 4)
+assert check("int main() { int *p; return sizeof p; }", 8)
+assert check("int main() { int x; return sizeof(x+3); }", 4)
+assert check("int main() { int *p; return sizeof(p+3); }", 8)
+
 print(f"""
 {bcolors.OKGREEN}
 ************

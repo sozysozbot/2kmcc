@@ -92,6 +92,13 @@ int tokenize(char *str) {
             i += 6;
             continue;
         }
+        if (strncmp(ptr, "sizeof", 6) == 0 && !is_alnum(ptr[6])) {
+            Token token = {enum4('S', 'Z', 'O', 'F'), 0, 0};
+            all_tokens[token_index] = token;
+            token_index++;
+            i += 6;
+            continue;
+        }
         if (strncmp(ptr, "if", 2) == 0 && !is_alnum(ptr[2])) {
             Token token = {enum2('i', 'f'), 0, 0};
             all_tokens[token_index] = token;
@@ -455,6 +462,9 @@ Expr *parseUnary() {
     } else if (maybe_consume('&')) {
         Expr *expr = parsePrimary();
         return unaryExpr(expr, '&', ptr_of(expr->typ));
+    } else if (maybe_consume(enum4('S', 'Z', 'O', 'F'))) {
+        Expr *expr = parseUnary();
+        return numberexpr(size(expr->typ));
     }
     return parsePrimary();
 }
