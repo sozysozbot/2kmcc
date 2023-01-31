@@ -338,7 +338,7 @@ void expect_otherwise_panic(int kind) {
     }
 }
 
-char *expect_identifier_and_get_name() {
+char *consume_identifier_and_get_name() {
     expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
     char *name = tokens->identifier_name;
     tokens++;
@@ -621,6 +621,15 @@ Type *consume_type_otherwise_panic() {
     return t;
 }
 
+NameAndType *consume_type_and_ident() {
+    Type *type = consume_type_otherwise_panic();
+    char *name = consume_identifier_and_get_name();
+    NameAndType *ans = calloc(1, sizeof(NameAndType));
+    ans->name = name;
+    ans->type = type;
+    return ans;
+}
+
 Stmt *parseStmt() {
     if (maybe_consume('{')) {
         Stmt *result = calloc(1, sizeof(Stmt));
@@ -677,14 +686,13 @@ Stmt *parseStmt() {
     }
     if (maybe_consume(enum3('i', 'n', 't'))) {
         tokens--;
-        Type *t = consume_type_otherwise_panic();
+        NameAndType *nt = consume_type_and_ident();
         if (lvars == lvars_start + 100) {
             fprintf(stderr, "too many local variables");
             exit(1);
         }
-        char *name = expect_identifier_and_get_name();
-        lvars->name = name;
-        lvars->type = t;
+        lvars->name = nt->name;
+        lvars->type = nt->type;
         lvars++;
         consume_otherwise_panic(';');
         Stmt *stmt = calloc(1, sizeof(Stmt));
@@ -717,24 +725,23 @@ Stmt *parseFunctionContent() {
 }
 
 FuncDef *parseFunction() {
-    Type *return_type = consume_type_otherwise_panic();
-    char *name = expect_identifier_and_get_name();
+    NameAndType *rettype_and_funcname = consume_type_and_ident();
     char **params = calloc(6, sizeof(char *));
     consume_otherwise_panic('(');
     if (maybe_consume(')')) {
         lvars = lvars_start = calloc(100, sizeof(NameAndType));
 
         NameAndType *decl = calloc(1, sizeof(NameAndType));
-        decl->type = return_type;
-        decl->name = name;
+        decl->type = rettype_and_funcname->type;
+        decl->name = rettype_and_funcname->name;
         *all_funcdecls = decl;
         all_funcdecls++;
 
         Stmt *content = parseFunctionContent();
         FuncDef *funcdef = calloc(1, sizeof(FuncDef));
         funcdef->content = content;
-        funcdef->name = name;
-        funcdef->return_type = return_type;
+        funcdef->name = rettype_and_funcname->name;
+        funcdef->return_type = rettype_and_funcname->type;
         funcdef->param_len = 0;
         funcdef->params = params;
         funcdef->lvar_table_start = lvars_start;
@@ -745,37 +752,36 @@ FuncDef *parseFunction() {
     lvars = lvars_start = calloc(100, sizeof(char *));
     int i = 0;
     for (; i < 6; i++) {
-        Type *t = consume_type_otherwise_panic();
-        char *name = expect_identifier_and_get_name();
+        NameAndType *param_nt = consume_type_and_ident();
         if (maybe_consume(')')) {
-            params[i] = name;
-            lvars->name = name;
-            lvars->type = t;
+            params[i] = param_nt->name;
+            lvars->name = param_nt->name;
+            lvars->type = param_nt->type;
             lvars++;
             break;
         }
         consume_otherwise_panic(',');
-        params[i] = name;
-        lvars->name = name;
-        lvars->type = t;
+        params[i] = param_nt->name;
+        lvars->name = param_nt->name;
+        lvars->type = param_nt->type;
         lvars++;
     }
 
     NameAndType *decl = calloc(1, sizeof(NameAndType));
-    decl->type = return_type;
-    decl->name = name;
+    decl->type = rettype_and_funcname->type;
+    decl->name = rettype_and_funcname->name;
     *all_funcdecls = decl;
     all_funcdecls++;
 
     Stmt *content = parseFunctionContent();
     FuncDef *funcdef = calloc(1, sizeof(FuncDef));
     funcdef->content = content;
-    funcdef->name = name;
-    funcdef->return_type = return_type;
+    funcdef->name = rettype_and_funcname->name;
+    funcdef->return_type = rettype_and_funcname->type;
     funcdef->param_len = i + 1;
     funcdef->params = params;
     funcdef->lvar_table_start = lvars_start;
-    funcdef->lvar_table_end = lvars;  
+    funcdef->lvar_table_end = lvars;
     return funcdef;
 }
 
