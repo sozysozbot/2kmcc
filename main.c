@@ -737,6 +737,9 @@ FuncDef *parseFunction() {
         char *name = expect_identifier_and_get_name();
         if (maybe_consume(')')) {
             params[i] = name;
+            lvars->name = name;
+            lvars->type = t;
+            lvars++;
             break;
         }
         consume_otherwise_panic(',');

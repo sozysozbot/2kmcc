@@ -30,6 +30,14 @@ def check(input: str, expected: int):
     returned_value = (os.system("./tmp") >> 8) & 0xff
     return msg(input, expected, returned_value)
 
+def should_not_compile(input: str):
+    compiler_returns = (os.system(f'./2kmcc "{input}" > tmp.s') >> 8) & 0xff
+    if compiler_returns != 0:
+        print(f"{bcolors.OKGREEN}passed: should give compile error:{input=}{bcolors.ENDC}")
+        return True
+    else:
+        print(f"{bcolors.FAIL}FAIL: compiled what should not compile:{input=}{bcolors.ENDC}")
+        return False
 
 def check_and_link_with(input: str, linked_lib: str, expected: int):
     compiler_returns = (os.system(f'./2kmcc "{input}" > tmp.s') >> 8) & 0xff
@@ -167,10 +175,19 @@ assert check("int identity(int a) { return a; } int main() { return identity(3);
 assert check("int add2(int a, int b) { return a + b; } int main() { return add2(1, 2); }", 3)
 assert check("int add6(int a, int b, int c, int d, int e, int f) { return a + b + c + d + e + f; } int main() { return add6(1, 2, 3, 4, 5, 6); }", 21)
 assert check("int fib(int n) { if (n <= 1) { return n; } return fib(n-1) + fib(n-2); } int main() { return fib(8); }", 21)
-assert check("int main() { int x; int y; x = 3; y = &x; return *y; }", 3)
+assert check("int main() { int x; int *y; x = 3; y = &x; return *y; }", 3)
 assert check_and_link_with("int main() { int x; x = 3; write4(&x); return x; }",
     linked_lib="int write4(int *p) { return *p = 4; } ", expected= 4)
 
 assert check("int main() { int x; int *y; y = &x; *y = 3; return x; }", 3)
 
-print("OK")
+
+assert should_not_compile("int main() { int x; int y; x = 3; y = &x; return *y; }")
+
+print(f"""
+{bcolors.OKGREEN}
+************
+*    OK    *
+************
+{bcolors.ENDC}
+""")
