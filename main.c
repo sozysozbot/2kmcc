@@ -2,21 +2,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef int BinaryOpKind;
-typedef int UnaryOpKind;
-typedef int BaseTypeKind;
-typedef int TokenKind;
-typedef int StmtKind;
-typedef int ExprKind;
+typedef int Kind;
 
 typedef struct Type {
-    BaseTypeKind ty;
+    Kind base_type;
     struct Type *ptr_to;
 } Type;
 
 typedef struct Expr {
-    BinaryOpKind op;
-    ExprKind expr_kind;
+    Kind op;
+    Kind expr_kind;
     int value;
     struct Expr *first_child;
     struct Expr *second_child;
@@ -35,7 +30,7 @@ typedef struct FuncDef {
 } FuncDef;
 
 typedef struct Stmt {
-    StmtKind stmt_kind;
+    Kind stmt_kind;
     struct Expr *expr;
     struct Expr *expr1;
     struct Expr *expr2;
@@ -51,27 +46,10 @@ typedef struct LVar {
 } LVar;
 
 typedef struct Token {
-    TokenKind kind;
+    Kind kind;
     int value;
     char *identifier_name;
 } Token;
-
-Expr *parseMultiplicative(void);
-Expr *parseAdditive(void);
-Expr *parseExpr(void);
-Expr *parseUnary(void);
-void parseProgram(void);
-Expr *parseAssign(void);
-Stmt *parseFor(void);
-Stmt *parseStmt(void);
-FuncDef *parseFunction(void);
-
-void CodegenFunc(FuncDef *funcdef);
-
-int tokenize(char *str);
-
-void EvaluateExprIntoRax(Expr *expr);
-extern FuncDef *all_funcdefs[100];
 
 int enum2(int a, int b) {
     return a + b * 256;
@@ -263,7 +241,7 @@ Expr *numberexpr(int value) {
     return numberexp;
 }
 
-Expr *binaryExpr(Expr *first_child, Expr *second_child, BinaryOpKind binaryop) {
+Expr *binaryExpr(Expr *first_child, Expr *second_child, Kind binaryop) {
     Expr *newexp = calloc(1, sizeof(Expr));
     newexp->first_child = first_child;
     newexp->expr_kind = enum4('2', 'A', 'R', 'Y');
@@ -272,7 +250,7 @@ Expr *binaryExpr(Expr *first_child, Expr *second_child, BinaryOpKind binaryop) {
     return newexp;
 }
 
-Expr *unaryExpr(Expr *first_child, UnaryOpKind unaryop) {
+Expr *unaryExpr(Expr *first_child, Kind unaryop) {
     Expr *newexp = calloc(1, sizeof(Expr));
     newexp->first_child = first_child;
     newexp->expr_kind = enum4('1', 'A', 'R', 'Y');
@@ -280,7 +258,7 @@ Expr *unaryExpr(Expr *first_child, UnaryOpKind unaryop) {
     return newexp;
 }
 
-int maybe_consume(TokenKind kind) {
+int maybe_consume(Kind kind) {
     if (tokens->kind == kind) {
         tokens += 1;
         return 1;
@@ -288,7 +266,7 @@ int maybe_consume(TokenKind kind) {
     return 0;
 }
 
-char *decode_kind(int kind) {
+char *decode_kind(Kind kind) {
     void *r = &kind;
     char *q = r;
     char *ans = calloc(5, sizeof(char));
@@ -323,6 +301,8 @@ void panic_if_eof() {
         exit(1);
     }
 }
+
+Expr *parseExpr(void);
 
 Expr *parsePrimary() {
     panic_if_eof();
@@ -477,7 +457,7 @@ Expr *parseExpr() {
 char **lvar_names_start;
 char **lvar_names;
 
-Expr *parseOptionalExprAndToken(TokenKind target) {
+Expr *parseOptionalExprAndToken(Kind target) {
     if (maybe_consume(target)) {
         return 0;
     }
@@ -490,11 +470,11 @@ Type *consume_type_otherwise_panic() {
     consume_otherwise_panic(enum3('i', 'n', 't'));
 
     Type *t = calloc(1, sizeof(Type));
-    t->ty = enum3('i', 'n', 't');
+    t->base_type = enum3('i', 'n', 't');
 
     while (maybe_consume('*')) {
         Type *new_t = calloc(1, sizeof(Type));
-        new_t->ty = '*';
+        new_t->base_type = '*';
         new_t->ptr_to = t;
         t = new_t;
     }
@@ -637,6 +617,8 @@ FuncDef *parseFunction() {
     return funcdef;
 }
 
+FuncDef *all_funcdefs[100];
+
 void parseProgram() {
     int i = 0;
     while (tokens < tokens_end) {
@@ -696,6 +678,8 @@ LVar *insertLVar(char *name) {
     }
     return newlocal;
 }
+
+void EvaluateExprIntoRax(Expr *expr);
 
 void EvaluateLValueAddressIntoRax(Expr *expr) {
     if (expr->expr_kind == enum4('1', 'D', 'N', 'T')) {
@@ -878,8 +862,6 @@ void EvaluateExprIntoRax(Expr *expr) {
 }
 
 /*** ^ CODEGEN | v MAIN ***/
-
-FuncDef *all_funcdefs[100];
 
 int main(int argc, char **argv) {
     if (argc != 2) {
