@@ -348,6 +348,7 @@ NameAndType *lvars_cursor;
 NameAndType *funcdecls_start[100];
 NameAndType **funcdecls_cursor;
 FuncDef *funcdefs_start[100];
+FuncDef **funcdefs_cursor;
 
 Type *lookup_ident_type(char *name) {
     for (int i = 0; lvars_start[i].name; i++) {
@@ -805,7 +806,9 @@ FuncDef *parseToplevel() {
     if (maybe_consume(')')) {
         lvars_cursor = lvars_start = calloc(100, sizeof(NameAndType));
         store_func_decl(rettype_and_funcname);
-        return constructFuncDef(parseFunctionContent(), rettype_and_funcname, 0, params_start);
+        *funcdefs_cursor = constructFuncDef(parseFunctionContent(), rettype_and_funcname, 0, params_start);
+        funcdefs_cursor++;
+        return;
     }
 
     lvars_cursor = lvars_start = calloc(100, sizeof(char *));
@@ -828,15 +831,9 @@ FuncDef *parseToplevel() {
         lvars_cursor++;
     }
     store_func_decl(rettype_and_funcname);
-    return constructFuncDef(parseFunctionContent(), rettype_and_funcname, i + 1, params_start);
-}
-
-void parseProgram() {
-    FuncDef **funcdefs_cursor = funcdefs_start;
-    while (tokens_cursor < tokens_end) {
-        *funcdefs_cursor = parseToplevel();
-        funcdefs_cursor++;
-    }
+    *funcdefs_cursor = constructFuncDef(parseFunctionContent(), rettype_and_funcname, i + 1, params_start);
+    funcdefs_cursor++;
+    return;
 }
 
 /*** ^ PARSE | v CODEGEN ***/
@@ -1119,11 +1116,13 @@ int main(int argc, char **argv) {
     tokens_end = tokens_start + tokens_length;
 
     funcdecls_cursor = funcdecls_start;
-    parseProgram();
+    funcdefs_cursor = funcdefs_start;
+    while (tokens_cursor < tokens_end) {
+        parseToplevel();
+    }
     printf(".intel_syntax noprefix\n");
     for (int i = 0; funcdefs_start[i]; i++) {
-        FuncDef *funcdef = funcdefs_start[i];
-        CodegenFunc(funcdef);
+        CodegenFunc(funcdefs_start[i]);
     }
     return 0;
 }
