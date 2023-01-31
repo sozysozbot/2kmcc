@@ -338,13 +338,6 @@ void expect_otherwise_panic(int kind) {
     }
 }
 
-char *consume_identifier_and_get_name() {
-    expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
-    char *name = tokens->identifier_name;
-    tokens++;
-    return name;
-}
-
 void panic_if_eof() {
     if (tokens >= tokens_end) {
         fprintf(stderr, "EOF encountered");
@@ -609,21 +602,20 @@ Expr *parseOptionalExprAndToken(Kind target) {
     return expr;
 }
 
-Type *consume_type_otherwise_panic() {
+NameAndType *consume_type_and_ident() {
     consume_otherwise_panic(enum3('i', 'n', 't'));
 
-    Type *t = calloc(1, sizeof(Type));
-    t->ty = enum3('i', 'n', 't');
+    Type *type = calloc(1, sizeof(Type));
+    type->ty = enum3('i', 'n', 't');
 
     while (maybe_consume('*')) {
-        t = ptr_of(t);
+        type = ptr_of(type);
     }
-    return t;
-}
 
-NameAndType *consume_type_and_ident() {
-    Type *type = consume_type_otherwise_panic();
-    char *name = consume_identifier_and_get_name();
+    expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
+    char *name = tokens->identifier_name;
+    tokens++;
+
     NameAndType *ans = calloc(1, sizeof(NameAndType));
     ans->name = name;
     ans->type = type;
