@@ -11,7 +11,13 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-def msg(input: str, expected: int, returned_value: int):
+def check(input: str, expected: int):
+    compiler_returns = (os.system(f'./2kmcc "{input}" > tmp.s') >> 8) & 0xff
+    if compiler_returns != 0:
+        print(f"{bcolors.FAIL}FAIL:check (compile error):{input=}{bcolors.ENDC}")
+        return False
+    os.system("cc -o tmp tmp.s")
+    returned_value = (os.system("./tmp") >> 8) & 0xff
     if expected == returned_value:
         print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
         os.system("rm tmp tmp.s")
@@ -20,15 +26,6 @@ def msg(input: str, expected: int, returned_value: int):
     print(f"{bcolors.FAIL}FAIL:check (wrong answer):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
     print(f"{bcolors.FAIL}Consult tmp.s to find out what when wrong{bcolors.ENDC}")
     return False
-
-def check(input: str, expected: int):
-    compiler_returns = (os.system(f'./2kmcc "{input}" > tmp.s') >> 8) & 0xff
-    if compiler_returns != 0:
-        print(f"{bcolors.FAIL}FAIL:check (compile error):{input=}{bcolors.ENDC}")
-        return False
-    os.system("cc -o tmp tmp.s")
-    returned_value = (os.system("./tmp") >> 8) & 0xff
-    return msg(input, expected, returned_value)
 
 def should_not_compile(input: str):
     compiler_returns = (os.system(f'./2kmcc "{input}" > tmp.s') >> 8) & 0xff
@@ -51,7 +48,15 @@ def check_and_link_with(input: str, linked_lib: str, expected: int):
     os.system("cc -o tmp tmp.s libtest.s")
     os.system("rm libtest.c libtest.s")
     returned_value = (os.system("./tmp") >> 8) & 0xff
-    return msg(input, expected, returned_value)
+    if expected == returned_value:
+        print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
+        print(f"{bcolors.OKGREEN}       {linked_lib=} {bcolors.ENDC}")
+        os.system("rm tmp tmp.s")
+        return True
+
+    print(f"{bcolors.FAIL}FAIL:check (wrong answer):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
+    print(f"{bcolors.FAIL}Consult tmp.s to find out what when wrong{bcolors.ENDC}")
+    return False
 
 assert check("int main() { return 0; }", 0)
 
@@ -181,6 +186,19 @@ assert check_and_link_with("int main() { int x; x = 3; write4(&x); return x; }",
 
 assert check("int main() { int x; int *y; y = &x; *y = 3; return x; }", 3)
 
+
+assert check_and_link_with("int main() { int *p; alloc4(&p, 1, 2, 4, 8); return *(p + 0) + *(p + 1) + *(p + 2) + *(p + 3); }",
+    linked_lib="""
+#include <stdlib.h>
+int alloc4(int **p, int a, int b, int c, int d) { 
+    *p = calloc(4, sizeof(int));
+    (*p)[0] = a;
+    (*p)[1] = b;
+    (*p)[2] = c;
+    (*p)[3] = d;
+    return 0; 
+} 
+""", expected= 15)
 
 assert should_not_compile("int main() { int x; int y; x = 3; y = &x; return *y; }")
 
