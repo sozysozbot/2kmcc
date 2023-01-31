@@ -223,6 +223,38 @@ assert check("int main() { int arr[2][5]; return sizeof(*arr); }", 20)
 assert check("int main() { int a[2]; *a = 1; *(a + 1) = 2; int *p; p = a; return *p + *(p + 1); }", 3)
 assert check("int main() { int a[2]; *(a + 1) = 2; *a = 1; int *p; p = a; return *p + *(p + 1); }", 3)
 
+assert check_and_link_with("int main() { int a[2][4]; **a = 3; return foo(&a); }",
+    linked_lib="int foo(int (*p)[2][4]) { return (*p)[0][0] == 3; }",
+    expected=1)
+
+assert check_and_link_with("int main() { int a[2][4]; **(a+0) = 3; return foo(&a); }",
+    linked_lib="int foo(int (*p)[2][4]) { return (*p)[0][0] == 3; }",
+    expected=1)
+
+assert check_and_link_with("int main() { int a[2][4]; **(a+1) = 3; return foo(&a); }",
+    linked_lib="int foo(int (*p)[2][4]) { return (*p)[1][0] == 3; }",
+    expected=1)
+
+assert check_and_link_with("int main() { int a[2][4]; *(*(a+1)) = 3; return foo(&a); }",
+    linked_lib="int foo(int (*p)[2][4]) { return (*p)[1][0] == 3; }",
+    expected=1)
+
+assert check_and_link_with("int main() { int a[2][4]; *(*(a+1)+2) = 3; return foo(&a); }",
+    linked_lib="int foo(int (*p)[2][4]) { return (*p)[1][2] == 3; }",
+    expected=1)
+
+assert check_and_link_with("int main() { int a[3][4]; *(*(a+2)+1) = 4; *(*(a+1)+2) = 3; return foo(&a); }",
+    linked_lib="int foo(int (*p)[3][4]) { return (*p)[2][1] == 4 && (*p)[1][2] == 3; }",
+    expected=1)
+
+assert check_and_link_with("int main() { int a[1][2]; *(*(a+0)+0) = 4; *(*(a+0)+1) = 3; return foo(&a); }",
+    linked_lib="int foo(int (*p)[1][2]) { return (*p)[0][0] == 4 && (*p)[0][1] == 3; }",
+    expected=1)
+
+assert check_and_link_with("int main() { int a[2][2]; *(*(a+0)+0) = 4; *(*(a+0)+1) = 3; *(*(a+1)+0) = 2; *(*(a+1)+1) = 1; return foo(&a); }",
+    linked_lib="int foo(int (*p)[1][2]) { return (*p)[0][0] == 4 && (*p)[0][1] == 3 && (*p)[1][0] == 2 && (*p)[1][1] == 1; }",
+    expected=1)
+
 print(f"""
 {bcolors.OKGREEN}
 ************
