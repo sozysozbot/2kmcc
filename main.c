@@ -343,7 +343,7 @@ Expr *parsePrimary() {
         } else {
             Expr *numberexp = calloc(1, sizeof(Expr));
             numberexp->name = name;
-            numberexp->expr_kind = enum4('1', 'D', 'N', 'T');
+            numberexp->expr_kind = enum4('I', 'D', 'N', 'T');
             return numberexp;
         }
     }
@@ -682,7 +682,7 @@ LVar *insertLVar(char *name) {
 void EvaluateExprIntoRax(Expr *expr);
 
 void EvaluateLValueAddressIntoRax(Expr *expr) {
-    if (expr->expr_kind == enum4('1', 'D', 'N', 'T')) {
+    if (expr->expr_kind == enum4('I', 'D', 'N', 'T')) {
         if (!findLVar(expr->name)) {
             fprintf(stderr, "undefined variable %s\n", expr->name);
             exit(1);
@@ -780,7 +780,7 @@ void CodegenFunc(FuncDef *funcdef) {
 }
 
 void EvaluateExprIntoRax(Expr *expr) {
-    if (expr->expr_kind == enum4('1', 'D', 'N', 'T')) {
+    if (expr->expr_kind == enum4('I', 'D', 'N', 'T')) {
         EvaluateLValueAddressIntoRax(expr);
         printf("  mov rax,[rax]\n");
         return;
