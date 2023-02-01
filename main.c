@@ -18,7 +18,7 @@ typedef struct Expr {
     struct Expr *second_child;
     struct Expr **func_args;
     int func_arg_len;
-    char *func_or_ident_name;
+    char *func_or_ident_name_or_string_content;
     Type *typ;
 } Expr;
 
@@ -57,7 +57,7 @@ typedef struct LVar {
 typedef struct Token {
     Kind kind;
     int value;
-    char *identifier_name;
+    char *identifier_name_or_string_content;
 } Token;
 
 int enum2(int a, int b) {
@@ -76,6 +76,8 @@ int enum4(int a, int b, int c, int d) {
 Token tokens_start[1000];
 Token *tokens_end;
 Token *tokens_cursor;
+char *string_literals_start[10000];
+char **string_literals_cursor;
 int is_alnum(char c) {
     return ('a' <= c && c <= 'z') ||
            ('A' <= c && c <= 'Z') ||
@@ -96,32 +98,51 @@ int tokenize(char *str) {
     int token_index = 0;
     for (int i = 0; str[i];) {
         char c = str[i];
-        char *ptr = str + i;
-        if (is_reserved_then_handle(ptr, &token_index, &i, "return", 6, enum3('R', 'E', 'T'))) {
+        if (is_reserved_then_handle(str + i, &token_index, &i, "return", 6, enum3('R', 'E', 'T'))) {
             continue;
         }
-        if (is_reserved_then_handle(ptr, &token_index, &i, "sizeof", 6, enum4('S', 'Z', 'O', 'F'))) {
+        if (is_reserved_then_handle(str + i, &token_index, &i, "sizeof", 6, enum4('S', 'Z', 'O', 'F'))) {
             continue;
         }
-        if (is_reserved_then_handle(ptr, &token_index, &i, "if", 2, enum2('i', 'f'))) {
+        if (is_reserved_then_handle(str + i, &token_index, &i, "if", 2, enum2('i', 'f'))) {
             continue;
         }
-        if (is_reserved_then_handle(ptr, &token_index, &i, "while", 5, enum4('W', 'H', 'I', 'L'))) {
+        if (is_reserved_then_handle(str + i, &token_index, &i, "while", 5, enum4('W', 'H', 'I', 'L'))) {
             continue;
         }
-        if (is_reserved_then_handle(ptr, &token_index, &i, "else", 4, enum4('e', 'l', 's', 'e'))) {
+        if (is_reserved_then_handle(str + i, &token_index, &i, "else", 4, enum4('e', 'l', 's', 'e'))) {
             continue;
         }
-        if (is_reserved_then_handle(ptr, &token_index, &i, "for", 3, enum3('f', 'o', 'r'))) {
+        if (is_reserved_then_handle(str + i, &token_index, &i, "for", 3, enum3('f', 'o', 'r'))) {
             continue;
         }
-        if (is_reserved_then_handle(ptr, &token_index, &i, "int", 3, enum3('i', 'n', 't'))) {
+        if (is_reserved_then_handle(str + i, &token_index, &i, "int", 3, enum3('i', 'n', 't'))) {
             continue;
         }
-        if (is_reserved_then_handle(ptr, &token_index, &i, "char", 4, enum4('c', 'h', 'a', 'r'))) {
+        if (is_reserved_then_handle(str + i, &token_index, &i, "char", 4, enum4('c', 'h', 'a', 'r'))) {
             continue;
         }
-        if (c == '+') {
+        if (c == '"') {
+            i++;
+            char *str_lit_start = &str[i];
+            char *str_lit_cursor = str_lit_start;
+            int parsed_length = 0;
+            for (; *str_lit_cursor != '"'; str_lit_cursor++) {
+                if (*str_lit_cursor == '\\' || *str_lit_cursor == '\0') {
+                    fprintf(stderr, "unhandlable escape sequence");
+                    exit(1);
+                }
+                parsed_length++;
+            }
+            char *str_content = calloc(parsed_length + 1, sizeof(char));
+            strncpy(str_content, str_lit_start, parsed_length);
+            i += parsed_length + 1;  // must skip the remaining double-quote
+            Token token = {enum3('S', 'T', 'R'), 0, str_content};
+            tokens_start[token_index] = token;
+            token_index++;
+            *string_literals_cursor = str_content;
+            string_literals_cursor++;
+        } else if (c == '+') {
             Token token = {'+', 0, 0};
             tokens_start[token_index] = token;
             token_index++;
@@ -212,9 +233,9 @@ int tokenize(char *str) {
             Token token = {enum3('N', 'U', 'M'), parsed_num, 0};
             tokens_start[token_index] = token;
             token_index++;
-        } else if (c == ' ') {
+        } else if (c == ' ' || c == '\n') {
             i++;
-        } else if (('a' <= c && c <= 'z') || c == '_') {
+        } else if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_') {
             char *start = &str[i];
             for (i++; is_alnum(str[i]); i++) {
             }
@@ -222,7 +243,7 @@ int tokenize(char *str) {
             char *name = calloc(length + 1, sizeof(char));
             memcpy(name, start, length);
             Token token = {enum4('I', 'D', 'N', 'T'), 0, 0};
-            token.identifier_name = name;
+            token.identifier_name_or_string_content = name;
             tokens_start[token_index] = token;
             token_index++;
         } else {
@@ -241,10 +262,24 @@ Type *type_int() {
     return t;
 }
 
+Type *type_char() {
+    Type *t = calloc(1, sizeof(Type));
+    t->kind = enum4('c', 'h', 'a', 'r');
+    return t;
+}
+
 Type *ptr_of(Type *t) {
     Type *new_t = calloc(1, sizeof(Type));
     new_t->kind = '*';
     new_t->ptr_to = t;
+    return new_t;
+}
+
+Type *arr_of(Type *t, int array_size) {
+    Type *new_t = calloc(1, sizeof(Type));
+    new_t->kind = enum2('[', ']');
+    new_t->ptr_to = t;
+    new_t->array_size = array_size;
     return new_t;
 }
 
@@ -384,7 +419,7 @@ Type *lookup_func_type(char *name) {
 
 Expr *callingExpr(char *name, Expr **arguments, int len) {
     Expr *callexp = calloc(1, sizeof(Expr));
-    callexp->func_or_ident_name = name;
+    callexp->func_or_ident_name_or_string_content = name;
     callexp->expr_kind = enum4('C', 'A', 'L', 'L');
     callexp->func_args = arguments;
     callexp->func_arg_len = len;
@@ -398,8 +433,15 @@ Expr *parsePrimary() {
         int value = tokens_cursor->value;
         tokens_cursor++;
         return numberexpr(value);
+    } else if (tokens_cursor->kind == enum3('S', 'T', 'R')) {
+        Expr *string_literal_exp = calloc(1, sizeof(Expr));
+        string_literal_exp->func_or_ident_name_or_string_content = tokens_cursor->identifier_name_or_string_content;
+        string_literal_exp->expr_kind = enum3('S', 'T', 'R');
+        string_literal_exp->typ = arr_of(type_char(), strlen(tokens_cursor->identifier_name_or_string_content) + 1);
+        tokens_cursor++;
+        return string_literal_exp;
     } else if (tokens_cursor->kind == enum4('I', 'D', 'N', 'T')) {
-        char *name = tokens_cursor->identifier_name;
+        char *name = tokens_cursor->identifier_name_or_string_content;
         tokens_cursor++;
         if (maybe_consume('(')) {
             Expr **arguments = calloc(6, sizeof(Expr *));
@@ -419,7 +461,7 @@ Expr *parsePrimary() {
             return callingExpr(name, arguments, i + 1);
         } else {
             Expr *ident_exp = calloc(1, sizeof(Expr));
-            ident_exp->func_or_ident_name = name;
+            ident_exp->func_or_ident_name_or_string_content = name;
             ident_exp->expr_kind = enum4('I', 'D', 'N', 'T');
             ident_exp->typ = lookup_ident_type(name);
             return ident_exp;
@@ -673,7 +715,7 @@ NameAndType *consume_type_and_ident_1st_half() {
     }
 
     expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
-    char *name = tokens_cursor->identifier_name;
+    char *name = tokens_cursor->identifier_name_or_string_content;
     tokens_cursor++;
 
     NameAndType *ans = calloc(1, sizeof(NameAndType));
@@ -896,6 +938,13 @@ LVar *findLVar(char *name) {
     return 0;
 }
 
+int find_strlit(char *str) {
+    for (int i = 0; string_literals_start[i]; i++)
+        if (strcmp(string_literals_start[i], str) == 0)
+            return i;
+    return 100000;
+}
+
 int isGVar(char *name) {
     for (int i = 0; global_vars_start[i]; i++) {
         if (strcmp(name, global_vars_start[i]->name) == 0) {
@@ -942,18 +991,20 @@ void EvaluateExprIntoRax(Expr *expr);
 
 void EvaluateLValueAddressIntoRax(Expr *expr) {
     if (expr->expr_kind == enum4('I', 'D', 'N', 'T')) {
-        LVar *local = findLVar(expr->func_or_ident_name);
+        LVar *local = findLVar(expr->func_or_ident_name_or_string_content);
         if (local) {
             printf("  mov rax, rbp\n");
             printf("  sub rax, %d\n", local->offset_from_rbp);
         } else {
-            if (!isGVar(expr->func_or_ident_name)) {
-                fprintf(stderr, "undefined variable %s\n", expr->func_or_ident_name);
+            if (!isGVar(expr->func_or_ident_name_or_string_content)) {
+                fprintf(stderr, "undefined variable %s\n", expr->func_or_ident_name_or_string_content);
                 exit(1);
             } else {
-                printf("  mov eax, OFFSET FLAT:%s\n", expr->func_or_ident_name);
+                printf("  mov eax, OFFSET FLAT:%s\n", expr->func_or_ident_name_or_string_content);
             }
         }
+    } else if (expr->expr_kind == enum3('S', 'T', 'R')) {
+        printf("  mov eax, OFFSET FLAT:.LC%d\n", find_strlit(expr->func_or_ident_name_or_string_content));
     } else if (expr->expr_kind == enum4('1', 'A', 'R', 'Y') && expr->op == '*') {
         EvaluateExprIntoRax(expr->first_child);
     } else {
@@ -1102,7 +1153,6 @@ void EvaluateExprIntoRax(Expr *expr) {
         EvaluateLValueAddressIntoRax(expr);
         return;
     }
-
     if (expr->expr_kind == enum4('I', 'D', 'N', 'T')) {
         EvaluateLValueAddressIntoRax(expr);
         deref_rax(size(expr->typ));
@@ -1115,7 +1165,7 @@ void EvaluateExprIntoRax(Expr *expr) {
         for (int i = expr->func_arg_len - 1; i >= 0; i--) {
             printf("    pop %s\n", nth_arg_reg(i, 8));
         }
-        printf(" call %s\n", expr->func_or_ident_name);
+        printf(" call %s\n", expr->func_or_ident_name_or_string_content);
         return;
     } else if (expr->expr_kind == enum3('N', 'U', 'M')) {
         printf("  mov rax, %d\n", expr->value);
@@ -1192,6 +1242,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     char *p = argv[1];
+    string_literals_cursor = string_literals_start;
     int tokens_length = tokenize(p);
     if (tokens_length == 0) {
         fprintf(stderr, "No token found");
@@ -1199,7 +1250,6 @@ int main(int argc, char **argv) {
     }
     tokens_cursor = tokens_start;
     tokens_end = tokens_start + tokens_length;
-
     funcdecls_cursor = funcdecls_start;
     funcdefs_cursor = funcdefs_start;
     global_vars_cursor = global_vars_start;
@@ -1207,7 +1257,13 @@ int main(int argc, char **argv) {
         parseToplevel();
     }
     printf(".intel_syntax noprefix\n");
-
+    printf("  .text\n");
+    printf("  .section .rodata\n");
+    for (int i = 0; string_literals_start[i]; i++) {
+        printf(".LC%d:\n", i);
+        printf("  .string \"%s\"\n", string_literals_start[i]);
+    }
+    printf("  .text\n");
     for (int i = 0; global_vars_start[i]; i++) {
         printf(".globl %s\n", global_vars_start[i]->name);
         printf(".data\n");

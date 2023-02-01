@@ -1,5 +1,7 @@
 
 import os
+import subprocess
+
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -11,24 +13,42 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-def check(input: str, expected: int):
-    compiler_returns = (os.system(f'./2kmcc "{input}" > tmp.s') >> 8) & 0xff
+def compile(input: str):
+    f = open("tmp.s", "w")
+    return subprocess.call(["./2kmcc", input], stdout=f) # to handle double-quotes correctly
+
+def run():
+    f = open("stdout.txt", "w")
+    return subprocess.call(["./tmp"], stdout=f)
+
+def check(input: str, expected: int, expected_stdout: str=None):
+    compiler_returns = compile(input)
     if compiler_returns != 0:
         print(f"{bcolors.FAIL}FAIL:check (compile error):{input=}{bcolors.ENDC}")
         return False
     os.system("cc -o tmp tmp.s -static")
-    returned_value = (os.system("./tmp") >> 8) & 0xff
-    if expected == returned_value:
+    returned_value = run()
+    actual_stdout = open("stdout.txt","r").read()
+
+    if expected != returned_value:
+        print(f"{bcolors.FAIL}FAIL:check (wrong answer):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
+        print(f"{bcolors.FAIL}Consult tmp.s to find out what went wrong{bcolors.ENDC}")
+        return False
+    elif expected_stdout != None and actual_stdout != expected_stdout:
+        print(f"{bcolors.FAIL}FAIL:check (correct answer but wrong stdout):{input=} {expected_stdout=} {actual_stdout=}{bcolors.ENDC}")
+        print(f"{bcolors.FAIL}Consult tmp.s to find out what went wrong{bcolors.ENDC}")
+        return False  
+    elif expected_stdout != None:   
+        print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {expected_stdout=} {bcolors.ENDC}")
+        os.system("rm tmp tmp.s stdout.txt")
+        return True
+    else:   
         print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
-        os.system("rm tmp tmp.s")
+        os.system("rm tmp tmp.s stdout.txt")
         return True
 
-    print(f"{bcolors.FAIL}FAIL:check (wrong answer):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
-    print(f"{bcolors.FAIL}Consult tmp.s to find out what went wrong{bcolors.ENDC}")
-    return False
-
 def should_not_compile(input: str):
-    compiler_returns = (os.system(f'./2kmcc "{input}" > tmp.s') >> 8) & 0xff
+    compiler_returns = compile(input)
     if compiler_returns != 0:
         print(f"{bcolors.OKGREEN}passed: should give compile error:{input=}{bcolors.ENDC}")
         return True
@@ -37,7 +57,7 @@ def should_not_compile(input: str):
         return False
 
 def check_and_link_with(input: str, linked_lib: str, expected: int):
-    compiler_returns = (os.system(f'./2kmcc "{input}" > tmp.s') >> 8) & 0xff
+    compiler_returns = compile(input)
     if compiler_returns != 0:
         print(f"{bcolors.FAIL}FAIL:check (compile error):{input=}{bcolors.ENDC}")
         return False
@@ -59,6 +79,16 @@ def check_and_link_with(input: str, linked_lib: str, expected: int):
     return False
 
 print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
+
+assert check("""
+int main() {
+    int i; 
+    for (i = 1; i <= 3; i = i + 1) { 
+        puts("a"); 
+    }
+    return 0;
+}
+""", 0, expected_stdout="a\na\na\n")
 
 assert check("int main() { return 0; }", 0)
 
@@ -319,6 +349,10 @@ assert check("int *foo; int bar[10]; int main() { return 0; }", 0)
 assert check("int *foo; int bar[10]; int main() { foo = bar; bar[3] = 7; return foo[3]; }", 7)
 
 assert check("int main() { char x[3]; x[0] = -1; x[1] = 2; int y; y = 4; return x[0] + y; }", 3)
+
+assert check("int main() { char *x; x = \"@A\"; return x[1] - x[0]; }", 1)
+assert check("int main() { char *x; x = \"az\"; return x[1] - x[0]; }", 25)
+assert check("int main() { return \"az\"[1] - \"ab\"[0]; }", 25)
 
 print(f"""
 {bcolors.OKGREEN}
