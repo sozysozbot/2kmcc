@@ -233,9 +233,9 @@ int tokenize(char *str) {
             Token token = {enum3('N', 'U', 'M'), parsed_num, 0};
             tokens_start[token_index] = token;
             token_index++;
-        } else if (c == ' ') {
+        } else if (c == ' ' || c == '\n') {
             i++;
-        } else if (('a' <= c && c <= 'z') || c == '_') {
+        } else if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_') {
             char *start = &str[i];
             for (i++; is_alnum(str[i]); i++) {
             }

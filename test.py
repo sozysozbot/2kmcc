@@ -17,21 +17,35 @@ def compile(input: str):
     f = open("tmp.s", "w")
     return subprocess.call(["./2kmcc", input], stdout=f) # to handle double-quotes correctly
 
-def check(input: str, expected: int):
+def run():
+    f = open("stdout.txt", "w")
+    return subprocess.call(["./tmp"], stdout=f)
+
+def check(input: str, expected: int, expected_stdout: str=None):
     compiler_returns = compile(input)
     if compiler_returns != 0:
         print(f"{bcolors.FAIL}FAIL:check (compile error):{input=}{bcolors.ENDC}")
         return False
     os.system("cc -o tmp tmp.s -static")
-    returned_value = (os.system("./tmp") >> 8) & 0xff
-    if expected == returned_value:
-        print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
-        os.system("rm tmp tmp.s")
-        return True
+    returned_value = run()
+    actual_stdout = open("stdout.txt","r").read()
 
-    print(f"{bcolors.FAIL}FAIL:check (wrong answer):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
-    print(f"{bcolors.FAIL}Consult tmp.s to find out what went wrong{bcolors.ENDC}")
-    return False
+    if expected != returned_value:
+        print(f"{bcolors.FAIL}FAIL:check (wrong answer):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
+        print(f"{bcolors.FAIL}Consult tmp.s to find out what went wrong{bcolors.ENDC}")
+        return False
+    elif expected_stdout != None and actual_stdout != expected_stdout:
+        print(f"{bcolors.FAIL}FAIL:check (correct answer but wrong stdout):{input=} {expected_stdout=} {actual_stdout=}{bcolors.ENDC}")
+        print(f"{bcolors.FAIL}Consult tmp.s to find out what went wrong{bcolors.ENDC}")
+        return False  
+    elif expected_stdout != None:   
+        print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {expected_stdout=} {bcolors.ENDC}")
+        os.system("rm tmp tmp.s stdout.txt")
+        return True
+    else:   
+        print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
+        os.system("rm tmp tmp.s stdout.txt")
+        return True
 
 def should_not_compile(input: str):
     compiler_returns = compile(input)
@@ -65,6 +79,16 @@ def check_and_link_with(input: str, linked_lib: str, expected: int):
     return False
 
 print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
+
+assert check("""
+int main() {
+    int i; 
+    for (i = 1; i <= 3; i = i + 1) { 
+        puts("a"); 
+    }
+    return 0;
+}
+""", 0, expected_stdout="a\na\na\n")
 
 assert check("int main() { return 0; }", 0)
 
