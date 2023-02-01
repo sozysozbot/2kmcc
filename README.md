@@ -13,7 +13,7 @@ C compiler self-host struct%
 - the source code of the compiler should be compilable by many other toy C compilers
 
 ## Current status
-- [Step 23 of Rui Ueyama's compilerbook](https://www.sigbus.info/compilerbook#%E3%82%B9%E3%83%86%E3%83%83%E3%83%9723-%E3%82%B0%E3%83%AD%E3%83%BC%E3%83%90%E3%83%AB%E5%A4%89%E6%95%B0%E3%82%92%E5%AE%9F%E8%A3%85%E3%81%99%E3%82%8B) completed
+- [Step 24 of Rui Ueyama's compilerbook](https://www.sigbus.info/compilerbook#%E3%82%B9%E3%83%86%E3%83%83%E3%83%9724-%E6%96%87%E5%AD%97%E5%9E%8B%E3%82%92%E5%AE%9F%E8%A3%85%E3%81%99%E3%82%8B) completed
 - See test.py to get an idea on what the compiler can handle 
 
 ## Rules for the compiler source code

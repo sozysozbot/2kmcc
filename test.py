@@ -318,6 +318,8 @@ assert check("int *foo; int bar[10]; int main() { return 0; }", 0)
 
 assert check("int *foo; int bar[10]; int main() { foo = bar; bar[3] = 7; return foo[3]; }", 7)
 
+assert check("int main() { char x[3]; x[0] = -1; x[1] = 2; int y; y = 4; return x[0] + y; }", 3)
+
 print(f"""
 {bcolors.OKGREEN}
 ************
@@ -329,6 +331,8 @@ print(f"""
 print(f"{bcolors.OKBLUE}Checking the inputs that should NOT work:{bcolors.ENDC}")
 
 assert should_not_compile("int main() { int x; int y; x = 3; y = &x; return *y; }")
+
+assert should_not_compile("int main() { int *p; char *q; return p-q;}")
 
 print(f"""
 {bcolors.OKGREEN}
