@@ -122,6 +122,21 @@ int tokenize(char *str) {
         if (is_reserved_then_handle(str + i, &token_index, &i, "char", 4, enum4('c', 'h', 'a', 'r'))) {
             continue;
         }
+        if (strncmp(str + i, "//", 2) == 0) {
+            i += 2;
+            while (str[i] && str[i] != '\n')
+                i++;
+            continue;
+        }
+        if (strncmp(str + i, "/*", 2) == 0) {
+            char *q = strstr(str + i + 2, "*/");
+            if (!q) {
+                fprintf(stderr, "unclosed block comment\n");
+                exit(1);
+            }
+            i = q + 2 - str;
+            continue;
+        }
         if (c == '"') {
             i++;
             char *str_lit_start = &str[i];
