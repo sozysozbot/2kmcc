@@ -90,6 +90,16 @@ int main() {
 }
 """, 0, expected_stdout="a\na\na\n")
 
+assert check("""
+int main() {
+    int i; 
+    for (i = 1; i <= 3; i = i + 1) { 
+        printf("a"); 
+    }
+    return 0;
+}
+""", 0, expected_stdout="aaa")
+
 assert check("int main() { return 0; }", 0)
 
 assert check("int main() { return 42; }", 42)
