@@ -100,6 +100,18 @@ int main() {
 }
 """, 0, expected_stdout="aaa")
 
+assert check("""
+int main() {
+    int i;
+    for (i = 1; i <= 3; i = i + 1) { 
+        printf("a%d", -i); 
+    }
+    return 0;
+}
+""", 0, expected_stdout="a-1a-2a-3")
+
+#################################
+
 assert check("int main() { return 0; }", 0)
 
 assert check("int main() { return 42; }", 42)
