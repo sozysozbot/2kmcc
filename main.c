@@ -118,6 +118,9 @@ int tokenize(char *str) {
         if (is_reserved_then_handle(ptr, &token_index, &i, "int", 3, enum3('i', 'n', 't'))) {
             continue;
         }
+        if (is_reserved_then_handle(ptr, &token_index, &i, "char", 4, enum4('c', 'h', 'a', 'r'))) {
+            continue;
+        }
         if (c == '+') {
             Token token = {'+', 0, 0};
             tokens_start[token_index] = token;
@@ -259,6 +262,8 @@ int size(Type *t) {
         return 8;
     } else if (t->kind == enum3('i', 'n', 't')) {
         return 4;
+    } else if (t->kind == enum4('c', 'h', 'a', 'r')) {
+        return 1;
     } else if (t->kind == enum2('[', ']')) {
         return t->array_size * size(t->ptr_to);
     } else {
@@ -322,14 +327,14 @@ char *decode_kind(Kind kind) {
 
 void consume_otherwise_panic(int kind) {
     if (!maybe_consume(kind)) {
-        fprintf(stderr, "expected TokenKind `%s`, got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
+        fprintf(stderr, "expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
         exit(1);
     }
 }
 
 void expect_otherwise_panic(int kind) {
     if (tokens_cursor->kind != kind) {
-        fprintf(stderr, "expected TokenKind `%s`, got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
+        fprintf(stderr, "expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
         exit(1);
     }
 }
@@ -427,12 +432,16 @@ Expr *parsePrimary() {
     return expr;
 }
 
-Expr *assert_int(Expr *e) {
-    if (e->typ->kind != enum3('i', 'n', 't')) {
-        fprintf(stderr, "int is expected, but not an int\n");
-        exit(1);
+int is_integer(Type *typ) {
+    return typ->kind == enum3('i', 'n', 't') || typ->kind == enum4('c', 'h', 'a', 'r');
+}
+
+Expr *assert_integer(Expr *e) {
+    if (is_integer(e->typ)) {
+        return e;
     }
-    return e;
+    fprintf(stderr, "int/char is expected, but not an int/char\n");
+    exit(1);
 }
 
 void display_type(Type *t) {
@@ -460,9 +469,22 @@ void assert_same_type(Type *t1, Type *t2) {
     }
 }
 
+void assert_compatible_type(Type *t1, Type *t2) {
+    if (t1->kind == '*' && t2->kind == '*') {
+        assert_same_type(t1->ptr_to, t2->ptr_to);
+    } else if (t1->kind != t2->kind && !(is_integer(t1) && is_integer(t2))) {
+        fprintf(stderr, "two incompatible types detected: `");
+        display_type(t1);
+        fprintf(stderr, "` and `");
+        display_type(t2);
+        fprintf(stderr, "`.\n");
+        exit(1);
+    }
+}
+
 Expr *expr_add(Expr *lhs, Expr *rhs) {
-    if (lhs->typ->kind == enum3('i', 'n', 't')) {
-        if (rhs->typ->kind == enum3('i', 'n', 't')) {
+    if (is_integer(lhs->typ)) {
+        if (is_integer(rhs->typ)) {
             return binaryExpr(lhs, rhs, '+', type_int());
         } else if (rhs->typ->kind == '*') {
             return expr_add(rhs, lhs);
@@ -471,7 +493,7 @@ Expr *expr_add(Expr *lhs, Expr *rhs) {
             exit(1);
         }
     } else if (lhs->typ->kind == '*') {
-        if (rhs->typ->kind == enum3('i', 'n', 't')) {
+        if (is_integer(rhs->typ)) {
             return binaryExpr(lhs, binaryExpr(numberexpr(size(deref(lhs->typ))), rhs, '*', type_int()), '+', lhs->typ);
         } else {
             fprintf(stderr, "cannot add\n");
@@ -484,21 +506,21 @@ Expr *expr_add(Expr *lhs, Expr *rhs) {
 }
 
 Expr *expr_subtract(Expr *lhs, Expr *rhs) {
-    if (lhs->typ->kind == enum3('i', 'n', 't')) {
-        if (rhs->typ->kind == enum3('i', 'n', 't')) {
+    if (is_integer(lhs->typ)) {
+        if (is_integer(rhs->typ)) {
             return binaryExpr(lhs, rhs, '-', type_int());
         } else if (rhs->typ->kind == '*') {
             fprintf(stderr, "cannot subtract\n");
             exit(1);
         }
     } else if (lhs->typ->kind == '*') {
-        if (rhs->typ->kind == enum3('i', 'n', 't')) {
+        if (is_integer(rhs->typ)) {
             return binaryExpr(lhs, binaryExpr(numberexpr(size(deref(lhs->typ))), rhs, '*', type_int()), '-', lhs->typ);
         } else if (rhs->typ->kind == '*') {
             assert_same_type(lhs->typ, rhs->typ);
             return binaryExpr(binaryExpr(lhs, rhs, '-', type_int()), numberexpr(size(deref(lhs->typ))), '/', type_int());
         } else {
-            fprintf(stderr, "cannot add\n");
+            fprintf(stderr, "cannot subtract\n");
             exit(1);
         }
     }
@@ -525,9 +547,9 @@ Expr *parseCast() {
 Expr *parseUnary() {
     panic_if_eof();
     if (maybe_consume('+')) {
-        return assert_int(parseCast());
+        return assert_integer(parseCast());
     } else if (maybe_consume('-')) {
-        return binaryExpr(numberexpr(0), assert_int(parseCast()), '-', type_int());
+        return binaryExpr(numberexpr(0), assert_integer(parseCast()), '-', type_int());
     } else if (maybe_consume('*')) {
         Expr *expr = decay_if_arr(parseCast());
         return unaryExpr(expr, '*', deref(expr->typ));
@@ -549,9 +571,9 @@ Expr *parseMultiplicative() {
             fprintf(stderr, "Expected operator got Number");
             exit(1);
         } else if (maybe_consume('*')) {
-            result = binaryExpr(assert_int(result), assert_int(parseUnary()), '*', type_int());
+            result = binaryExpr(assert_integer(result), assert_integer(parseUnary()), '*', type_int());
         } else if (maybe_consume('/')) {
-            result = binaryExpr(assert_int(result), assert_int(parseUnary()), '/', type_int());
+            result = binaryExpr(assert_integer(result), assert_integer(parseUnary()), '/', type_int());
         } else {
             return result;
         }
@@ -564,7 +586,7 @@ Expr *parseAdditive() {
     Expr *result = parseMultiplicative();
     while (tokens_cursor < tokens_end) {
         if (tokens_cursor->kind == enum3('N', 'U', 'M')) {
-            fprintf(stderr, "Expected operator, got Number");
+            fprintf(stderr, "Expected operator; got Number");
             exit(1);
         } else if (maybe_consume('-')) {
             result = expr_subtract(decay_if_arr(result), decay_if_arr(parseMultiplicative()));
@@ -616,7 +638,7 @@ Expr *parseAssign() {
     Expr *result = parseEquality();
     if (maybe_consume('=')) {
         Expr *rhs = decay_if_arr(parseAssign());
-        assert_same_type(result->typ, rhs->typ);
+        assert_compatible_type(result->typ, rhs->typ);
         return binaryExpr(result, rhs, '=', result->typ);
     }
     return result;
@@ -636,10 +658,15 @@ Expr *parseOptionalExprAndToken(Kind target) {
 }
 
 NameAndType *consume_type_and_ident_1st_half() {
-    consume_otherwise_panic(enum3('i', 'n', 't'));
-
     Type *type = calloc(1, sizeof(Type));
-    type->kind = enum3('i', 'n', 't');
+    if (maybe_consume(enum3('i', 'n', 't'))) {
+        type->kind = enum3('i', 'n', 't');
+    } else if (maybe_consume(enum4('c', 'h', 'a', 'r'))) {
+        type->kind = enum4('c', 'h', 'a', 'r');
+    } else {
+        fprintf(stderr, "expected `int` or `char`; got TokenKind `%s`\n", decode_kind(tokens_cursor->kind));
+        exit(1);
+    }
 
     while (maybe_consume('*')) {
         type = ptr_of(type);
@@ -744,7 +771,7 @@ Stmt *parseStmt() {
         stmt->second_child = parseStmt();
         return stmt;
     }
-    if (maybe_consume(enum3('i', 'n', 't'))) {
+    if (maybe_consume(enum3('i', 'n', 't')) || maybe_consume(enum4('c', 'h', 'a', 'r'))) {
         tokens_cursor--;
         NameAndType *nt = consume_type_and_ident();
         if (lvars_cursor == lvars_start + 100) {
@@ -1039,6 +1066,37 @@ const char *eax_or_rax(int sz) {
     }
 }
 
+void deref_rax(int sz) {
+    if (sz == 8) {
+        printf("  mov rax,[rax]\n");
+        return;
+    } else if (sz == 4) {
+        printf("  mov eax,[rax]\n");
+        return;
+    } else if (sz == 1) {
+        printf("  movzx ecx, BYTE PTR [rax]\n");
+        printf("  mov eax, ecx\n");
+        return;
+    } else {
+        fprintf(stderr, "unhandlable size %d\n", sz);
+        exit(1);
+    }
+}
+
+void write_rax_to_where_rdi_points(int sz) {
+    if (sz == 8) {
+        printf("    mov [rdi], rax\n");
+    } else if (sz == 4) {
+        printf("    mov [rdi], eax\n");
+    } else if (sz == 1) {
+        printf("    mov ecx, eax\n");
+        printf("    mov [rdi], cl\n");
+    } else {
+        fprintf(stderr, "unhandlable size %d\n", sz);
+        exit(1);
+    }
+}
+
 void EvaluateExprIntoRax(Expr *expr) {
     if (expr->typ->kind == enum2('[', ']')) {
         EvaluateLValueAddressIntoRax(expr);
@@ -1047,7 +1105,7 @@ void EvaluateExprIntoRax(Expr *expr) {
 
     if (expr->expr_kind == enum4('I', 'D', 'N', 'T')) {
         EvaluateLValueAddressIntoRax(expr);
-        printf("  mov %s,[rax]\n", eax_or_rax(size(expr->typ)));
+        deref_rax(size(expr->typ));
         return;
     } else if (expr->expr_kind == enum4('C', 'A', 'L', 'L')) {
         for (int i = 0; i < expr->func_arg_len; i++) {
@@ -1080,7 +1138,7 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    push rax\n");
             EvaluateExprIntoRax(expr->second_child);
             printf("    pop rdi\n");
-            printf("    mov [rdi], %s\n", eax_or_rax(size(expr->second_child->typ)));
+            write_rax_to_where_rdi_points(size(expr->second_child->typ));
         } else {
             EvaluateExprIntoRax(expr->first_child);
             printf("    push rax\n");
