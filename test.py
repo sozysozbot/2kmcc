@@ -81,10 +81,15 @@ def check_and_link_with(input: str, linked_lib: str, expected: int):
 print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 assert check("""
+// line comment
 int main() {
     int i; 
+    /*********
+     * block *
+     *********/
     for (i = 1; i <= 3; i = i + 1) { 
-        puts("a"); 
+        puts("a");//*
+        // */ b 
     }
     return 0;
 }
