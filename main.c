@@ -1165,6 +1165,7 @@ void EvaluateExprIntoRax(Expr *expr) {
         for (int i = expr->func_arg_len - 1; i >= 0; i--) {
             printf("    pop %s\n", nth_arg_reg(i, 8));
         }
+        printf("  mov rax, 0\n");
         printf(" call %s\n", expr->func_or_ident_name_or_string_content);
         return;
     } else if (expr->expr_kind == enum3('N', 'U', 'M')) {
