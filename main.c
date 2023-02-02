@@ -90,8 +90,7 @@ int is_reserved_then_handle(char *ptr, int *ptr_token_index, int *ptr_i, const c
         return 0;
     if (is_alnum(ptr[keyword_len]))
         return 0;
-    tokens_start[*ptr_token_index].kind = kind;
-    (*ptr_token_index) += 1;
+    tokens_start[(*ptr_token_index)++].kind = kind;
     *ptr_i += keyword_len;
     return 1;
 }
@@ -147,26 +146,26 @@ int tokenize(char *str) {
             strncpy(str_content, str + i, parsed_length);
             i += parsed_length + 1;  // must also skip the remaining double-quote
             tokens_start[token_index].kind = enum3('S', 'T', 'R');
-            tokens_start[token_index].identifier_name_or_string_content = str_content;
-            token_index += 1;
-            *string_literals_cursor = str_content;
-            string_literals_cursor += 1;
+            tokens_start[token_index++].identifier_name_or_string_content = str_content;
+            *(string_literals_cursor++) = str_content;
         } else if (strchr(";(){},[]", c)) {
-            tokens_start[token_index].kind = c;
-            token_index += 1;
+            tokens_start[token_index++].kind = c;
             i += 1;
         } else if (strchr("+-*/&><=!", c)) {
             i += 1;
             if (str[i] == '=') {
                 i += 1;
-                tokens_start[token_index].kind = enum2(c, '=');
-                token_index += 1;
-            } else if (str[i] == c && !strchr("*!", c)) {
-                panic("++, --, &&, >>, <<, >>=, <<= not supported");
-            } else {
-                tokens_start[token_index].kind = c;
-                token_index += 1;
-            }
+                tokens_start[token_index++].kind = enum2(c, '=');
+            } else if (str[i] == c) {
+                if (strchr("+-&", c)) {
+                    i += 1;
+                    tokens_start[token_index++].kind = enum2(c, c);
+                } else if (strchr("<>", c))
+                    panic(">>, <<, >>=, <<= not supported");
+                else
+                    tokens_start[token_index++].kind = c;
+            } else
+                tokens_start[token_index++].kind = c;
         } else if (strchr("0123456789", c)) {
             char *str_ = &str[i];
             int parsed_num;
@@ -177,8 +176,7 @@ int tokenize(char *str) {
             }
             i += parsed_length;
             Token token = {enum3('N', 'U', 'M'), parsed_num, 0};
-            tokens_start[token_index] = token;
-            token_index += 1;
+            tokens_start[token_index++] = token;
         } else if (is_alnum(c)) {  // 0-9 already excluded in the previous `if`
             char *start = &str[i];
             for (i += 1; is_alnum(str[i]); i += 1) {
@@ -188,8 +186,7 @@ int tokenize(char *str) {
             memcpy(name, start, length);
             Token token = {enum4('I', 'D', 'N', 'T'), 0, 0};
             token.identifier_name_or_string_content = name;
-            tokens_start[token_index] = token;
-            token_index += 1;
+            tokens_start[token_index++] = token;
         } else if (strchr(" \n", c)) {
             i += 1;
         } else {
@@ -357,20 +354,17 @@ Expr *callingExpr(char *name, Expr **arguments, int len) {
 
 Expr *parsePrimary() {
     panic_if_eof();
-    if (tokens_cursor->kind == enum3('N', 'U', 'M')) {
-        int value = tokens_cursor->value;
-        tokens_cursor += 1;
-        return numberexpr(value);
-    } else if (tokens_cursor->kind == enum3('S', 'T', 'R')) {
+    if (tokens_cursor->kind == enum3('N', 'U', 'M'))
+        return numberexpr((tokens_cursor++)->value);
+    else if (tokens_cursor->kind == enum3('S', 'T', 'R')) {
+        char *str_content = (tokens_cursor++)->identifier_name_or_string_content;
         Expr *string_literal_exp = calloc(1, sizeof(Expr));
-        string_literal_exp->func_or_ident_name_or_string_content = tokens_cursor->identifier_name_or_string_content;
+        string_literal_exp->func_or_ident_name_or_string_content = str_content;
         string_literal_exp->expr_kind = enum3('S', 'T', 'R');
-        string_literal_exp->typ = arr_of(type(enum4('c', 'h', 'a', 'r')), strlen(tokens_cursor->identifier_name_or_string_content) + 1);
-        tokens_cursor += 1;
+        string_literal_exp->typ = arr_of(type(enum4('c', 'h', 'a', 'r')), strlen(str_content) + 1);
         return string_literal_exp;
     } else if (tokens_cursor->kind == enum4('I', 'D', 'N', 'T')) {
-        char *name = tokens_cursor->identifier_name_or_string_content;
-        tokens_cursor += 1;
+        char *name = (tokens_cursor++)->identifier_name_or_string_content;
         if (maybe_consume('(')) {
             Expr **arguments = calloc(6, sizeof(Expr *));
             if (maybe_consume(')')) {
@@ -502,11 +496,22 @@ Expr *expr_subtract(Expr *lhs, Expr *rhs) {
 
 Expr *parsePostfix() {
     Expr *result = parsePrimary();
-    while (maybe_consume('[')) {
-        Expr *addition = expr_add(decay_if_arr(result), decay_if_arr(parseExpr()));
-        consume_otherwise_panic(']');
-        Expr *expr = decay_if_arr(addition);
-        result = unaryExpr(expr, '*', deref(expr->typ));
+    while (1) {
+        if (maybe_consume('[')) {
+            Expr *addition = expr_add(decay_if_arr(result), decay_if_arr(parseExpr()));
+            consume_otherwise_panic(']');
+            Expr *expr = decay_if_arr(addition);
+            result = unaryExpr(expr, '*', deref(expr->typ));
+        } else if (maybe_consume(enum2('+', '+'))) {  // `a++` is `(a += 1) - 1
+            Expr *addition = expr_add(decay_if_arr(result), numberexpr(1));
+            addition->op = enum2('+', '=');
+            result = expr_subtract(addition, numberexpr(1));
+        } else if (maybe_consume(enum2('-', '-'))) {  // `a--` is `(a -= 1) + 1
+            Expr *subtraction = expr_subtract(decay_if_arr(result), numberexpr(1));
+            subtraction->op = enum2('-', '=');
+            result = expr_add(subtraction, numberexpr(1));
+        } else
+            break;
     }
     return result;
 }
@@ -651,8 +656,7 @@ NameAndType *consume_type_and_ident_1st_half() {
     while (maybe_consume('*'))
         type = ptr_of(type);
     expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
-    char *name = tokens_cursor->identifier_name_or_string_content;
-    tokens_cursor += 1;
+    char *name = (tokens_cursor++)->identifier_name_or_string_content;
     NameAndType *ans = calloc(1, sizeof(NameAndType));
     ans->name = name;
     ans->type = type;
@@ -665,23 +669,21 @@ NameAndType *consume_type_and_ident_2nd_half(NameAndType *ans) {
     if (maybe_consume('[')) {
         expect_otherwise_panic(enum3('N', 'U', 'M'));
         Type *t = calloc(1, sizeof(Type));
-        t->array_size = tokens_cursor->value;
         t->ptr_to = elem_t;
         t->kind = enum2('[', ']');
+        t->array_size = (tokens_cursor++)->value;
         insertion_point = t;
-        tokens_cursor += 1;
         consume_otherwise_panic(']');
         ans->type = t;
     }
     while (maybe_consume('[')) {
         expect_otherwise_panic(enum3('N', 'U', 'M'));
         Type *t = calloc(1, sizeof(Type));
-        t->array_size = tokens_cursor->value;
         t->ptr_to = elem_t;
         t->kind = enum2('[', ']');
+        t->array_size = (tokens_cursor++)->value;
         insertion_point->ptr_to = t;
         insertion_point = t;
-        tokens_cursor += 1;
         consume_otherwise_panic(']');
     }
     return ans;
@@ -697,14 +699,13 @@ Stmt *parseStmt() {
         Stmt *result = calloc(1, sizeof(Stmt));
         result->stmt_kind = enum4('e', 'x', 'p', 'r');
         result->expr = numberexpr(42);
-        while (tokens_cursor->kind != '}') {
+        while (!maybe_consume('}')) {
             Stmt *newstmt = calloc(1, sizeof(Stmt));
             newstmt->first_child = result;
             newstmt->stmt_kind = enum4('n', 'e', 'x', 't');
             newstmt->second_child = parseStmt();
             result = newstmt;
         }
-        tokens_cursor += 1;
         return result;
     }
     if (maybe_consume(enum3('R', 'E', 'T'))) {
@@ -768,7 +769,7 @@ Stmt *parseFunctionContent() {
     Stmt *result = calloc(1, sizeof(Stmt));
     result->stmt_kind = enum4('e', 'x', 'p', 'r');
     result->expr = numberexpr(1);
-    while (tokens_cursor->kind != '}') {
+    while (!maybe_consume('}')) {
         Stmt *statement = parseStmt();
         Stmt *newstmt = calloc(1, sizeof(Stmt));
         newstmt->first_child = result;
@@ -776,7 +777,6 @@ Stmt *parseFunctionContent() {
         newstmt->second_child = statement;
         result = newstmt;
     }
-    tokens_cursor += 1;
     return result;
 }
 
@@ -797,8 +797,7 @@ void store_func_decl(NameAndType *rettype_and_funcname) {
     NameAndType *decl = calloc(1, sizeof(NameAndType));
     decl->type = rettype_and_funcname->type;
     decl->name = rettype_and_funcname->name;
-    *funcdecls_cursor = decl;
-    funcdecls_cursor += 1;
+    *(funcdecls_cursor++) = decl;
 }
 
 void parseToplevel() {
@@ -809,8 +808,7 @@ void parseToplevel() {
         if (maybe_consume(')')) {
             lvars_cursor = lvars_start = calloc(100, sizeof(NameAndType));
             store_func_decl(rettype_and_funcname);
-            *funcdefs_cursor = constructFuncDef(parseFunctionContent(), rettype_and_funcname, 0, params_start);
-            funcdefs_cursor += 1;
+            *(funcdefs_cursor++) = constructFuncDef(parseFunctionContent(), rettype_and_funcname, 0, params_start);
             return;
         }
         lvars_cursor = lvars_start = calloc(100, sizeof(char *));
@@ -833,13 +831,11 @@ void parseToplevel() {
             lvars_cursor += 1;
         }
         store_func_decl(rettype_and_funcname);
-        *funcdefs_cursor = constructFuncDef(parseFunctionContent(), rettype_and_funcname, i + 1, params_start);
-        funcdefs_cursor += 1;
+        *(funcdefs_cursor++) = constructFuncDef(parseFunctionContent(), rettype_and_funcname, i + 1, params_start);
         return;
     } else {
         NameAndType *global_var_type_and_name = consume_type_and_ident_2nd_half(first_half);
-        *global_vars_cursor = global_var_type_and_name;
-        global_vars_cursor += 1;
+        *(global_vars_cursor++) = global_var_type_and_name;
         consume_otherwise_panic(';');
         return;
     }
@@ -1105,7 +1101,7 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    mov rax, [rax]\n");                           // rsi: &x, rax: x
             printf("    pop rdi\n");                                  // rsi: &x, rax: x, rdi: i
             printf("%s", AddSubMulDivAssign_rdi_into_rax(expr->op));  // rsi: &x, rax: x@i
-            printf("    mov rdi, rsi\n");                               // rdi: &x, rax: x@i
+            printf("    mov rdi, rsi\n");                             // rdi: &x, rax: x@i
             write_rax_to_where_rdi_points(size(expr->second_child->typ));
         } else {
             EvaluateExprIntoRax(expr->first_child);
