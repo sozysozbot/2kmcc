@@ -86,7 +86,7 @@ int is_alnum(char c) {
     return strchr("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_", c) != 0;
 }
 int is_reserved_then_handle(char *ptr, int *ptr_token_index, int *ptr_i, const char *keyword, int keyword_len, int kind) {
-    if (strncmp(ptr, keyword, keyword_len) != 0) 
+    if (strncmp(ptr, keyword, keyword_len) != 0)
         return 0;
     if (is_alnum(ptr[keyword_len]))
         return 0;
@@ -141,8 +141,8 @@ int tokenize(char *str) {
             for (i += 1; str[i + parsed_length] != '"'; parsed_length += 1)
                 if (str[i + parsed_length] == '\0')
                     panic("unterminated string literal");
-                if (str[i + parsed_length] == '\\')
-                    panic("unhandlable escape sequence");
+            if (str[i + parsed_length] == '\\')
+                panic("unhandlable escape sequence");
             char *str_content = calloc(parsed_length + 1, sizeof(char));
             strncpy(str_content, str + i, parsed_length);
             i += parsed_length + 1;  // must also skip the remaining double-quote
@@ -179,7 +179,7 @@ int tokenize(char *str) {
             Token token = {enum3('N', 'U', 'M'), parsed_num, 0};
             tokens_start[token_index] = token;
             token_index += 1;
-        } else if (is_alnum(c)) { // 0-9 already excluded in the previous `if`
+        } else if (is_alnum(c)) {  // 0-9 already excluded in the previous `if`
             char *start = &str[i];
             for (i += 1; is_alnum(str[i]); i += 1) {
             }
@@ -1036,6 +1036,19 @@ void write_rax_to_where_rdi_points(int sz) {
     }
 }
 
+const char *AddSubMulDivAssign_rdi_into_rax(Kind kind) {
+    if (kind == enum2('+', '=')) {
+        return "    add rax,rdi\n";
+    } else if (kind == enum2('-', '=')) {
+        return "    sub rax,rdi\n";
+    } else if (kind == enum2('*', '=')) {
+        return "    imul rax,rdi\n";
+    } else if (kind == enum2('/', '=')) {
+        return "  cqo\n  idiv rdi\n";
+    }
+    return 0;
+}
+
 void EvaluateExprIntoRax(Expr *expr) {
     if (expr->typ->kind == enum2('[', ']')) {
         EvaluateLValueAddressIntoRax(expr);
@@ -1074,6 +1087,16 @@ void EvaluateExprIntoRax(Expr *expr) {
             EvaluateExprIntoRax(expr->second_child);
             printf("    pop rdi\n");
             write_rax_to_where_rdi_points(size(expr->second_child->typ));
+        } else if (AddSubMulDivAssign_rdi_into_rax(expr->op)) {  // x @= i
+            EvaluateExprIntoRax(expr->second_child);
+            printf("    push rax\n");                                 // stack: i
+            EvaluateLValueAddressIntoRax(expr->first_child);          // rax: &x
+            printf("    mov rsi, rax\n");                             // rsi: &x
+            printf("    mov rax, [rax]\n");                           // rsi: &x, rax: x
+            printf("    pop rdi\n");                                  // rsi: &x, rax: x, rdi: i
+            printf("%s", AddSubMulDivAssign_rdi_into_rax(expr->op));  // rsi: &x, rax: x@i
+            printf("    mov rdi, rsi");                               // rdi: &x, rax: x@i
+            write_rax_to_where_rdi_points(size(expr->second_child->typ));
         } else {
             EvaluateExprIntoRax(expr->first_child);
             printf("    push rax\n");
@@ -1081,15 +1104,8 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    push rax\n");
             printf("    pop rdi\n");
             printf("    pop rax\n");
-            if (expr->op == '+') {
-                printf("    add rax,rdi\n");
-            } else if (expr->op == '-') {
-                printf("    sub rax,rdi\n");
-            } else if (expr->op == '*') {
-                printf("    imul rax,rdi\n");
-            } else if (expr->op == '/') {
-                printf("  cqo\n");
-                printf("  idiv rdi\n");
+            if (AddSubMulDivAssign_rdi_into_rax(enum2(expr->op, '='))) {
+                printf("%s", AddSubMulDivAssign_rdi_into_rax(enum2(expr->op, '=')));
             } else if (expr->op == enum2('=', '=')) {
                 printf("  cmp rax, rdi\n");
                 printf("  sete al\n");
