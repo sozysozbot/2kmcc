@@ -161,8 +161,14 @@ int tokenize(char *str) {
                 i += 1;
                 tokens_start[token_index].kind = enum2(c, '=');
                 token_index += 1;
-            } else if (str[i] == c && !strchr("*!", c)) {
-                panic("++, --, &&, >>, <<, >>=, <<= not supported");
+            } else if (str[i] == c) {
+                if (strchr("+-&", c)) {
+                    i += 1;
+                    tokens_start[token_index].kind = enum2(c, c);
+                    token_index += 1;
+                } else if (strchr("<>", c)) {
+                    panic(">>, <<, >>=, <<= not supported");
+                }
             } else {
                 tokens_start[token_index].kind = c;
                 token_index += 1;
@@ -502,11 +508,22 @@ Expr *expr_subtract(Expr *lhs, Expr *rhs) {
 
 Expr *parsePostfix() {
     Expr *result = parsePrimary();
-    while (maybe_consume('[')) {
-        Expr *addition = expr_add(decay_if_arr(result), decay_if_arr(parseExpr()));
-        consume_otherwise_panic(']');
-        Expr *expr = decay_if_arr(addition);
-        result = unaryExpr(expr, '*', deref(expr->typ));
+    while (1) {
+        if (maybe_consume('[')) {
+            Expr *addition = expr_add(decay_if_arr(result), decay_if_arr(parseExpr()));
+            consume_otherwise_panic(']');
+            Expr *expr = decay_if_arr(addition);
+            result = unaryExpr(expr, '*', deref(expr->typ));
+        } else if (maybe_consume(enum2('+', '+'))) {  // `a++` is `(a += 1) - 1
+            Expr *addition = expr_add(decay_if_arr(result), numberexpr(1));
+            addition->op = enum2('+', '=');
+            result = expr_subtract(addition, numberexpr(1));
+        } else if (maybe_consume(enum2('-', '-'))) {  // `a--` is `(a -= 1) + 1
+            Expr *subtraction = expr_subtract(decay_if_arr(result), numberexpr(1));
+            subtraction->op = enum2('-', '=');
+            result = expr_add(subtraction, numberexpr(1));
+        } else
+            break;
     }
     return result;
 }
@@ -1105,7 +1122,7 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    mov rax, [rax]\n");                           // rsi: &x, rax: x
             printf("    pop rdi\n");                                  // rsi: &x, rax: x, rdi: i
             printf("%s", AddSubMulDivAssign_rdi_into_rax(expr->op));  // rsi: &x, rax: x@i
-            printf("    mov rdi, rsi\n");                               // rdi: &x, rax: x@i
+            printf("    mov rdi, rsi\n");                             // rdi: &x, rax: x@i
             write_rax_to_where_rdi_points(size(expr->second_child->typ));
         } else {
             EvaluateExprIntoRax(expr->first_child);

@@ -82,6 +82,9 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
 
+assert check("int main() { int a; int b; a=1; b=a++; printf(\"b=%d\", b); return a; }",2, expected_stdout="b=1")
+assert check("int main() { int a; int b; a=2; b=a--; printf(\"b=%d\", b); return a; }",1, expected_stdout="b=2")
+
 assert check("int main() { int a; a=1; a*=3; return a; }",3)
 
 assert check("""
