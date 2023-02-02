@@ -84,20 +84,15 @@ Token *tokens_cursor;
 char *string_literals_start[10000];
 char **string_literals_cursor;
 int is_alnum(char c) {
-    return ('a' <= c && c <= 'z') ||
-           ('A' <= c && c <= 'Z') ||
-           ('0' <= c && c <= '9') ||
-           (c == '_');
+    return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || (c == '_');
 }
 int is_reserved_then_handle(char *ptr, int *ptr_token_index, int *ptr_i, const char *keyword, int keyword_len, int kind) {
-    if (strncmp(ptr, keyword, keyword_len) == 0 && !is_alnum(ptr[keyword_len])) {
-        Token token = {kind, 0, 0};
-        tokens_start[*ptr_token_index] = token;
-        (*ptr_token_index) += 1;
-        *ptr_i += keyword_len;
-        return 1;
-    }
-    return 0;
+    if (strncmp(ptr, keyword, keyword_len) != 0 || is_alnum(ptr[keyword_len]))
+        return 0;
+    tokens_start[*ptr_token_index].kind = kind;
+    (*ptr_token_index) += 1;
+    *ptr_i += keyword_len;
+    return 1;
 }
 int tokenize(char *str) {
     int token_index = 0;
