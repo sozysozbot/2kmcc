@@ -80,6 +80,31 @@ def check_and_link_with(input: str, linked_lib: str, expected: int):
 
 print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
+######################################
+
+assert check("int main() { int a; a=1; a*=3; return a; }",3)
+
+assert check("""
+int main() {
+    int i;
+    for (i = 1; i <= 3; i += 1) { 
+        printf("a%d", -i); 
+    }
+    return 0;
+}
+""", 0, expected_stdout="a-1a-2a-3")
+
+assert check("""
+int main() {
+    int i;
+    for (i = 256; i > 1; i /= 2) { 
+        printf("%d,", i); 
+    }
+    return 0;
+}
+""", 0, expected_stdout="256,128,64,32,16,8,4,2,")
+
+
 assert check("""
 // line comment
 int main() {

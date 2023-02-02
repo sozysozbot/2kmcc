@@ -612,6 +612,16 @@ Expr *parseAssign() {
         Expr *rhs = decay_if_arr(parseAssign());
         assert_compatible_type(result->typ, rhs->typ);
         return binaryExpr(result, rhs, '=', result->typ);
+    } else if (maybe_consume(enum2('+', '='))) {
+        result = expr_add(decay_if_arr(result), assert_integer(parseAssign()));
+        result->op = enum2('+', '=');
+    } else if (maybe_consume(enum2('-', '='))) {
+        result = expr_subtract(decay_if_arr(result), assert_integer(parseAssign()));
+        result->op = enum2('-', '=');
+    } else if (maybe_consume(enum2('*', '='))) {
+        result = binaryExpr(assert_integer(result), assert_integer(parseUnary()), enum2('*', '='), type(enum3('i', 'n', 't')));
+    } else if (maybe_consume(enum2('/', '='))) {
+        result = binaryExpr(assert_integer(result), assert_integer(parseUnary()), enum2('/', '='), type(enum3('i', 'n', 't')));
     }
     return result;
 }
@@ -1095,7 +1105,7 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    mov rax, [rax]\n");                           // rsi: &x, rax: x
             printf("    pop rdi\n");                                  // rsi: &x, rax: x, rdi: i
             printf("%s", AddSubMulDivAssign_rdi_into_rax(expr->op));  // rsi: &x, rax: x@i
-            printf("    mov rdi, rsi");                               // rdi: &x, rax: x@i
+            printf("    mov rdi, rsi\n");                               // rdi: &x, rax: x@i
             write_rax_to_where_rdi_points(size(expr->second_child->typ));
         } else {
             EvaluateExprIntoRax(expr->first_child);
