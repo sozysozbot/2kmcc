@@ -72,6 +72,11 @@ int enum4(int a, int b, int c, int d) {
     return enum2(a, enum3(b, c, d));
 }
 
+void panic(const char *msg) {
+    fprintf(stderr, "%s", msg);
+    exit(1);
+}
+
 /*** ^ LIB | v PARSE ***/
 Token tokens_start[1000];
 Token *tokens_end;
@@ -130,112 +135,40 @@ int tokenize(char *str) {
         }
         if (strncmp(str + i, "/*", 2) == 0) {
             char *q = strstr(str + i + 2, "*/");
-            if (!q) {
-                fprintf(stderr, "unclosed block comment\n");
-                exit(1);
-            }
+            if (!q)
+                panic("unclosed block comment\n");
             i = q + 2 - str;
             continue;
         }
         if (c == '"') {
-            i += 1;
-            char *str_lit_start = &str[i];
-            char *str_lit_cursor = str_lit_start;
             int parsed_length = 0;
-            for (; *str_lit_cursor != '"'; str_lit_cursor += 1) {
-                if (*str_lit_cursor == '\\' || *str_lit_cursor == '\0') {
-                    fprintf(stderr, "unhandlable escape sequence");
-                    exit(1);
-                }
-                parsed_length += 1;
-            }
+            for (i += 1; str[i + parsed_length] != '"'; parsed_length += 1)
+                if (str[i + parsed_length] == '\\' || str[i + parsed_length] == '\0')
+                    panic("unhandlable escape sequence");
             char *str_content = calloc(parsed_length + 1, sizeof(char));
-            strncpy(str_content, str_lit_start, parsed_length);
-            i += parsed_length + 1;  // must skip the remaining double-quote
-            Token token = {enum3('S', 'T', 'R'), 0, str_content};
-            tokens_start[token_index] = token;
+            strncpy(str_content, str + i, parsed_length);
+            i += parsed_length + 1;  // must also skip the remaining double-quote
+            tokens_start[token_index].kind = enum3('S', 'T', 'R');
+            tokens_start[token_index].identifier_name_or_string_content = str_content;
             token_index += 1;
             *string_literals_cursor = str_content;
             string_literals_cursor += 1;
-        } else if (c == '+') {
-            Token token = {'+', 0, 0};
-            tokens_start[token_index] = token;
-            token_index += 1;
-            i += 1;
-        } else if (c == ';' || c == '(' || c == ')' || c == '{' || c == '}' || c == ',' || c == '[' || c == ']') {
+        } else if (strchr(";(){},[]", c)) {
             tokens_start[token_index].kind = c;
             token_index += 1;
             i += 1;
-        } else if (c == '-') {
-            Token token = {'-', 0, 0};
-            tokens_start[token_index] = token;
-            token_index += 1;
+        } else if (strchr("+-*/&><=!", c)) {
             i += 1;
-        } else if (c == '*') {
-            Token token = {'*', 0, 0};
-            tokens_start[token_index] = token;
-            token_index += 1;
-            i += 1;
-        } else if (c == '&') {
-            Token token = {'&', 0, 0};
-            tokens_start[token_index] = token;
-            token_index += 1;
-            i += 1;
-        } else if (c == '/') {
-            Token token = {'/', 0, 0};
-            tokens_start[token_index] = token;
-            token_index += 1;
-            i += 1;
-        } else if (c == '>') {
-            i += 1;
-            char c = str[i];
-            if (c != '=') {
-                Token token = {'>', 0, 0};
-                tokens_start[token_index] = token;
-                token_index += 1;
-            } else {
+            if (str[i] == '=') {
                 i += 1;
-                Token token = {enum2('>', '='), 0, 0};
-                tokens_start[token_index] = token;
+                tokens_start[token_index].kind = enum2(c, '=');
                 token_index += 1;
-            }
-        } else if (c == '<') {
-            i += 1;
-            char c = str[i];
-            if (c != '=') {
-                Token token = {'<', 0, 0};
-                tokens_start[token_index] = token;
-                token_index += 1;
+            } else if (str[i] == c && !strchr("*!", c)) {
+                panic("++, --, &&, >>, <<, >>=, <<= not supported");
             } else {
-                i += 1;
-                Token token = {enum2('<', '='), 0, 0};
-                tokens_start[token_index] = token;
+                tokens_start[token_index].kind = c;
                 token_index += 1;
             }
-        } else if (c == '=') {
-            i += 1;
-            char c = str[i];
-            if (c != '=') {
-                Token token = {'=', 0, 0};
-                tokens_start[token_index] = token;
-                token_index += 1;
-            } else {
-                i += 1;
-                Token token = {enum2('=', '='), 0, 0};
-                tokens_start[token_index] = token;
-                token_index += 1;
-            }
-        } else if (c == '!') {
-            i += 1;
-            char c = str[i];
-            if (c != '=') {
-                fprintf(stderr, "%s: unknown token !%c(%d)\n", __FUNCTION__, c, c);
-                return -1;
-            }
-            i += 1;
-            Token token = {enum2('!', '='), 0, 0};
-            tokens_start[token_index] = token;
-            token_index += 1;
         } else if ('0' <= c && c <= '9') {
             char *str_ = &str[i];
             int parsed_num;
@@ -1206,7 +1139,7 @@ int main(int argc, char **argv) {
     funcdecls_cursor = funcdecls_start;
     funcdefs_cursor = funcdefs_start;
     global_vars_cursor = global_vars_start;
-    while (tokens_cursor < tokens_end) 
+    while (tokens_cursor < tokens_end)
         parseToplevel();
     printf(".intel_syntax noprefix\n");
     printf("  .text\n");
