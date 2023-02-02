@@ -168,6 +168,9 @@ int tokenize(char *str) {
                     token_index += 1;
                 } else if (strchr("<>", c)) {
                     panic(">>, <<, >>=, <<= not supported");
+                } else {
+                    tokens_start[token_index].kind = c;
+                    token_index += 1;
                 }
             } else {
                 tokens_start[token_index].kind = c;
