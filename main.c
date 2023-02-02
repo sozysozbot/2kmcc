@@ -16,7 +16,7 @@ typedef struct Expr {
     int value;
     struct Expr *first_child;
     struct Expr *second_child;
-    struct Expr **func_args;
+    struct Expr **func_args_start;
     int func_arg_len;
     char *func_or_ident_name_or_string_content;
     Type *typ;
@@ -31,7 +31,6 @@ typedef struct FuncDef {
     struct Stmt *content;
     char *name;
     NameAndType *params_start;
-    NameAndType *params_end;
     int param_len;
     NameAndType *lvar_table_start;
     NameAndType *lvar_table_end;
@@ -295,25 +294,21 @@ NameAndType *global_vars_start[100];
 NameAndType **global_vars_cursor;
 
 Type *lookup_ident_type(char *name) {
-    for (int i = 0; lvars_start[i].name; i++) {
+    for (int i = 0; lvars_start[i].name; i++)
         if (strcmp(lvars_start[i].name, name) == 0)
             return lvars_start[i].type;
-    }
-    for (int i = 0; global_vars_start[i]; i++) {
+    for (int i = 0; global_vars_start[i]; i++)
         if (strcmp(global_vars_start[i]->name, name) == 0)
             return global_vars_start[i]->type;
-    }
     fprintf(stderr, "cannot find an identifier named `%s`; cannot determine the type\n", name);
     exit(1);
 }
 
 Type *lookup_func_type(char *name) {
-    for (int i = 0; funcdecls_start[i]; i++) {
-        if (strcmp(funcdecls_start[i]->name, name) == 0) {
+    for (int i = 0; funcdecls_start[i]; i++)
+        if (strcmp(funcdecls_start[i]->name, name) == 0)
             return funcdecls_start[i]->type;
-        }
-    }
-    fprintf(stderr, "cannot find a function named `%s`; cannot determine the return type. Implicitly assumes that it return an int\n", name);
+    fprintf(stderr, "cannot find a function named `%s`. Implicitly assumes that it return an int\n", name);
     return type(enum3('i', 'n', 't'));
 }
 
@@ -321,7 +316,7 @@ Expr *callingExpr(char *name, Expr **arguments, int len) {
     Expr *callexp = calloc(1, sizeof(Expr));
     callexp->func_or_ident_name_or_string_content = name;
     callexp->expr_kind = enum4('C', 'A', 'L', 'L');
-    callexp->func_args = arguments;
+    callexp->func_args_start = arguments;
     callexp->func_arg_len = len;
     callexp->typ = lookup_func_type(name);
     return callexp;
@@ -342,18 +337,14 @@ Expr *parsePrimary() {
         char *name = (tokens_cursor++)->identifier_name_or_string_content;
         if (maybe_consume('(')) {
             Expr **arguments = calloc(6, sizeof(Expr *));
-            if (maybe_consume(')')) {
+            if (maybe_consume(')'))
                 return callingExpr(name, arguments, 0);
-            }
             int i = 0;
             for (; i < 6; i++) {
-                Expr *expr = decay_if_arr(parseExpr());
-                if (maybe_consume(')')) {
-                    arguments[i] = expr;
+                arguments[i] = decay_if_arr(parseExpr());
+                if (maybe_consume(')'))
                     break;
-                }
                 consume_otherwise_panic(',');
-                arguments[i] = decay_if_arr(expr);
             }
             return callingExpr(name, arguments, i + 1);
         }
@@ -392,9 +383,8 @@ void display_type(Type *t) {
     } else if (t->kind == '*') {
         fprintf(stderr, "* ");
         display_type(t->ptr_to);
-    } else {
+    } else
         fprintf(stderr, "%s", decode_kind(t->kind));
-    }
 }
 
 void assert_same_type(Type *t1, Type *t2) {
@@ -620,11 +610,11 @@ Expr *parseOptionalExprAndToken(Kind target) {
 
 NameAndType *consume_type_and_ident_1st_half() {
     Type *type = calloc(1, sizeof(Type));
-    if (maybe_consume(enum3('i', 'n', 't'))) {
+    if (maybe_consume(enum3('i', 'n', 't')))
         type->kind = enum3('i', 'n', 't');
-    } else if (maybe_consume(enum4('c', 'h', 'a', 'r'))) {
+    else if (maybe_consume(enum4('c', 'h', 'a', 'r')))
         type->kind = enum4('c', 'h', 'a', 'r');
-    } else {
+    else {
         fprintf(stderr, "expected `int` or `char`; got TokenKind `%s`\n", decode_kind(tokens_cursor->kind));
         exit(1);
     }
@@ -762,7 +752,6 @@ FuncDef *constructFuncDef(Stmt *content, NameAndType *rettype_and_funcname, int 
     funcdef->return_type = rettype_and_funcname->type;
     funcdef->param_len = len;
     funcdef->params_start = params_start;
-    funcdef->params_end = params_start + len;
     funcdef->lvar_table_start = lvars_start;
     funcdef->lvar_table_end = lvars_cursor;
     return funcdef;
@@ -1036,7 +1025,7 @@ void EvaluateExprIntoRax(Expr *expr) {
         deref_rax(size(expr->typ));
     } else if (expr->expr_kind == enum4('C', 'A', 'L', 'L')) {
         for (int i = 0; i < expr->func_arg_len; i++) {
-            EvaluateExprIntoRax(expr->func_args[i]);
+            EvaluateExprIntoRax(expr->func_args_start[i]);
             printf("    push rax\n");
         }
         for (int i = expr->func_arg_len - 1; i >= 0; i--)
