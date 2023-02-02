@@ -801,7 +801,7 @@ Stmt *parseStmt() {
         return stmt;
     }
     if (maybe_consume(enum3('i', 'n', 't')) || maybe_consume(enum4('c', 'h', 'a', 'r'))) {
-        tokens_cursor--;
+        tokens_cursor += -1;
         NameAndType *nt = consume_type_and_ident();
         if (lvars_cursor == lvars_start + 100) {
             fprintf(stderr, "too many local variables");
@@ -1114,21 +1114,17 @@ void EvaluateExprIntoRax(Expr *expr) {
     if (expr->expr_kind == enum4('I', 'D', 'N', 'T')) {
         EvaluateLValueAddressIntoRax(expr);
         deref_rax(size(expr->typ));
-        return;
     } else if (expr->expr_kind == enum4('C', 'A', 'L', 'L')) {
         for (int i = 0; i < expr->func_arg_len; i += 1) {
             EvaluateExprIntoRax(expr->func_args[i]);
             printf("    push rax\n");
         }
-        for (int i = expr->func_arg_len - 1; i >= 0; i--) {
+        for (int i = expr->func_arg_len - 1; i >= 0; i += -1)
             printf("    pop %s\n", nth_arg_reg(i, 8));
-        }
         printf("  mov rax, 0\n");
         printf(" call %s\n", expr->func_or_ident_name_or_string_content);
-        return;
     } else if (expr->expr_kind == enum3('N', 'U', 'M')) {
         printf("  mov rax, %d\n", expr->value);
-        return;
     } else if (expr->expr_kind == enum4('1', 'A', 'R', 'Y')) {
         if (expr->op == '*') {
             EvaluateExprIntoRax(expr->first_child);
@@ -1155,12 +1151,10 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    push rax\n");
             printf("    pop rdi\n");
             printf("    pop rax\n");
-
             if (expr->op == '+') {
                 printf("    add rax,rdi\n");
             } else if (expr->op == '-') {
                 printf("    sub rax,rdi\n");
-
             } else if (expr->op == '*') {
                 printf("    imul rax,rdi\n");
             } else if (expr->op == '/') {
@@ -1198,23 +1192,22 @@ void EvaluateExprIntoRax(Expr *expr) {
 int main(int argc, char **argv) {
     if (argc != 2) {
         fprintf(stderr, "incorrect cmd line arg\n");
-        return 1;
+        exit(1);
     }
     char *p = argv[1];
     string_literals_cursor = string_literals_start;
     int tokens_length = tokenize(p);
     if (tokens_length == 0) {
         fprintf(stderr, "No token found");
-        return 1;
+        exit(1);
     }
     tokens_cursor = tokens_start;
     tokens_end = tokens_start + tokens_length;
     funcdecls_cursor = funcdecls_start;
     funcdefs_cursor = funcdefs_start;
     global_vars_cursor = global_vars_start;
-    while (tokens_cursor < tokens_end) {
+    while (tokens_cursor < tokens_end) 
         parseToplevel();
-    }
     printf(".intel_syntax noprefix\n");
     printf("  .text\n");
     printf("  .section .rodata\n");
@@ -1229,10 +1222,8 @@ int main(int argc, char **argv) {
         printf("%s:\n", global_vars_start[i]->name);
         printf("  .zero %d\n", size(global_vars_start[i]->type));
     }
-
     printf(".text\n");
-    for (int i = 0; funcdefs_start[i]; i += 1) {
+    for (int i = 0; funcdefs_start[i]; i += 1)
         CodegenFunc(funcdefs_start[i]);
-    }
     return 0;
 }
