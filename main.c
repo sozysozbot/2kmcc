@@ -805,7 +805,7 @@ void parseToplevel() {
 
 /*** ^ PARSE | v CODEGEN ***/
 
-int labelCounter = 0;
+int labelCounter;
 
 LVar *locals;
 
