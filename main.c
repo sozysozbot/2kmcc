@@ -88,7 +88,7 @@ int is_reserved_then_handle(char *ptr, int *ptr_token_index, int *ptr_i, const c
     if (strncmp(ptr, keyword, keyword_len) == 0 && !is_alnum(ptr[keyword_len])) {
         Token token = {kind, 0, 0};
         tokens_start[*ptr_token_index] = token;
-        (*ptr_token_index)++;
+        (*ptr_token_index) += 1;
         *ptr_i += keyword_len;
         return 1;
     }
@@ -125,7 +125,7 @@ int tokenize(char *str) {
         if (strncmp(str + i, "//", 2) == 0) {
             i += 2;
             while (str[i] && str[i] != '\n')
-                i++;
+                i += 1;
             continue;
         }
         if (strncmp(str + i, "/*", 2) == 0) {
@@ -138,121 +138,121 @@ int tokenize(char *str) {
             continue;
         }
         if (c == '"') {
-            i++;
+            i += 1;
             char *str_lit_start = &str[i];
             char *str_lit_cursor = str_lit_start;
             int parsed_length = 0;
-            for (; *str_lit_cursor != '"'; str_lit_cursor++) {
+            for (; *str_lit_cursor != '"'; str_lit_cursor += 1) {
                 if (*str_lit_cursor == '\\' || *str_lit_cursor == '\0') {
                     fprintf(stderr, "unhandlable escape sequence");
                     exit(1);
                 }
-                parsed_length++;
+                parsed_length += 1;
             }
             char *str_content = calloc(parsed_length + 1, sizeof(char));
             strncpy(str_content, str_lit_start, parsed_length);
             i += parsed_length + 1;  // must skip the remaining double-quote
             Token token = {enum3('S', 'T', 'R'), 0, str_content};
             tokens_start[token_index] = token;
-            token_index++;
+            token_index += 1;
             *string_literals_cursor = str_content;
-            string_literals_cursor++;
+            string_literals_cursor += 1;
         } else if (c == '+') {
             Token token = {'+', 0, 0};
             tokens_start[token_index] = token;
-            token_index++;
-            i++;
+            token_index += 1;
+            i += 1;
         } else if (c == ';' || c == '(' || c == ')' || c == '{' || c == '}' || c == ',' || c == '[' || c == ']') {
             tokens_start[token_index].kind = c;
-            token_index++;
-            i++;
+            token_index += 1;
+            i += 1;
         } else if (c == '-') {
             Token token = {'-', 0, 0};
             tokens_start[token_index] = token;
-            token_index++;
-            i++;
+            token_index += 1;
+            i += 1;
         } else if (c == '*') {
             Token token = {'*', 0, 0};
             tokens_start[token_index] = token;
-            token_index++;
-            i++;
+            token_index += 1;
+            i += 1;
         } else if (c == '&') {
             Token token = {'&', 0, 0};
             tokens_start[token_index] = token;
-            token_index++;
-            i++;
+            token_index += 1;
+            i += 1;
         } else if (c == '/') {
             Token token = {'/', 0, 0};
             tokens_start[token_index] = token;
-            token_index++;
-            i++;
+            token_index += 1;
+            i += 1;
         } else if (c == '>') {
-            i++;
+            i += 1;
             char c = str[i];
             if (c != '=') {
                 Token token = {'>', 0, 0};
                 tokens_start[token_index] = token;
-                token_index++;
+                token_index += 1;
             } else {
-                i++;
+                i += 1;
                 Token token = {enum2('>', '='), 0, 0};
                 tokens_start[token_index] = token;
-                token_index++;
+                token_index += 1;
             }
         } else if (c == '<') {
-            i++;
+            i += 1;
             char c = str[i];
             if (c != '=') {
                 Token token = {'<', 0, 0};
                 tokens_start[token_index] = token;
-                token_index++;
+                token_index += 1;
             } else {
-                i++;
+                i += 1;
                 Token token = {enum2('<', '='), 0, 0};
                 tokens_start[token_index] = token;
-                token_index++;
+                token_index += 1;
             }
         } else if (c == '=') {
-            i++;
+            i += 1;
             char c = str[i];
             if (c != '=') {
                 Token token = {'=', 0, 0};
                 tokens_start[token_index] = token;
-                token_index++;
+                token_index += 1;
             } else {
-                i++;
+                i += 1;
                 Token token = {enum2('=', '='), 0, 0};
                 tokens_start[token_index] = token;
-                token_index++;
+                token_index += 1;
             }
         } else if (c == '!') {
-            i++;
+            i += 1;
             char c = str[i];
             if (c != '=') {
                 fprintf(stderr, "%s: unknown token !%c(%d)\n", __FUNCTION__, c, c);
                 return -1;
             }
-            i++;
+            i += 1;
             Token token = {enum2('!', '='), 0, 0};
             tokens_start[token_index] = token;
-            token_index++;
+            token_index += 1;
         } else if ('0' <= c && c <= '9') {
             char *str_ = &str[i];
             int parsed_num;
             int parsed_length = 0;
-            for (parsed_num = 0; '0' <= *str_ && *str_ <= '9'; str_++) {
+            for (parsed_num = 0; '0' <= *str_ && *str_ <= '9'; str_ += 1) {
                 parsed_num = parsed_num * 10 + (*str_ - '0');
-                parsed_length++;
+                parsed_length += 1;
             }
             i += parsed_length;
             Token token = {enum3('N', 'U', 'M'), parsed_num, 0};
             tokens_start[token_index] = token;
-            token_index++;
+            token_index += 1;
         } else if (c == ' ' || c == '\n') {
-            i++;
+            i += 1;
         } else if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_') {
             char *start = &str[i];
-            for (i++; is_alnum(str[i]); i++) {
+            for (i += 1; is_alnum(str[i]); i += 1) {
             }
             int length = &str[i] - start;
             char *name = calloc(length + 1, sizeof(char));
@@ -260,7 +260,7 @@ int tokenize(char *str) {
             Token token = {enum4('I', 'D', 'N', 'T'), 0, 0};
             token.identifier_name_or_string_content = name;
             tokens_start[token_index] = token;
-            token_index++;
+            token_index += 1;
         } else {
             fprintf(stderr, "unknown character %c(%d)\n", c, c);
             exit(1);
@@ -347,7 +347,7 @@ Expr *decay_if_arr(Expr *first_child) {
 int maybe_consume(Kind kind) {
     if (tokens_cursor->kind != kind)
         return 0;
-    tokens_cursor++;
+    tokens_cursor += 1;
     return 1;
 }
 
@@ -392,11 +392,11 @@ NameAndType *global_vars_start[100];
 NameAndType **global_vars_cursor;
 
 Type *lookup_ident_type(char *name) {
-    for (int i = 0; lvars_start[i].name; i++) {
+    for (int i = 0; lvars_start[i].name; i += 1) {
         if (strcmp(lvars_start[i].name, name) == 0)
             return lvars_start[i].type;
     }
-    for (int i = 0; global_vars_start[i]; i++) {
+    for (int i = 0; global_vars_start[i]; i += 1) {
         if (strcmp(global_vars_start[i]->name, name) == 0)
             return global_vars_start[i]->type;
     }
@@ -405,7 +405,7 @@ Type *lookup_ident_type(char *name) {
 }
 
 Type *lookup_func_type(char *name) {
-    for (int i = 0; funcdecls_start[i]; i++) {
+    for (int i = 0; funcdecls_start[i]; i += 1) {
         if (strcmp(funcdecls_start[i]->name, name) == 0) {
             return funcdecls_start[i]->type;
         }
@@ -428,25 +428,25 @@ Expr *parsePrimary() {
     panic_if_eof();
     if (tokens_cursor->kind == enum3('N', 'U', 'M')) {
         int value = tokens_cursor->value;
-        tokens_cursor++;
+        tokens_cursor += 1;
         return numberexpr(value);
     } else if (tokens_cursor->kind == enum3('S', 'T', 'R')) {
         Expr *string_literal_exp = calloc(1, sizeof(Expr));
         string_literal_exp->func_or_ident_name_or_string_content = tokens_cursor->identifier_name_or_string_content;
         string_literal_exp->expr_kind = enum3('S', 'T', 'R');
         string_literal_exp->typ = arr_of(type(enum4('c', 'h', 'a', 'r')), strlen(tokens_cursor->identifier_name_or_string_content) + 1);
-        tokens_cursor++;
+        tokens_cursor += 1;
         return string_literal_exp;
     } else if (tokens_cursor->kind == enum4('I', 'D', 'N', 'T')) {
         char *name = tokens_cursor->identifier_name_or_string_content;
-        tokens_cursor++;
+        tokens_cursor += 1;
         if (maybe_consume('(')) {
             Expr **arguments = calloc(6, sizeof(Expr *));
             if (maybe_consume(')')) {
                 return callingExpr(name, arguments, 0);
             }
             int i = 0;
-            for (; i < 6; i++) {
+            for (; i < 6; i += 1) {
                 Expr *expr = decay_if_arr(parseExpr());
                 if (maybe_consume(')')) {
                     arguments[i] = expr;
@@ -707,7 +707,7 @@ NameAndType *consume_type_and_ident_1st_half() {
         type = ptr_of(type);
     expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
     char *name = tokens_cursor->identifier_name_or_string_content;
-    tokens_cursor++;
+    tokens_cursor += 1;
     NameAndType *ans = calloc(1, sizeof(NameAndType));
     ans->name = name;
     ans->type = type;
@@ -724,7 +724,7 @@ NameAndType *consume_type_and_ident_2nd_half(NameAndType *ans) {
         t->ptr_to = elem_t;
         t->kind = enum2('[', ']');
         insertion_point = t;
-        tokens_cursor++;
+        tokens_cursor += 1;
         consume_otherwise_panic(']');
         ans->type = t;
     }
@@ -736,7 +736,7 @@ NameAndType *consume_type_and_ident_2nd_half(NameAndType *ans) {
         t->kind = enum2('[', ']');
         insertion_point->ptr_to = t;
         insertion_point = t;
-        tokens_cursor++;
+        tokens_cursor += 1;
         consume_otherwise_panic(']');
     }
     return ans;
@@ -759,7 +759,7 @@ Stmt *parseStmt() {
             newstmt->second_child = parseStmt();
             result = newstmt;
         }
-        tokens_cursor++;
+        tokens_cursor += 1;
         return result;
     }
     if (maybe_consume(enum3('R', 'E', 'T'))) {
@@ -809,7 +809,7 @@ Stmt *parseStmt() {
         }
         lvars_cursor->name = nt->name;
         lvars_cursor->type = nt->type;
-        lvars_cursor++;
+        lvars_cursor += 1;
         consume_otherwise_panic(';');
         Stmt *stmt = calloc(1, sizeof(Stmt));
         stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
@@ -836,7 +836,7 @@ Stmt *parseFunctionContent() {
         newstmt->second_child = statement;
         result = newstmt;
     }
-    tokens_cursor++;
+    tokens_cursor += 1;
     return result;
 }
 
@@ -858,7 +858,7 @@ void store_func_decl(NameAndType *rettype_and_funcname) {
     decl->type = rettype_and_funcname->type;
     decl->name = rettype_and_funcname->name;
     *funcdecls_cursor = decl;
-    funcdecls_cursor++;
+    funcdecls_cursor += 1;
 }
 
 void parseToplevel() {
@@ -870,19 +870,19 @@ void parseToplevel() {
             lvars_cursor = lvars_start = calloc(100, sizeof(NameAndType));
             store_func_decl(rettype_and_funcname);
             *funcdefs_cursor = constructFuncDef(parseFunctionContent(), rettype_and_funcname, 0, params_start);
-            funcdefs_cursor++;
+            funcdefs_cursor += 1;
             return;
         }
         lvars_cursor = lvars_start = calloc(100, sizeof(char *));
         int i = 0;
-        for (; i < 6; i++) {
+        for (; i < 6; i += 1) {
             NameAndType *param = consume_type_and_ident();
             if (maybe_consume(')')) {
                 params_start[i].name = param->name;
                 params_start[i].type = param->type;
                 lvars_cursor->name = param->name;
                 lvars_cursor->type = param->type;
-                lvars_cursor++;
+                lvars_cursor += 1;
                 break;
             }
             consume_otherwise_panic(',');
@@ -890,16 +890,16 @@ void parseToplevel() {
             params_start[i].type = param->type;
             lvars_cursor->name = param->name;
             lvars_cursor->type = param->type;
-            lvars_cursor++;
+            lvars_cursor += 1;
         }
         store_func_decl(rettype_and_funcname);
         *funcdefs_cursor = constructFuncDef(parseFunctionContent(), rettype_and_funcname, i + 1, params_start);
-        funcdefs_cursor++;
+        funcdefs_cursor += 1;
         return;
     } else {
         NameAndType *global_var_type_and_name = consume_type_and_ident_2nd_half(first_half);
         *global_vars_cursor = global_var_type_and_name;
-        global_vars_cursor++;
+        global_vars_cursor += 1;
         consume_otherwise_panic(';');
         return;
     }
@@ -926,14 +926,14 @@ LVar *findLVar(char *name) {
 }
 
 int find_strlit(char *str) {
-    for (int i = 0; string_literals_start[i]; i++)
+    for (int i = 0; string_literals_start[i]; i += 1)
         if (strcmp(string_literals_start[i], str) == 0)
             return i;
     return 100000;
 }
 
 int isGVar(char *name) {
-    for (int i = 0; global_vars_start[i]; i++) {
+    for (int i = 0; global_vars_start[i]; i += 1) {
         if (strcmp(name, global_vars_start[i]->name) == 0) {
             return 1;
         }
@@ -1009,21 +1009,18 @@ void CodegenStmt(Stmt *stmt) {
         printf("  pop rbp\n");
         printf("  ret\n");
     } else if (stmt->stmt_kind == enum2('i', 'f')) {
-        int label = ++labelCounter;
-
+        int label = (labelCounter += 1);
         EvaluateExprIntoRax(stmt->expr);
         printf("  cmp rax, 0\n");
         printf("  je  .Lelse%d\n", label);
         CodegenStmt(stmt->second_child);
         printf("  jmp .Lend%d\n", label);
         printf(".Lelse%d:\n", label);
-        if (stmt->third_child != 0) {
+        if (stmt->third_child != 0)
             CodegenStmt(stmt->third_child);
-        }
         printf(".Lend%d:\n", label);
     } else if (stmt->stmt_kind == enum4('W', 'H', 'I', 'L')) {
-        int label = ++labelCounter;
-
+        int label = (labelCounter += 1);
         printf(".Lbegin%d:\n", label);
         EvaluateExprIntoRax(stmt->expr);
         printf("  cmp rax, 0\n");
@@ -1032,37 +1029,31 @@ void CodegenStmt(Stmt *stmt) {
         printf("  jmp  .Lbegin%d\n", label);
         printf(".Lend%d:\n", label);
     } else if (stmt->stmt_kind == enum3('f', 'o', 'r')) {
-        int label = ++labelCounter;
-
-        if (stmt->expr) {
+        int label = (labelCounter += 1);
+        if (stmt->expr)
             EvaluateExprIntoRax(stmt->expr);
-        }
         printf(".Lbegin%d:\n", label);
-        if (stmt->for_cond) {
+        if (stmt->for_cond)
             EvaluateExprIntoRax(stmt->for_cond);
-        } else {
+        else
             printf("  mov rax, 1\n");
-        }
         printf("  cmp rax, 0\n");
         printf("  je  .Lend%d\n", label);
         CodegenStmt(stmt->second_child);
-        if (stmt->for_after) {
+        if (stmt->for_after)
             EvaluateExprIntoRax(stmt->for_after);
-        }
         printf("  jmp  .Lbegin%d\n", label);
         printf(".Lend%d:\n", label);
     }
 }
 
 const char *nth_arg_reg(int n, int sz) {
-    if (sz == 8) {
+    if (sz == 8)
         return "rdi\0rsi\0rdx\0rcx\0r8 \0r9" + 4 * n;
-    } else if (sz == 4) {
+    else if (sz == 4)
         return "edi\0esi\0edx\0ecx\0r8d\0r9d" + 4 * n;
-    } else {
-        fprintf(stderr, "unhandlable size %d\n", sz);
-        exit(1);
-    }
+    fprintf(stderr, "unhandlable size %d\n", sz);
+    exit(1);
 }
 
 void CodegenFunc(FuncDef *funcdef) {
@@ -1071,47 +1062,30 @@ void CodegenFunc(FuncDef *funcdef) {
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
     int stack_adjust = 0;
-    for (int i = 0; i < funcdef->param_len; i++) {
+    for (int i = 0; i < funcdef->param_len; i += 1)
         stack_adjust += 8;
-    }
-    for (NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++) {
+    for (NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr += 1)
         stack_adjust += (size(ptr->type) + 7) / 8 * 8;
-    }
     printf("  sub rsp, %d\n", stack_adjust);
-    for (int i = 0; i < funcdef->param_len; i++) {
+    for (int i = 0; i < funcdef->param_len; i += 1) {
         char *param_name = funcdef->params_start[i].name;
         insertLVar(param_name, 8);
         LVar *local = findLVar(param_name);
         printf("  mov [rbp - %d], %s\n", local->offset_from_rbp, nth_arg_reg(i, 8));
     }
-    for (NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++) {
+    for (NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr += 1)
         insertLVar(ptr->name, size(ptr->type));
-    }
     CodegenStmt(funcdef->content);
 }
 
-const char *eax_or_rax(int sz) {
-    if (sz == 8) {
-        return "rax";
-    } else if (sz == 4) {
-        return "eax";
-    } else {
-        fprintf(stderr, "unhandlable size %d\n", sz);
-        exit(1);
-    }
-}
-
 void deref_rax(int sz) {
-    if (sz == 8) {
+    if (sz == 8)
         printf("  mov rax,[rax]\n");
-        return;
-    } else if (sz == 4) {
+    else if (sz == 4)
         printf("  mov eax,[rax]\n");
-        return;
-    } else if (sz == 1) {
+    else if (sz == 1) {
         printf("  movzx ecx, BYTE PTR [rax]\n");
         printf("  mov eax, ecx\n");
-        return;
     } else {
         fprintf(stderr, "unhandlable size %d\n", sz);
         exit(1);
@@ -1119,11 +1093,11 @@ void deref_rax(int sz) {
 }
 
 void write_rax_to_where_rdi_points(int sz) {
-    if (sz == 8) {
+    if (sz == 8)
         printf("    mov [rdi], rax\n");
-    } else if (sz == 4) {
+    else if (sz == 4)
         printf("    mov [rdi], eax\n");
-    } else if (sz == 1) {
+    else if (sz == 1) {
         printf("    mov ecx, eax\n");
         printf("    mov [rdi], cl\n");
     } else {
@@ -1142,7 +1116,7 @@ void EvaluateExprIntoRax(Expr *expr) {
         deref_rax(size(expr->typ));
         return;
     } else if (expr->expr_kind == enum4('C', 'A', 'L', 'L')) {
-        for (int i = 0; i < expr->func_arg_len; i++) {
+        for (int i = 0; i < expr->func_arg_len; i += 1) {
             EvaluateExprIntoRax(expr->func_args[i]);
             printf("    push rax\n");
         }
@@ -1244,12 +1218,12 @@ int main(int argc, char **argv) {
     printf(".intel_syntax noprefix\n");
     printf("  .text\n");
     printf("  .section .rodata\n");
-    for (int i = 0; string_literals_start[i]; i++) {
+    for (int i = 0; string_literals_start[i]; i += 1) {
         printf(".LC%d:\n", i);
         printf("  .string \"%s\"\n", string_literals_start[i]);
     }
     printf("  .text\n");
-    for (int i = 0; global_vars_start[i]; i++) {
+    for (int i = 0; global_vars_start[i]; i += 1) {
         printf(".globl %s\n", global_vars_start[i]->name);
         printf(".data\n");
         printf("%s:\n", global_vars_start[i]->name);
@@ -1257,7 +1231,7 @@ int main(int argc, char **argv) {
     }
 
     printf(".text\n");
-    for (int i = 0; funcdefs_start[i]; i++) {
+    for (int i = 0; funcdefs_start[i]; i += 1) {
         CodegenFunc(funcdefs_start[i]);
     }
     return 0;
