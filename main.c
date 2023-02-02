@@ -85,27 +85,26 @@ char **string_literals_cursor;
 int is_alnum(char c) {
     return strchr("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_", c) != 0;
 }
-int is_reserved_then_handle(char *ptr, int *ptr_token_index, int *ptr_i, const char *keyword, int keyword_len, int kind) {
+int is_reserved_then_handle(char *ptr, int *ptr_i, const char *keyword, int keyword_len, int kind) {
     if (strncmp(ptr, keyword, keyword_len) != 0)
         return 0;
     if (is_alnum(ptr[keyword_len]))
         return 0;
-    tokens_start[(*ptr_token_index)++].kind = kind;
+    (tokens_cursor++)->kind = kind;
     *ptr_i += keyword_len;
     return 1;
 }
-int tokenize(char *str) {
-    int token_index = 0;
+Token *tokenize(char *str) {
     for (int i = 0; str[i];) {
         char c = str[i];
-        if (is_reserved_then_handle(str + i, &token_index, &i, "return", 6, enum3('R', 'E', 'T'))) {
-        } else if (is_reserved_then_handle(str + i, &token_index, &i, "sizeof", 6, enum4('S', 'Z', 'O', 'F'))) {
-        } else if (is_reserved_then_handle(str + i, &token_index, &i, "if", 2, enum2('i', 'f'))) {
-        } else if (is_reserved_then_handle(str + i, &token_index, &i, "while", 5, enum4('W', 'H', 'I', 'L'))) {
-        } else if (is_reserved_then_handle(str + i, &token_index, &i, "else", 4, enum4('e', 'l', 's', 'e'))) {
-        } else if (is_reserved_then_handle(str + i, &token_index, &i, "for", 3, enum3('f', 'o', 'r'))) {
-        } else if (is_reserved_then_handle(str + i, &token_index, &i, "int", 3, enum3('i', 'n', 't'))) {
-        } else if (is_reserved_then_handle(str + i, &token_index, &i, "char", 4, enum4('c', 'h', 'a', 'r'))) {
+        if (is_reserved_then_handle(str + i, &i, "return", 6, enum3('R', 'E', 'T'))) {
+        } else if (is_reserved_then_handle(str + i, &i, "sizeof", 6, enum4('S', 'Z', 'O', 'F'))) {
+        } else if (is_reserved_then_handle(str + i, &i, "if", 2, enum2('i', 'f'))) {
+        } else if (is_reserved_then_handle(str + i, &i, "while", 5, enum4('W', 'H', 'I', 'L'))) {
+        } else if (is_reserved_then_handle(str + i, &i, "else", 4, enum4('e', 'l', 's', 'e'))) {
+        } else if (is_reserved_then_handle(str + i, &i, "for", 3, enum3('f', 'o', 'r'))) {
+        } else if (is_reserved_then_handle(str + i, &i, "int", 3, enum3('i', 'n', 't'))) {
+        } else if (is_reserved_then_handle(str + i, &i, "char", 4, enum4('c', 'h', 'a', 'r'))) {
         } else if (strncmp(str + i, "//", 2) == 0) {
             i += 2;
             while (str[i] && str[i] != '\n')
@@ -116,7 +115,7 @@ int tokenize(char *str) {
                 panic("unclosed block comment\n");
             i = q + 2 - str;
         } else if (strncmp(str + i, "->", 2) == 0) {
-            tokens_start[token_index++].kind = enum2('-', '>');
+            (tokens_cursor++)->kind = enum2('-', '>');
             i += 2;
         } else if (c == '"') {
             int parsed_length = 0;
@@ -128,41 +127,41 @@ int tokenize(char *str) {
             char *str_content = calloc(parsed_length + 1, sizeof(char));
             strncpy(str_content, str + i, parsed_length);
             i += parsed_length + 1;  // must also skip the remaining double-quote
-            tokens_start[token_index].kind = enum3('S', 'T', 'R');
-            tokens_start[token_index++].identifier_name_or_string_content = str_content;
+            tokens_cursor->kind = enum3('S', 'T', 'R');
+            (tokens_cursor++)->identifier_name_or_string_content = str_content;
             *(string_literals_cursor++) = str_content;
         } else if (strchr(";(){},[]~.", c)) {  // these chars do not start a multichar token
-            tokens_start[token_index++].kind = c;
+            (tokens_cursor++)->kind = c;
             i += 1;
         } else if (strchr("+-*/&><=!%^|", c)) {
             i += 1;
             if (str[i] == '=') {  // compound assign, equality, compare
                 i += 1;
-                tokens_start[token_index++].kind = enum2(c, '=');
+                (tokens_cursor++)->kind = enum2(c, '=');
             } else if (str[i] != c)  // all remaining operators have the same 1st & 2nd char
-                tokens_start[token_index++].kind = c;
+                (tokens_cursor++)->kind = c;
             else if (strchr("+-&|", c)) {
                 i += 1;
-                tokens_start[token_index++].kind = enum2(c, c);
+                (tokens_cursor++)->kind = enum2(c, c);
             } else if (strchr("<>", c))
                 panic(">>, <<, >>=, <<= not supported");
             else
-                tokens_start[token_index++].kind = c;
+                (tokens_cursor++)->kind = c;
         } else if (strchr("0123456789", c)) {
             int parsed_num;
             for (parsed_num = 0; strchr("0123456789", str[i]); i++)
                 parsed_num = parsed_num * 10 + (str[i] - '0');
-            tokens_start[token_index].kind = enum3('N', 'U', 'M');
-            tokens_start[token_index++].value = parsed_num;
+            tokens_cursor->kind = enum3('N', 'U', 'M');
+            (tokens_cursor++)->value = parsed_num;
         } else if (is_alnum(c)) {  // 0-9 already excluded in the previous `if`
             char *start = &str[i];
-            for (i += 1; is_alnum(str[i]); i++) {
+            for (i++; is_alnum(str[i]); i++) {
             }
             int length = &str[i] - start;
             char *name = calloc(length + 1, sizeof(char));
             memcpy(name, start, length);
-            tokens_start[token_index].kind = enum4('I', 'D', 'N', 'T');
-            tokens_start[token_index++].identifier_name_or_string_content = name;
+            tokens_cursor->kind = enum4('I', 'D', 'N', 'T');
+            (tokens_cursor++)->identifier_name_or_string_content = name;
         } else if (strchr(" \n", c)) {
             i += 1;
         } else {
@@ -170,7 +169,7 @@ int tokenize(char *str) {
             exit(1);
         }
     }
-    return token_index;
+    return tokens_cursor;
 }
 
 /*** ^ TOKENIZE | v PARSE ***/
@@ -1118,10 +1117,9 @@ int main(int argc, char **argv) {
         panic("incorrect cmd line arg\n");
     string_literals_cursor = string_literals_start;
     tokens_cursor = tokens_start;  // the 1st tokens_cursor is for storing the tokens
-    int tokens_length = tokenize(argv[1]);
-    if (tokens_length == 0)
+    tokens_end = tokenize(argv[1]);
+    if (tokens_start == tokens_end)
         panic("no token found\n");
-    tokens_end = tokens_start + tokens_length;
     tokens_cursor = tokens_start;  // the 2nd tokens_cursor is for parsing
     funcdecls_cursor = funcdecls_start;
     funcdefs_cursor = funcdefs_start;
