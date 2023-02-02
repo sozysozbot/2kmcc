@@ -45,7 +45,6 @@ typedef struct Stmt {
     struct Expr *for_after;
     struct Stmt *first_child;
     struct Stmt *second_child;
-    struct Stmt *third_child;
 } Stmt;
 
 typedef struct LVar {
@@ -84,10 +83,12 @@ Token *tokens_cursor;
 char *string_literals_start[10000];
 char **string_literals_cursor;
 int is_alnum(char c) {
-    return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || (c == '_');
+    return strchr("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_", c) != 0;
 }
 int is_reserved_then_handle(char *ptr, int *ptr_token_index, int *ptr_i, const char *keyword, int keyword_len, int kind) {
-    if (strncmp(ptr, keyword, keyword_len) != 0 || is_alnum(ptr[keyword_len]))
+    if (strncmp(ptr, keyword, keyword_len) != 0) 
+        return 0;
+    if (is_alnum(ptr[keyword_len]))
         return 0;
     tokens_start[*ptr_token_index].kind = kind;
     (*ptr_token_index) += 1;
@@ -138,7 +139,9 @@ int tokenize(char *str) {
         if (c == '"') {
             int parsed_length = 0;
             for (i += 1; str[i + parsed_length] != '"'; parsed_length += 1)
-                if (str[i + parsed_length] == '\\' || str[i + parsed_length] == '\0')
+                if (str[i + parsed_length] == '\0')
+                    panic("unterminated string literal");
+                if (str[i + parsed_length] == '\\')
                     panic("unhandlable escape sequence");
             char *str_content = calloc(parsed_length + 1, sizeof(char));
             strncpy(str_content, str + i, parsed_length);
@@ -164,11 +167,11 @@ int tokenize(char *str) {
                 tokens_start[token_index].kind = c;
                 token_index += 1;
             }
-        } else if ('0' <= c && c <= '9') {
+        } else if (strchr("0123456789", c)) {
             char *str_ = &str[i];
             int parsed_num;
             int parsed_length = 0;
-            for (parsed_num = 0; '0' <= *str_ && *str_ <= '9'; str_ += 1) {
+            for (parsed_num = 0; strchr("0123456789", *str_); str_ += 1) {
                 parsed_num = parsed_num * 10 + (*str_ - '0');
                 parsed_length += 1;
             }
@@ -176,9 +179,7 @@ int tokenize(char *str) {
             Token token = {enum3('N', 'U', 'M'), parsed_num, 0};
             tokens_start[token_index] = token;
             token_index += 1;
-        } else if (c == ' ' || c == '\n') {
-            i += 1;
-        } else if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_') {
+        } else if (is_alnum(c)) { // 0-9 already excluded in the previous `if`
             char *start = &str[i];
             for (i += 1; is_alnum(str[i]); i += 1) {
             }
@@ -189,6 +190,8 @@ int tokenize(char *str) {
             token.identifier_name_or_string_content = name;
             tokens_start[token_index] = token;
             token_index += 1;
+        } else if (strchr(" \n", c)) {
+            i += 1;
         } else {
             fprintf(stderr, "unknown character %c(%d)\n", c, c);
             exit(1);
@@ -397,8 +400,12 @@ Expr *parsePrimary() {
     return expr;
 }
 
+int is_int_or_char(Kind kind) {
+    return (kind == enum3('i', 'n', 't')) + (kind == enum4('c', 'h', 'a', 'r'));
+}
+
 int is_integer(Type *typ) {
-    return typ->kind == enum3('i', 'n', 't') || typ->kind == enum4('c', 'h', 'a', 'r');
+    return is_int_or_char(typ->kind);
 }
 
 Expr *assert_integer(Expr *e) {
@@ -703,9 +710,9 @@ Stmt *parseStmt() {
         stmt->expr = decay_if_arr(parseExpr());
         consume_otherwise_panic(')');
         stmt->stmt_kind = enum2('i', 'f');
-        stmt->second_child = parseStmt();  // then-block
+        stmt->first_child = parseStmt();  // then-block
         if (maybe_consume(enum4('e', 'l', 's', 'e')))
-            stmt->third_child = parseStmt();  // else-block
+            stmt->second_child = parseStmt();  // else-block
         return stmt;
     }
     if (maybe_consume(enum4('W', 'H', 'I', 'L'))) {
@@ -728,13 +735,8 @@ Stmt *parseStmt() {
         stmt->second_child = parseStmt();
         return stmt;
     }
-    if (maybe_consume(enum3('i', 'n', 't')) || maybe_consume(enum4('c', 'h', 'a', 'r'))) {
-        tokens_cursor += -1;
+    if (is_int_or_char(tokens_cursor->kind)) {
         NameAndType *nt = consume_type_and_ident();
-        if (lvars_cursor == lvars_start + 100) {
-            fprintf(stderr, "too many local variables");
-            exit(1);
-        }
         lvars_cursor->name = nt->name;
         lvars_cursor->type = nt->type;
         lvars_cursor += 1;
@@ -941,11 +943,11 @@ void CodegenStmt(Stmt *stmt) {
         EvaluateExprIntoRax(stmt->expr);
         printf("  cmp rax, 0\n");
         printf("  je  .Lelse%d\n", label);
-        CodegenStmt(stmt->second_child);
+        CodegenStmt(stmt->first_child);
         printf("  jmp .Lend%d\n", label);
         printf(".Lelse%d:\n", label);
-        if (stmt->third_child != 0)
-            CodegenStmt(stmt->third_child);
+        if (stmt->second_child != 0)
+            CodegenStmt(stmt->second_child);
         printf(".Lend%d:\n", label);
     } else if (stmt->stmt_kind == enum4('W', 'H', 'I', 'L')) {
         int label = (labelCounter += 1);
