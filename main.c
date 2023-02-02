@@ -901,10 +901,8 @@ void EvaluateLValueAddressIntoRax(Expr *expr) {
         printf("  mov eax, OFFSET FLAT:.LC%d\n", find_strlit(expr->func_or_ident_name_or_string_content));
     } else if (expr->expr_kind == enum4('1', 'A', 'R', 'Y') && expr->op == '*') {
         EvaluateExprIntoRax(expr->first_child);
-    } else {
-        fprintf(stderr, "not lvalue");
-        exit(1);
-    }
+    } else
+        panic("not lvalue");
 }
 
 void CodegenStmt(Stmt *stmt) {
@@ -1116,19 +1114,15 @@ void EvaluateExprIntoRax(Expr *expr) {
 /*** ^ CODEGEN | v MAIN ***/
 
 int main(int argc, char **argv) {
-    if (argc != 2) {
-        fprintf(stderr, "incorrect cmd line arg\n");
-        exit(1);
-    }
-    char *p = argv[1];
+    if (argc != 2)
+        panic("incorrect cmd line arg\n");
     string_literals_cursor = string_literals_start;
-    int tokens_length = tokenize(p);
-    if (tokens_length == 0) {
-        fprintf(stderr, "No token found");
-        exit(1);
-    }
-    tokens_cursor = tokens_start;
+    tokens_cursor = tokens_start;  // the 1st tokens_cursor is for storing the tokens
+    int tokens_length = tokenize(argv[1]);
+    if (tokens_length == 0)
+        panic("no token found\n");
     tokens_end = tokens_start + tokens_length;
+    tokens_cursor = tokens_start;  // the 2nd tokens_cursor is for parsing
     funcdecls_cursor = funcdecls_start;
     funcdefs_cursor = funcdefs_start;
     global_vars_cursor = global_vars_start;
