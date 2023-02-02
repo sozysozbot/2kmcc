@@ -262,8 +262,8 @@ int tokenize(char *str) {
             tokens_start[token_index] = token;
             token_index++;
         } else {
-            fprintf(stderr, "%s: unknown character %c(%d)\n", __FUNCTION__, c, c);
-            return -1;
+            fprintf(stderr, "unknown character %c(%d)\n", c, c);
+            exit(1);
         }
     }
     return token_index;
@@ -271,40 +271,30 @@ int tokenize(char *str) {
 
 /*** ^ TOKENIZE | v PARSE ***/
 
-Type *type_int() {
+Type *type(Kind kind) {
     Type *t = calloc(1, sizeof(Type));
-    t->kind = enum3('i', 'n', 't');
-    return t;
-}
-
-Type *type_char() {
-    Type *t = calloc(1, sizeof(Type));
-    t->kind = enum4('c', 'h', 'a', 'r');
+    t->kind = kind;
     return t;
 }
 
 Type *ptr_of(Type *t) {
-    Type *new_t = calloc(1, sizeof(Type));
-    new_t->kind = '*';
+    Type *new_t = type('*');
     new_t->ptr_to = t;
     return new_t;
 }
 
 Type *arr_of(Type *t, int array_size) {
-    Type *new_t = calloc(1, sizeof(Type));
-    new_t->kind = enum2('[', ']');
+    Type *new_t = type(enum2('[', ']'));
     new_t->ptr_to = t;
     new_t->array_size = array_size;
     return new_t;
 }
 
 Type *deref(Type *t) {
-    if (t->kind == '*') {
+    if (t->kind == '*')
         return t->ptr_to;
-    } else {
-        fprintf(stderr, "Cannot deref a non-pointer type\n");
-        exit(1);
-    }
+    fprintf(stderr, "Cannot deref a non-pointer type\n");
+    exit(1);
 }
 
 int size(Type *t) {
@@ -316,28 +306,17 @@ int size(Type *t) {
         return 1;
     } else if (t->kind == enum2('[', ']')) {
         return t->array_size * size(t->ptr_to);
-    } else {
-        fprintf(stderr, "unknown size\n");
-        exit(1);
     }
+    fprintf(stderr, "unknown size\n");
+    exit(1);
 }
 
 Expr *numberexpr(int value) {
     Expr *numberexp = calloc(1, sizeof(Expr));
     numberexp->value = value;
     numberexp->expr_kind = enum3('N', 'U', 'M');
-    numberexp->typ = type_int();
+    numberexp->typ = type(enum3('i', 'n', 't'));
     return numberexp;
-}
-
-Expr *binaryExpr(Expr *first_child, Expr *second_child, Kind binaryop, Type *typ) {
-    Expr *newexp = calloc(1, sizeof(Expr));
-    newexp->first_child = first_child;
-    newexp->expr_kind = enum4('2', 'A', 'R', 'Y');
-    newexp->op = binaryop;
-    newexp->second_child = second_child;
-    newexp->typ = typ;
-    return newexp;
 }
 
 Expr *unaryExpr(Expr *first_child, Kind unaryop, Type *typ) {
@@ -349,22 +328,27 @@ Expr *unaryExpr(Expr *first_child, Kind unaryop, Type *typ) {
     return newexp;
 }
 
+Expr *binaryExpr(Expr *first_child, Expr *second_child, Kind binaryop, Type *typ) {
+    Expr *newexp = unaryExpr(first_child, binaryop, typ);
+    newexp->expr_kind = enum4('2', 'A', 'R', 'Y');
+    newexp->second_child = second_child;
+    return newexp;
+}
+
 Expr *decay_if_arr(Expr *first_child) {
-    if (first_child->typ->kind == enum2('[', ']')) {
-        Type *t = calloc(1, sizeof(Type));
-        t->ptr_to = first_child->typ->ptr_to;
-        t->kind = '*';
-        return unaryExpr(first_child, enum4('[', ']', '>', '*'), t);
-    }
-    return first_child;
+    if (first_child->typ->kind != enum2('[', ']'))
+        return first_child;
+    Type *t = calloc(1, sizeof(Type));
+    t->ptr_to = first_child->typ->ptr_to;
+    t->kind = '*';
+    return unaryExpr(first_child, enum4('[', ']', '>', '*'), t);
 }
 
 int maybe_consume(Kind kind) {
-    if (tokens_cursor->kind == kind) {
-        tokens_cursor++;
-        return 1;
-    }
-    return 0;
+    if (tokens_cursor->kind != kind)
+        return 0;
+    tokens_cursor++;
+    return 1;
 }
 
 char *decode_kind(Kind kind) {
@@ -409,14 +393,12 @@ NameAndType **global_vars_cursor;
 
 Type *lookup_ident_type(char *name) {
     for (int i = 0; lvars_start[i].name; i++) {
-        if (strcmp(lvars_start[i].name, name) == 0) {
+        if (strcmp(lvars_start[i].name, name) == 0)
             return lvars_start[i].type;
-        }
     }
     for (int i = 0; global_vars_start[i]; i++) {
-        if (strcmp(global_vars_start[i]->name, name) == 0) {
+        if (strcmp(global_vars_start[i]->name, name) == 0)
             return global_vars_start[i]->type;
-        }
     }
     fprintf(stderr, "cannot find an identifier named `%s`; cannot determine the type\n", name);
     exit(1);
@@ -429,7 +411,7 @@ Type *lookup_func_type(char *name) {
         }
     }
     fprintf(stderr, "cannot find a function named `%s`; cannot determine the return type. Implicitly assumes that it return an int\n", name);
-    return type_int();
+    return type(enum3('i', 'n', 't'));
 }
 
 Expr *callingExpr(char *name, Expr **arguments, int len) {
@@ -452,7 +434,7 @@ Expr *parsePrimary() {
         Expr *string_literal_exp = calloc(1, sizeof(Expr));
         string_literal_exp->func_or_ident_name_or_string_content = tokens_cursor->identifier_name_or_string_content;
         string_literal_exp->expr_kind = enum3('S', 'T', 'R');
-        string_literal_exp->typ = arr_of(type_char(), strlen(tokens_cursor->identifier_name_or_string_content) + 1);
+        string_literal_exp->typ = arr_of(type(enum4('c', 'h', 'a', 'r')), strlen(tokens_cursor->identifier_name_or_string_content) + 1);
         tokens_cursor++;
         return string_literal_exp;
     } else if (tokens_cursor->kind == enum4('I', 'D', 'N', 'T')) {
@@ -474,15 +456,13 @@ Expr *parsePrimary() {
                 arguments[i] = decay_if_arr(expr);
             }
             return callingExpr(name, arguments, i + 1);
-        } else {
-            Expr *ident_exp = calloc(1, sizeof(Expr));
-            ident_exp->func_or_ident_name_or_string_content = name;
-            ident_exp->expr_kind = enum4('I', 'D', 'N', 'T');
-            ident_exp->typ = lookup_ident_type(name);
-            return ident_exp;
         }
+        Expr *ident_exp = calloc(1, sizeof(Expr));
+        ident_exp->func_or_ident_name_or_string_content = name;
+        ident_exp->expr_kind = enum4('I', 'D', 'N', 'T');
+        ident_exp->typ = lookup_ident_type(name);
+        return ident_exp;
     }
-
     consume_otherwise_panic('(');
     Expr *expr = parseExpr();  // NO DECAY
     consume_otherwise_panic(')');
@@ -542,7 +522,7 @@ void assert_compatible_type(Type *t1, Type *t2) {
 Expr *expr_add(Expr *lhs, Expr *rhs) {
     if (is_integer(lhs->typ)) {
         if (is_integer(rhs->typ)) {
-            return binaryExpr(lhs, rhs, '+', type_int());
+            return binaryExpr(lhs, rhs, '+', type(enum3('i', 'n', 't')));
         } else if (rhs->typ->kind == '*') {
             return expr_add(rhs, lhs);
         } else {
@@ -551,7 +531,7 @@ Expr *expr_add(Expr *lhs, Expr *rhs) {
         }
     } else if (lhs->typ->kind == '*') {
         if (is_integer(rhs->typ)) {
-            return binaryExpr(lhs, binaryExpr(numberexpr(size(deref(lhs->typ))), rhs, '*', type_int()), '+', lhs->typ);
+            return binaryExpr(lhs, binaryExpr(numberexpr(size(deref(lhs->typ))), rhs, '*', type(enum3('i', 'n', 't'))), '+', lhs->typ);
         } else {
             fprintf(stderr, "cannot add\n");
             exit(1);
@@ -565,17 +545,17 @@ Expr *expr_add(Expr *lhs, Expr *rhs) {
 Expr *expr_subtract(Expr *lhs, Expr *rhs) {
     if (is_integer(lhs->typ)) {
         if (is_integer(rhs->typ)) {
-            return binaryExpr(lhs, rhs, '-', type_int());
+            return binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't')));
         } else if (rhs->typ->kind == '*') {
             fprintf(stderr, "cannot subtract\n");
             exit(1);
         }
     } else if (lhs->typ->kind == '*') {
         if (is_integer(rhs->typ)) {
-            return binaryExpr(lhs, binaryExpr(numberexpr(size(deref(lhs->typ))), rhs, '*', type_int()), '-', lhs->typ);
+            return binaryExpr(lhs, binaryExpr(numberexpr(size(deref(lhs->typ))), rhs, '*', type(enum3('i', 'n', 't'))), '-', lhs->typ);
         } else if (rhs->typ->kind == '*') {
             assert_same_type(lhs->typ, rhs->typ);
-            return binaryExpr(binaryExpr(lhs, rhs, '-', type_int()), numberexpr(size(deref(lhs->typ))), '/', type_int());
+            return binaryExpr(binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't'))), numberexpr(size(deref(lhs->typ))), '/', type(enum3('i', 'n', 't')));
         } else {
             fprintf(stderr, "cannot subtract\n");
             exit(1);
@@ -606,7 +586,7 @@ Expr *parseUnary() {
     if (maybe_consume('+')) {
         return assert_integer(parseCast());
     } else if (maybe_consume('-')) {
-        return binaryExpr(numberexpr(0), assert_integer(parseCast()), '-', type_int());
+        return binaryExpr(numberexpr(0), assert_integer(parseCast()), '-', type(enum3('i', 'n', 't')));
     } else if (maybe_consume('*')) {
         Expr *expr = decay_if_arr(parseCast());
         return unaryExpr(expr, '*', deref(expr->typ));
@@ -628,9 +608,9 @@ Expr *parseMultiplicative() {
             fprintf(stderr, "Expected operator got Number");
             exit(1);
         } else if (maybe_consume('*')) {
-            result = binaryExpr(assert_integer(result), assert_integer(parseUnary()), '*', type_int());
+            result = binaryExpr(assert_integer(result), assert_integer(parseUnary()), '*', type(enum3('i', 'n', 't')));
         } else if (maybe_consume('/')) {
-            result = binaryExpr(assert_integer(result), assert_integer(parseUnary()), '/', type_int());
+            result = binaryExpr(assert_integer(result), assert_integer(parseUnary()), '/', type(enum3('i', 'n', 't')));
         } else {
             return result;
         }
@@ -661,13 +641,13 @@ Expr *parseRelational() {
     Expr *result = parseAdditive();
     while (tokens_cursor < tokens_end) {
         if (maybe_consume('>')) {
-            result = binaryExpr(decay_if_arr(result), decay_if_arr(parseAdditive()), '>', type_int());
+            result = binaryExpr(decay_if_arr(result), decay_if_arr(parseAdditive()), '>', type(enum3('i', 'n', 't')));
         } else if (maybe_consume(enum2('>', '='))) {
-            result = binaryExpr(decay_if_arr(result), decay_if_arr(parseAdditive()), enum2('>', '='), type_int());
+            result = binaryExpr(decay_if_arr(result), decay_if_arr(parseAdditive()), enum2('>', '='), type(enum3('i', 'n', 't')));
         } else if (maybe_consume('<')) {
-            result = binaryExpr(decay_if_arr(parseAdditive()), decay_if_arr(result), '>', type_int());  // children & operator swapped
+            result = binaryExpr(decay_if_arr(parseAdditive()), decay_if_arr(result), '>', type(enum3('i', 'n', 't')));  // children & operator swapped
         } else if (maybe_consume(enum2('<', '='))) {
-            result = binaryExpr(decay_if_arr(parseAdditive()), decay_if_arr(result), enum2('>', '='), type_int());  // children & operator swapped
+            result = binaryExpr(decay_if_arr(parseAdditive()), decay_if_arr(result), enum2('>', '='), type(enum3('i', 'n', 't')));  // children & operator swapped
         } else {
             return result;
         }
@@ -680,9 +660,9 @@ Expr *parseEquality() {
     Expr *result = parseRelational();
     while (tokens_cursor < tokens_end) {
         if (maybe_consume(enum2('=', '='))) {
-            result = binaryExpr(decay_if_arr(result), decay_if_arr(parseRelational()), enum2('=', '='), type_int());
+            result = binaryExpr(decay_if_arr(result), decay_if_arr(parseRelational()), enum2('=', '='), type(enum3('i', 'n', 't')));
         } else if (maybe_consume(enum2('!', '='))) {
-            result = binaryExpr(decay_if_arr(result), decay_if_arr(parseRelational()), enum2('!', '='), type_int());
+            result = binaryExpr(decay_if_arr(result), decay_if_arr(parseRelational()), enum2('!', '='), type(enum3('i', 'n', 't')));
         } else {
             return result;
         }
@@ -706,9 +686,8 @@ Expr *parseExpr() {
 }
 
 Expr *parseOptionalExprAndToken(Kind target) {
-    if (maybe_consume(target)) {
+    if (maybe_consume(target))
         return 0;
-    }
     Expr *expr = decay_if_arr(parseExpr());
     consume_otherwise_panic(target);
     return expr;
@@ -724,15 +703,11 @@ NameAndType *consume_type_and_ident_1st_half() {
         fprintf(stderr, "expected `int` or `char`; got TokenKind `%s`\n", decode_kind(tokens_cursor->kind));
         exit(1);
     }
-
-    while (maybe_consume('*')) {
+    while (maybe_consume('*'))
         type = ptr_of(type);
-    }
-
     expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
     char *name = tokens_cursor->identifier_name_or_string_content;
     tokens_cursor++;
-
     NameAndType *ans = calloc(1, sizeof(NameAndType));
     ans->name = name;
     ans->type = type;
@@ -742,7 +717,6 @@ NameAndType *consume_type_and_ident_1st_half() {
 NameAndType *consume_type_and_ident_2nd_half(NameAndType *ans) {
     Type *elem_t = ans->type;
     Type *insertion_point;
-
     if (maybe_consume('[')) {
         expect_otherwise_panic(enum3('N', 'U', 'M'));
         Type *t = calloc(1, sizeof(Type));
@@ -765,7 +739,6 @@ NameAndType *consume_type_and_ident_2nd_half(NameAndType *ans) {
         tokens_cursor++;
         consume_otherwise_panic(']');
     }
-
     return ans;
 }
 
@@ -803,9 +776,8 @@ Stmt *parseStmt() {
         consume_otherwise_panic(')');
         stmt->stmt_kind = enum2('i', 'f');
         stmt->second_child = parseStmt();  // then-block
-        if (maybe_consume(enum4('e', 'l', 's', 'e'))) {
+        if (maybe_consume(enum4('e', 'l', 's', 'e')))
             stmt->third_child = parseStmt();  // else-block
-        }
         return stmt;
     }
     if (maybe_consume(enum4('W', 'H', 'I', 'L'))) {
@@ -1008,15 +980,12 @@ void EvaluateLValueAddressIntoRax(Expr *expr) {
     if (expr->expr_kind == enum4('I', 'D', 'N', 'T')) {
         LVar *local = findLVar(expr->func_or_ident_name_or_string_content);
         if (local) {
-            printf("  mov rax, rbp\n");
-            printf("  sub rax, %d\n", local->offset_from_rbp);
+            printf("  lea rax, [rbp - %d]\n", local->offset_from_rbp);
+        } else if (isGVar(expr->func_or_ident_name_or_string_content)) {
+            printf("  mov eax, OFFSET FLAT:%s\n", expr->func_or_ident_name_or_string_content);
         } else {
-            if (!isGVar(expr->func_or_ident_name_or_string_content)) {
-                fprintf(stderr, "undefined variable %s\n", expr->func_or_ident_name_or_string_content);
-                exit(1);
-            } else {
-                printf("  mov eax, OFFSET FLAT:%s\n", expr->func_or_ident_name_or_string_content);
-            }
+            fprintf(stderr, "undefined variable %s\n", expr->func_or_ident_name_or_string_content);
+            exit(1);
         }
     } else if (expr->expr_kind == enum3('S', 'T', 'R')) {
         printf("  mov eax, OFFSET FLAT:.LC%d\n", find_strlit(expr->func_or_ident_name_or_string_content));
