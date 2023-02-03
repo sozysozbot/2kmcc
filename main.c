@@ -213,7 +213,7 @@ int size(Type *t) {
     exit(1);
 }
 
-Expr *numberexpr(int value) {
+Expr *numberExpr(int value) {
     Expr *numberexp = calloc(1, sizeof(Expr));
     numberexp->value = value;
     if (value) {
@@ -337,7 +337,7 @@ Expr *identExpr(char *name) {
 Expr *parsePrimary() {
     panic_if_eof();
     if (tokens_cursor->kind == enum3('N', 'U', 'M'))
-        return numberexpr((tokens_cursor++)->value);
+        return numberExpr((tokens_cursor++)->value);
     else if (tokens_cursor->kind == enum3('S', 'T', 'R')) {
         char *str_content = (tokens_cursor++)->identifier_name_or_string_content;
         Expr *string_literal_exp = calloc(1, sizeof(Expr));
@@ -430,7 +430,7 @@ Expr *expr_add(Expr *lhs, Expr *rhs) {
         }
     } else if (lhs->typ->kind == '*') {
         if (is_integer(rhs->typ)) {
-            return binaryExpr(lhs, binaryExpr(numberexpr(size(deref(lhs->typ))), rhs, '*', type(enum3('i', 'n', 't'))), '+', lhs->typ);
+            return binaryExpr(lhs, binaryExpr(numberExpr(size(deref(lhs->typ))), rhs, '*', type(enum3('i', 'n', 't'))), '+', lhs->typ);
         } else {
             fprintf(stderr, "cannot add\n");
             exit(1);
@@ -451,12 +451,12 @@ Expr *expr_subtract(Expr *lhs, Expr *rhs) {
         }
     } else if (lhs->typ->kind == '*') {
         if (is_integer(rhs->typ)) {
-            return binaryExpr(lhs, binaryExpr(numberexpr(size(deref(lhs->typ))), rhs, '*', type(enum3('i', 'n', 't'))), '-', lhs->typ);
+            return binaryExpr(lhs, binaryExpr(numberExpr(size(deref(lhs->typ))), rhs, '*', type(enum3('i', 'n', 't'))), '-', lhs->typ);
         } else if (rhs->typ->kind == '*') {
             if (!is_same_type(lhs->typ, rhs->typ)) {
                 panic_two_types("cannot subtract two expressions with different pointer types", lhs->typ, rhs->typ);
             }
-            return binaryExpr(binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't'))), numberexpr(size(deref(lhs->typ))), '/', type(enum3('i', 'n', 't')));
+            return binaryExpr(binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't'))), numberExpr(size(deref(lhs->typ))), '/', type(enum3('i', 'n', 't')));
         } else {
             fprintf(stderr, "cannot subtract: invalid type in the second operand\n");
             exit(1);
@@ -475,13 +475,13 @@ Expr *parsePostfix() {
             Expr *expr = decay_if_arr(addition);
             result = unaryExpr(expr, '*', deref(expr->typ));
         } else if (maybe_consume(enum2('+', '+'))) {  // `a++` is `(a ++) - 1
-            Expr *addition = expr_add(decay_if_arr(result), numberexpr(1));
+            Expr *addition = expr_add(decay_if_arr(result), numberExpr(1));
             addition->op = enum2('+', '=');
-            result = expr_subtract(addition, numberexpr(1));
+            result = expr_subtract(addition, numberExpr(1));
         } else if (maybe_consume(enum2('-', '-'))) {  // `a--` is `(a -= 1) + 1
-            Expr *subtraction = expr_subtract(decay_if_arr(result), numberexpr(1));
+            Expr *subtraction = expr_subtract(decay_if_arr(result), numberExpr(1));
             subtraction->op = enum2('-', '=');
-            result = expr_add(subtraction, numberexpr(1));
+            result = expr_add(subtraction, numberExpr(1));
         } else
             break;
     }
@@ -494,13 +494,16 @@ Expr *parseCast() {
 }
 
 Type *consume_simple_type();
+Expr *equalityExpr(Expr *lhs, Expr *rhs, Kind kind);
 
 Expr *parseUnary() {
     panic_if_eof();
     if (maybe_consume('+')) {
         return assert_integer(parseCast());
     } else if (maybe_consume('-')) {
-        return binaryExpr(numberexpr(0), assert_integer(parseCast()), '-', type(enum3('i', 'n', 't')));
+        return binaryExpr(numberExpr(0), assert_integer(parseCast()), '-', type(enum3('i', 'n', 't')));
+    } else if (maybe_consume('!')) {
+        return equalityExpr(numberExpr(0), parseCast(), enum2('=', '=')); // The expression !E is equivalent to (0==E)
     } else if (maybe_consume('*')) {
         Expr *expr = decay_if_arr(parseCast());
         return unaryExpr(expr, '*', deref(expr->typ));
@@ -513,14 +516,14 @@ Expr *parseUnary() {
                 tokens_cursor++;
                 Type *typ = consume_simple_type();
                 consume_otherwise_panic(')');
-                return numberexpr(size(typ));
+                return numberExpr(size(typ));
             } else {
                 Expr *expr = parseUnary();  // NO DECAY
-                return numberexpr(size(expr->typ));
+                return numberExpr(size(expr->typ));
             }
         } else {
             Expr *expr = parseUnary();  // NO DECAY
-            return numberexpr(size(expr->typ));
+            return numberExpr(size(expr->typ));
         }
     }
     return parsePostfix();
@@ -591,31 +594,30 @@ void assert_compatible_in_equality(Expr *e1, Expr *e2) {
     panic_two_types("cannot compare (un)equal two operands with incompatible types", e1->typ, e2->typ);
 }
 
-void assert_compatible_in_simple_assignment(Type *lhs_type, Expr *e2) {
-    if (is_compatible_type(lhs_type, e2->typ))
-        return;
-    if (lhs_type->kind == '*' && e2->expr_kind == '0')  // the left operand is an atomic, qualified, or unqualified pointer, and the right is a null pointer constant
-        return;
-    panic_two_types("cannot assign/initialize because two incompatible types are detected", lhs_type, e2->typ);
+Expr *equalityExpr(Expr *lhs, Expr *rhs, Kind kind) {
+    assert_compatible_in_equality(decay_if_arr(lhs), decay_if_arr(rhs));
+    return binaryExpr(decay_if_arr(lhs), decay_if_arr(rhs), kind, type(enum3('i', 'n', 't')));
 }
 
 Expr *parseEquality() {
     panic_if_eof();
     Expr *result = parseRelational();
-    while (tokens_cursor < tokens_end) {
-        if (maybe_consume(enum2('=', '='))) {
-            Expr *rhs = decay_if_arr(parseRelational());
-            assert_compatible_in_equality(decay_if_arr(result), rhs);
-            result = binaryExpr(decay_if_arr(result), rhs, enum2('=', '='), type(enum3('i', 'n', 't')));
-        } else if (maybe_consume(enum2('!', '='))) {
-            Expr *rhs = decay_if_arr(parseRelational());
-            assert_compatible_in_equality(decay_if_arr(result), rhs);
-            result = binaryExpr(decay_if_arr(result), rhs, enum2('!', '='), type(enum3('i', 'n', 't')));
-        } else {
+    while (tokens_cursor < tokens_end)
+        if (maybe_consume(enum2('=', '=')))
+            result = equalityExpr(result, parseRelational(), enum2('=', '='));
+        else if (maybe_consume(enum2('!', '=')))
+            result = equalityExpr(result, parseRelational(), enum2('!', '='));
+        else
             return result;
-        }
-    }
     return result;
+}
+
+void assert_compatible_in_simple_assignment(Type *lhs_type, Expr *rhs) {
+    if (is_compatible_type(lhs_type, rhs->typ))
+        return;
+    if (lhs_type->kind == '*' && rhs->expr_kind == '0')  // the left operand is an atomic, qualified, or unqualified pointer, and the right is a null pointer constant
+        return;
+    panic_two_types("cannot assign/initialize because two incompatible types are detected", lhs_type, rhs->typ);
 }
 
 Expr *parseAssign() {
@@ -714,7 +716,7 @@ Stmt *parse_var_def_maybe_with_initializer() {
     if (maybe_consume(';')) {
         Stmt *stmt = calloc(1, sizeof(Stmt));
         stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
-        stmt->expr = numberexpr(42);
+        stmt->expr = numberExpr(42);
         return stmt;
     }
     consume_otherwise_panic('=');
@@ -734,7 +736,7 @@ Stmt *parseStmt() {
     if (maybe_consume('{')) {
         Stmt *result = calloc(1, sizeof(Stmt));
         result->stmt_kind = enum4('e', 'x', 'p', 'r');
-        result->expr = numberexpr(42);
+        result->expr = numberExpr(42);
         while (!maybe_consume('}')) {
             Stmt *newstmt = calloc(1, sizeof(Stmt));
             newstmt->first_child = result;
@@ -778,7 +780,7 @@ Stmt *parseStmt() {
         consume_otherwise_panic('(');
         if (is_int_or_char(tokens_cursor->kind)) {
             Stmt *initializer = parse_var_def_maybe_with_initializer();
-            for_stmt->expr = numberexpr(42);
+            for_stmt->expr = numberExpr(42);
             for_stmt->for_cond = parseOptionalExprAndToken(';');
             for_stmt->for_after = parseOptionalExprAndToken(')');
             for_stmt->second_child = parseStmt();
@@ -809,7 +811,7 @@ Stmt *parseFunctionContent() {
     consume_otherwise_panic('{');
     Stmt *result = calloc(1, sizeof(Stmt));
     result->stmt_kind = enum4('e', 'x', 'p', 'r');
-    result->expr = numberexpr(1);
+    result->expr = numberExpr(1);
     while (!maybe_consume('}')) {
         Stmt *statement = parseStmt();
         Stmt *newstmt = calloc(1, sizeof(Stmt));
@@ -1134,7 +1136,7 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    push rax\n");
             EvaluateExprIntoRax(expr->second_child);
             printf("    pop rdi\n");
-            write_rax_to_where_rdi_points(size(expr->second_child->typ));
+            write_rax_to_where_rdi_points(size(expr->first_child->typ)); // second_child might be a 0 meaning a null pointer
         } else if (AddSubMulDivAssign_rdi_into_rax(expr->op)) {  // x @= i
             EvaluateExprIntoRax(expr->second_child);
             printf("    push rax\n");                                 // stack: i
