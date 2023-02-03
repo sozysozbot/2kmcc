@@ -322,6 +322,14 @@ Expr *callingExpr(char *name, Expr **arguments, int len) {
     return callexp;
 }
 
+Expr *identExpr(char *name) {
+    Expr *ident_exp = calloc(1, sizeof(Expr));
+    ident_exp->func_or_ident_name_or_string_content = name;
+    ident_exp->expr_kind = enum4('I', 'D', 'N', 'T');
+    ident_exp->typ = lookup_ident_type(name);
+    return ident_exp;
+}
+
 Expr *parsePrimary() {
     panic_if_eof();
     if (tokens_cursor->kind == enum3('N', 'U', 'M'))
@@ -348,11 +356,7 @@ Expr *parsePrimary() {
             }
             return callingExpr(name, arguments, i + 1);
         }
-        Expr *ident_exp = calloc(1, sizeof(Expr));
-        ident_exp->func_or_ident_name_or_string_content = name;
-        ident_exp->expr_kind = enum4('I', 'D', 'N', 'T');
-        ident_exp->typ = lookup_ident_type(name);
-        return ident_exp;
+        return identExpr(name);
     }
     consume_otherwise_panic('(');
     Expr *expr = parseExpr();  // NO DECAY
@@ -731,14 +735,24 @@ Stmt *parseStmt() {
         return stmt;
     }
     if (is_int_or_char(tokens_cursor->kind)) {
-        NameAndType *nt = consume_type_and_ident();
-        lvars_cursor->name = nt->name;
-        lvars_cursor->type = nt->type;
-        lvars_cursor += 1;
+        NameAndType *var = consume_type_and_ident();
+        lvars_cursor->name = var->name;
+        (lvars_cursor++)->type = var->type;
+        if (maybe_consume(';')) {
+            Stmt *stmt = calloc(1, sizeof(Stmt));
+            stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
+            stmt->expr = numberexpr(42);
+            return stmt;
+        }
+        consume_otherwise_panic('=');
+        if (maybe_consume('{')) {
+            panic("not supported: initializer list\n");
+        }
+        Expr *rhs = parseExpr();
         consume_otherwise_panic(';');
         Stmt *stmt = calloc(1, sizeof(Stmt));
         stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
-        stmt->expr = numberexpr(42);
+        stmt->expr = binaryExpr(identExpr(var->name), rhs, '=', var->type);
         return stmt;
     }
     Stmt *stmt = calloc(1, sizeof(Stmt));
