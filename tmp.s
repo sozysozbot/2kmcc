@@ -13,7 +13,7 @@ main:
     push rax
   mov rax, 0
     pop rdi
-    mov [rdi], eax
+    mov [rdi], rax
   mov rax, 0
     push rax
   lea rax, [rbp - 8]

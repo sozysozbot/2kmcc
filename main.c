@@ -1136,7 +1136,7 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    push rax\n");
             EvaluateExprIntoRax(expr->second_child);
             printf("    pop rdi\n");
-            write_rax_to_where_rdi_points(size(expr->second_child->typ));
+            write_rax_to_where_rdi_points(size(expr->first_child->typ)); // second_child might be a 0 meaning a null pointer
         } else if (AddSubMulDivAssign_rdi_into_rax(expr->op)) {  // x @= i
             EvaluateExprIntoRax(expr->second_child);
             printf("    push rax\n");                                 // stack: i
