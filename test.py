@@ -108,6 +108,10 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
 
+assert check(r"int main() { int p = '\\'; return p; }", ord('\\'))
+assert check(r"int main() { int p = '\"'; return p; }", ord('\"'))
+assert check(r"int main() { int p = '\''; return p; }", ord('\''))
+
 assert check("int main() { int q; int *p = &q; return p == 0;}", 0)
 
 assert check("int main() { int *p; p = 0; return 0;}", 0)
