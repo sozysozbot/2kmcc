@@ -116,10 +116,27 @@ Token *tokenize(char *str) {
         } else if (strncmp(str + i, "->", 2) == 0) {
             (tokens_cursor++)->kind = enum2('-', '>');
             i += 2;
+        } else if (c == '\'') {
+            if (str[i + 1] != '\\') {
+                tokens_cursor->kind = enum3('N', 'U', 'M');
+                (tokens_cursor++)->value = str[i + 1];
+                i += 3;
+            } else if (strchr("\\'\"?", str[i + 2])) {
+                tokens_cursor->kind = enum3('N', 'U', 'M');
+                (tokens_cursor++)->value = str[i + 2];
+                i += 4;
+            } else if (str[i + 2] == 'n') {
+                tokens_cursor->kind = enum3('N', 'U', 'M');
+                (tokens_cursor++)->value = '\n';
+                i += 4;
+            } else {
+                fprintf("Unsupported escape sequence within a character literal: `\\%c`\n", str[i + 2]);
+                exit(1);
+            }
         } else if (c == '"') {
             int parsed_length = 0;
             for (i += 1; str[i + parsed_length] != '"'; parsed_length++)
-                if (str[i + parsed_length] == '\0')
+                if (!str[i + parsed_length])
                     panic("unterminated string literal");
             if (str[i + parsed_length] == '\\')
                 panic("unhandlable escape sequence");
@@ -503,7 +520,7 @@ Expr *parseUnary() {
     } else if (maybe_consume('-')) {
         return binaryExpr(numberExpr(0), assert_integer(parseCast()), '-', type(enum3('i', 'n', 't')));
     } else if (maybe_consume('!')) {
-        return equalityExpr(numberExpr(0), parseCast(), enum2('=', '=')); // The expression !E is equivalent to (0==E)
+        return equalityExpr(numberExpr(0), parseCast(), enum2('=', '='));  // The expression !E is equivalent to (0==E)
     } else if (maybe_consume('*')) {
         Expr *expr = decay_if_arr(parseCast());
         return unaryExpr(expr, '*', deref(expr->typ));
@@ -1136,8 +1153,8 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    push rax\n");
             EvaluateExprIntoRax(expr->second_child);
             printf("    pop rdi\n");
-            write_rax_to_where_rdi_points(size(expr->first_child->typ)); // second_child might be a 0 meaning a null pointer
-        } else if (AddSubMulDivAssign_rdi_into_rax(expr->op)) {  // x @= i
+            write_rax_to_where_rdi_points(size(expr->first_child->typ));  // second_child might be a 0 meaning a null pointer
+        } else if (AddSubMulDivAssign_rdi_into_rax(expr->op)) {           // x @= i
             EvaluateExprIntoRax(expr->second_child);
             printf("    push rax\n");                                 // stack: i
             EvaluateLValueAddressIntoRax(expr->first_child);          // rax: &x
