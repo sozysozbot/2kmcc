@@ -82,6 +82,9 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
 
+assert check("int main() { int a=1; a*=3; return a; }",3)
+
+
 assert check("int main() { return sizeof(int); }", 4)
 assert check("int main() { return sizeof(int *); }", 8)
 assert check("int main() { return sizeof(char); }", 1)
