@@ -54,8 +54,8 @@ typedef struct LVar {
 
 typedef struct Token {
     Kind kind;
-    int value;
-    char *identifier_name_or_string_content;
+    int value_or_string_size; // includes the null terminator, so length+1
+    char *identifier_name_or_escaped_string_content;
 } Token;
 
 int enum2(int a, int b) {
@@ -119,33 +119,40 @@ Token *tokenize(char *str) {
         } else if (c == '\'') {
             if (str[i + 1] != '\\') {
                 tokens_cursor->kind = enum3('N', 'U', 'M');
-                (tokens_cursor++)->value = str[i + 1];
+                (tokens_cursor++)->value_or_string_size = str[i + 1];
                 i += 3;
             } else if (strchr("\\'\"?", str[i + 2])) {
                 tokens_cursor->kind = enum3('N', 'U', 'M');
-                (tokens_cursor++)->value = str[i + 2];
+                (tokens_cursor++)->value_or_string_size = str[i + 2];
                 i += 4;
             } else if (str[i + 2] == 'n') {
                 tokens_cursor->kind = enum3('N', 'U', 'M');
-                (tokens_cursor++)->value = '\n';
+                (tokens_cursor++)->value_or_string_size = '\n';
                 i += 4;
             } else {
-                fprintf("Unsupported escape sequence within a character literal: `\\%c`\n", str[i + 2]);
+                fprintf(stderr, "Not supported: Unsupported escape sequence within a character literal: `\\%c`\n", str[i + 2]);
                 exit(1);
             }
         } else if (c == '"') {
             int parsed_length = 0;
-            for (i += 1; str[i + parsed_length] != '"'; parsed_length++)
+            int true_semantic_length = 0;
+            for (i += 1; str[i + parsed_length] != '"'; parsed_length++) {
+                true_semantic_length++;
                 if (!str[i + parsed_length])
                     panic("unterminated string literal");
-            if (str[i + parsed_length] == '\\')
-                panic("unhandlable escape sequence");
-            char *str_content = calloc(parsed_length + 1, sizeof(char));
-            strncpy(str_content, str + i, parsed_length);
+                if (str[i + parsed_length] == '\\') {
+                    if (strchr("01234567x", str[i + parsed_length + 1]))
+                        panic("Not supported: Unsupported escape sequence within a string literal\n");
+                    parsed_length++;
+                }
+            }
+            char *escaped_string_content = calloc(parsed_length + 1, sizeof(char));
+            strncpy(escaped_string_content, str + i, parsed_length);
             i += parsed_length + 1;  // must also skip the remaining double-quote
             tokens_cursor->kind = enum3('S', 'T', 'R');
-            (tokens_cursor++)->identifier_name_or_string_content = str_content;
-            *(string_literals_cursor++) = str_content;
+            tokens_cursor->value_or_string_size = true_semantic_length + 1;
+            (tokens_cursor++)->identifier_name_or_escaped_string_content = escaped_string_content;
+            *(string_literals_cursor++) = escaped_string_content;
         } else if (strchr(";(){},[]~.", c)) {  // these chars do not start a multichar token
             (tokens_cursor++)->kind = c;
             i += 1;
@@ -168,7 +175,7 @@ Token *tokenize(char *str) {
             for (parsed_num = 0; strchr("0123456789", str[i]); i++)
                 parsed_num = parsed_num * 10 + (str[i] - '0');
             tokens_cursor->kind = enum3('N', 'U', 'M');
-            (tokens_cursor++)->value = parsed_num;
+            (tokens_cursor++)->value_or_string_size = parsed_num;
         } else if (is_alnum(c)) {  // 0-9 already excluded in the previous `if`
             char *start = &str[i];
             for (i++; is_alnum(str[i]); i++) {
@@ -177,7 +184,7 @@ Token *tokenize(char *str) {
             char *name = calloc(length + 1, sizeof(char));
             memcpy(name, start, length);
             tokens_cursor->kind = enum4('I', 'D', 'N', 'T');
-            (tokens_cursor++)->identifier_name_or_string_content = name;
+            (tokens_cursor++)->identifier_name_or_escaped_string_content = name;
         } else if (strchr(" \n", c)) {
             i += 1;
         } else {
@@ -354,16 +361,17 @@ Expr *identExpr(char *name) {
 Expr *parsePrimary() {
     panic_if_eof();
     if (tokens_cursor->kind == enum3('N', 'U', 'M'))
-        return numberExpr((tokens_cursor++)->value);
+        return numberExpr((tokens_cursor++)->value_or_string_size);
     else if (tokens_cursor->kind == enum3('S', 'T', 'R')) {
-        char *str_content = (tokens_cursor++)->identifier_name_or_string_content;
+        int str_size = tokens_cursor->value_or_string_size;
+        char *str_content = (tokens_cursor++)->identifier_name_or_escaped_string_content;
         Expr *string_literal_exp = calloc(1, sizeof(Expr));
         string_literal_exp->func_or_ident_name_or_string_content = str_content;
         string_literal_exp->expr_kind = enum3('S', 'T', 'R');
-        string_literal_exp->typ = arr_of(type(enum4('c', 'h', 'a', 'r')), strlen(str_content) + 1);
+        string_literal_exp->typ = arr_of(type(enum4('c', 'h', 'a', 'r')), str_size);
         return string_literal_exp;
     } else if (tokens_cursor->kind == enum4('I', 'D', 'N', 'T')) {
-        char *name = (tokens_cursor++)->identifier_name_or_string_content;
+        char *name = (tokens_cursor++)->identifier_name_or_escaped_string_content;
         if (maybe_consume('(')) {
             Expr **arguments = calloc(6, sizeof(Expr *));
             if (maybe_consume(')'))
@@ -688,7 +696,7 @@ Type *consume_simple_type() {
 NameAndType *consume_type_and_ident_1st_half() {
     Type *type = consume_simple_type();
     expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
-    char *name = (tokens_cursor++)->identifier_name_or_string_content;
+    char *name = (tokens_cursor++)->identifier_name_or_escaped_string_content;
     NameAndType *ans = calloc(1, sizeof(NameAndType));
     ans->name = name;
     ans->type = type;
@@ -703,7 +711,7 @@ NameAndType *consume_type_and_ident_2nd_half(NameAndType *ans) {
         Type *t = calloc(1, sizeof(Type));
         t->ptr_to = elem_t;
         t->kind = enum2('[', ']');
-        t->array_size = (tokens_cursor++)->value;
+        t->array_size = (tokens_cursor++)->value_or_string_size;
         insertion_point = t;
         consume_otherwise_panic(']');
         ans->type = t;
@@ -713,7 +721,7 @@ NameAndType *consume_type_and_ident_2nd_half(NameAndType *ans) {
         Type *t = calloc(1, sizeof(Type));
         t->ptr_to = elem_t;
         t->kind = enum2('[', ']');
-        t->array_size = (tokens_cursor++)->value;
+        t->array_size = (tokens_cursor++)->value_or_string_size;
         insertion_point->ptr_to = t;
         insertion_point = t;
         consume_otherwise_panic(']');
