@@ -83,6 +83,7 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 ######################################
 
 assert check("""
+int printf();
 int main() {
     for (int i = 1; i <= 3; i++) { 
         printf("a%d", -i); 
@@ -100,12 +101,13 @@ assert check("int main() { return sizeof(char); }", 1)
 assert check("int main() { return sizeof(char *); }", 8)
 assert check("int main() { return sizeof(char **); }", 8)
 
-assert check("int main() { int a; int b; a=1; b=a++; printf(\"b=%d\", b); return a; }",2, expected_stdout="b=1")
-assert check("int main() { int a; int b; a=2; b=a--; printf(\"b=%d\", b); return a; }",1, expected_stdout="b=2")
+assert check("int printf(); int main() { int a; int b; a=1; b=a++; printf(\"b=%d\", b); return a; }",2, expected_stdout="b=1")
+assert check("int printf(); int main() { int a; int b; a=2; b=a--; printf(\"b=%d\", b); return a; }",1, expected_stdout="b=2")
 
 assert check("int main() { int a; a=1; a*=3; return a; }",3)
 
 assert check("""
+int printf();
 int main() {
     int i;
     for (i = 1; i <= 3; i += 1) { 
@@ -116,6 +118,7 @@ int main() {
 """, 0, expected_stdout="a-1a-2a-3")
 
 assert check("""
+int printf();
 int main() {
     int i;
     for (i = 256; i > 1; i /= 2) { 
@@ -127,6 +130,7 @@ int main() {
 
 
 assert check("""
+int puts();
 // line comment
 int main() {
     int i; 
@@ -142,6 +146,7 @@ int main() {
 """, 0, expected_stdout="a\na\na\n")
 
 assert check("""
+int printf();
 int main() {
     int i; 
     for (i = 1; i <= 3; i = i + 1) { 
@@ -152,6 +157,7 @@ int main() {
 """, 0, expected_stdout="aaa")
 
 assert check("""
+int printf();
 int main() {
     int i;
     for (i = 1; i <= 3; i = i + 1) { 
@@ -260,22 +266,22 @@ assert check("int main() { int a; int b; int c; a = 0; b = 0; c = 3; if (a) {if 
 
 #link with what's built in gcc
 assert check_and_link_with(
-    "int main() { return identity(3); }", 
+    "int identity(); int main() { return identity(3); }", 
     linked_lib="int identity(int a) { return a; }",
     expected=3)
 
 assert check_and_link_with(
-    "int main() { return three(); }", 
+    "int three(); int main() { return three(); }", 
     linked_lib="int three() { return 3; }",
     expected=3)
 
 assert check_and_link_with(
-    "int main() { return add(2, 3); }", 
+    "int add(); int main() { return add(2, 3); }", 
     linked_lib="int add(int a, int b) { return a + b; }",
     expected=5)
 
 assert check_and_link_with(
-    "int main() { return add6(1, 2, 3, 4, 5, 6); }", 
+    "int add6(); int main() { return add6(1, 2, 3, 4, 5, 6); }", 
     linked_lib="int add6(int a, int b, int c, int d, int e, int f) { return a + b + c + d + e + f; }",
     expected=21)
 
@@ -286,13 +292,13 @@ assert check("int add2(int a, int b) { return a + b; } int main() { return add2(
 assert check("int add6(int a, int b, int c, int d, int e, int f) { return a + b + c + d + e + f; } int main() { return add6(1, 2, 3, 4, 5, 6); }", 21)
 assert check("int fib(int n) { if (n <= 1) { return n; } return fib(n-1) + fib(n-2); } int main() { return fib(8); }", 21)
 assert check("int main() { int x; int *y; x = 3; y = &x; return *y; }", 3)
-assert check_and_link_with("int main() { int x; x = 3; write4(&x); return x; }",
+assert check_and_link_with("int write4(); int main() { int x; x = 3; write4(&x); return x; }",
     linked_lib="int write4(int *p) { return *p = 4; } ", expected= 4)
 
 assert check("int main() { int x; int *y; y = &x; *y = 3; return x; }", 3)
 
 
-assert check_and_link_with("int main() { int *p; alloc4(&p, 1, 2, 4, 8); return *(p + 0) + *(p + 1) + *(p + 2) + *(p + 3); }",
+assert check_and_link_with("int alloc4(); int main() { int *p; alloc4(&p, 1, 2, 4, 8); return *(p + 0) + *(p + 1) + *(p + 2) + *(p + 3); }",
     linked_lib="""
 #include <stdlib.h>
 int alloc4(int **p, int a, int b, int c, int d) { 
@@ -326,90 +332,90 @@ assert check("int main() { int arr[2][5]; return sizeof(*arr); }", 20)
 assert check("int main() { int a[2]; *a = 1; *(a + 1) = 2; int *p; p = a; return *p + *(p + 1); }", 3)
 assert check("int main() { int a[2]; *(a + 1) = 2; *a = 1; int *p; p = a; return *p + *(p + 1); }", 3)
 
-assert check_and_link_with("int main() { int a[2][4]; **a = 3; return foo(&a); }",
+assert check_and_link_with("int foo(); int main() { int a[2][4]; **a = 3; return foo(&a); }",
     linked_lib="int foo(int (*p)[2][4]) { return (*p)[0][0] == 3; }",
     expected=1)
 
-assert check_and_link_with("int main() { int a[2][4]; **(a+0) = 3; return foo(&a); }",
+assert check_and_link_with("int foo(); int main() { int a[2][4]; **(a+0) = 3; return foo(&a); }",
     linked_lib="int foo(int (*p)[2][4]) { return (*p)[0][0] == 3; }",
     expected=1)
 
-assert check_and_link_with("int main() { int a[2][4]; **(a+1) = 3; return foo(&a); }",
+assert check_and_link_with("int foo(); int main() { int a[2][4]; **(a+1) = 3; return foo(&a); }",
     linked_lib="int foo(int (*p)[2][4]) { return (*p)[1][0] == 3; }",
     expected=1)
 
-assert check_and_link_with("int main() { int a[2][4]; *(*(a+1)) = 3; return foo(&a); }",
+assert check_and_link_with("int foo(); int main() { int a[2][4]; *(*(a+1)) = 3; return foo(&a); }",
     linked_lib="int foo(int (*p)[2][4]) { return (*p)[1][0] == 3; }",
     expected=1)
 
-assert check_and_link_with("int main() { int a[2][4]; *(*(a+1)+2) = 3; return foo(&a); }",
+assert check_and_link_with("int foo(); int main() { int a[2][4]; *(*(a+1)+2) = 3; return foo(&a); }",
     linked_lib="int foo(int (*p)[2][4]) { return (*p)[1][2] == 3; }",
     expected=1)
 
-assert check_and_link_with("int main() { int a[3][4]; *(*(a+2)+1) = 4; *(*(a+1)+2) = 3; return foo(&a); }",
+assert check_and_link_with("int foo(); int main() { int a[3][4]; *(*(a+2)+1) = 4; *(*(a+1)+2) = 3; return foo(&a); }",
     linked_lib="int foo(int (*p)[3][4]) { return (*p)[2][1] == 4 && (*p)[1][2] == 3; }",
     expected=1)
 
-assert check_and_link_with("int main() { int a[1][2]; *(*(a+0)+0) = 4; *(*(a+0)+1) = 3; return foo(&a); }",
+assert check_and_link_with("int foo(); int main() { int a[1][2]; *(*(a+0)+0) = 4; *(*(a+0)+1) = 3; return foo(&a); }",
     linked_lib="int foo(int (*p)[1][2]) { return (*p)[0][0] == 4 && (*p)[0][1] == 3; }",
     expected=1)
 
-assert check_and_link_with("int main() { int a[2][2]; *(*(a+0)+0) = 4; *(*(a+0)+1) = 3; *(*(a+1)+0) = 2; *(*(a+1)+1) = 1; return foo(&a); }",
+assert check_and_link_with("int foo(); int main() { int a[2][2]; *(*(a+0)+0) = 4; *(*(a+0)+1) = 3; *(*(a+1)+0) = 2; *(*(a+1)+1) = 1; return foo(&a); }",
     linked_lib="int foo(int (*p)[1][2]) { return (*p)[0][0] == 4 && (*p)[0][1] == 3 && (*p)[1][0] == 2 && (*p)[1][1] == 1; }",
     expected=1)
 
-assert check_and_link_with("int main() { int i; int j; foo(5); for(i=0;i<2;i=i+1) { foo(i); } return 1; }",
+assert check_and_link_with("int foo(); int main() { int i; int j; foo(5); for(i=0;i<2;i=i+1) { foo(i); } return 1; }",
     linked_lib='''
 #include <stdio.h>
 int foo(int i) { printf("i=%d\\n", i); return 0; }''',
     expected=1)
 
-assert check_and_link_with("int main() { int p[1]; int j; *p=3; for(j=0;j<2;j=j+1) { foo(p, j); } return *p; }",
+assert check_and_link_with("int foo(); int main() { int p[1]; int j; *p=3; for(j=0;j<2;j=j+1) { foo(p, j); } return *p; }",
     linked_lib='''
 #include <stdio.h>
 int foo(int *p, int j) { *p = j; return 0; }''',
     expected=1)
 
-assert check_and_link_with("int main() { int i; int j; foo(5); for(j=0;j<2;j=j+1) { foo(j); } return 1; }",
+assert check_and_link_with("int foo(); int main() { int i; int j; foo(5); for(j=0;j<2;j=j+1) { foo(j); } return 1; }",
     linked_lib='''
 #include <stdio.h>
 int foo(int j) { printf("j=%d\\n", j); return 0; }''',
     expected=1)
 
-assert check_and_link_with("int main() { int i; int j; for(i=0;i<2;i=i+1) {for(i=0;i<4;i=i+1) { foo(i, i); } } return 1; }",
+assert check_and_link_with("int foo(); int main() { int i; int j; for(i=0;i<2;i=i+1) {for(i=0;i<4;i=i+1) { foo(i, i); } } return 1; }",
     linked_lib='''
 #include <stdio.h>
 int foo(int i, int j) { printf("i=%d, j=%d\\n", i, j); return 0; }''',
     expected=1)
 
-assert check_and_link_with("int main() { int i; int j; for(i=0;i<2;i=i+1) {for(j=0;j<4;j=j+1) { foo(i, j); } } return 1; }",
+assert check_and_link_with("int foo(); int main() { int i; int j; for(i=0;i<2;i=i+1) {for(j=0;j<4;j=j+1) { foo(i, j); } } return 1; }",
     linked_lib='''
 #include <stdio.h>
 int foo(int i, int j) { printf("i=%d, j=%d\\n", i, j); return 0; }''',
     expected=1)
 
 
-assert check_and_link_with("int main() { int a[2][4]; int i; int j; for(i=0;i<2;1) {for(j=0;j<4;1) {*(*(a + i) + j) = i * 10 + j; j=j+1;}i=i+1;} return foo(&a); }",
+assert check_and_link_with("int foo(); int main() { int a[2][4]; int i; int j; for(i=0;i<2;1) {for(j=0;j<4;1) {*(*(a + i) + j) = i * 10 + j; j=j+1;}i=i+1;} return foo(&a); }",
     linked_lib='''
 #include <stdio.h>
 int foo(int (*p)[2][4]) { int i; int j; for(i=0;i<2;i++) for(j=0;j<4;j++) { printf("i=%d, j=%d, (*p)[i][j]=%d\\n", i, j, (*p)[i][j]); if ((*p)[i][j] != i * 10 + j) return i * 10 + j * 3;} return 42; }''',
     expected=42)
 
 
-assert check_and_link_with("int main() { int a[2][4]; int i; int j; for(i=0;i<2;i=i+1) {for(j=0;j<4;j=j+1) {*(*(a + i) + j) = i * 10 + j;}} return foo(&a); }",
+assert check_and_link_with("int foo(); int main() { int a[2][4]; int i; int j; for(i=0;i<2;i=i+1) {for(j=0;j<4;j=j+1) {*(*(a + i) + j) = i * 10 + j;}} return foo(&a); }",
     linked_lib='''
 #include <stdio.h>
 int foo(int (*p)[2][4]) { int i; int j; for(i=0;i<2;i++) for(j=0;j<4;j++) { printf("i=%d, j=%d, (*p)[i][j]=%d\\n", i, j, (*p)[i][j]); if ((*p)[i][j] != i * 10 + j) return i * 10 + j * 3;} return 42; }''',
     expected=42)
 
 
-assert check_and_link_with("int main() { int a[2][4]; int i; int j; for(i=0;i<2;i=i+1) for(j=0;j<4;j=j+1) *(*(a + i) + j) = i * 10 + j; return foo(&a); }",
+assert check_and_link_with("int foo(); int main() { int a[2][4]; int i; int j; for(i=0;i<2;i=i+1) for(j=0;j<4;j=j+1) *(*(a + i) + j) = i * 10 + j; return foo(&a); }",
     linked_lib='''
 #include <stdio.h>
 int foo(int (*p)[2][4]) { int i; int j; for(i=0;i<2;i++) for(j=0;j<4;j++) { printf("i=%d, j=%d, (*p)[i][j]=%d\\n", i, j, (*p)[i][j]); if ((*p)[i][j] != i * 10 + j) return i * 10 + j * 3;} return 42; }''',
     expected=42)
 
-assert check_and_link_with("int main() { int a[2][4]; int i; int j; for(i=0;i<2;i=i+1) {for(j=0;j<4;j=j+1) {a[i][j] = i * 10 + j;}} return foo(&a); }",
+assert check_and_link_with("int foo(); int main() { int a[2][4]; int i; int j; for(i=0;i<2;i=i+1) {for(j=0;j<4;j=j+1) {a[i][j] = i * 10 + j;}} return foo(&a); }",
     linked_lib='''
 #include <stdio.h>
 int foo(int (*p)[2][4]) { int i; int j; for(i=0;i<2;i++) for(j=0;j<4;j++) { printf("i=%d, j=%d, (*p)[i][j]=%d\\n", i, j, (*p)[i][j]); if ((*p)[i][j] != i * 10 + j) return i * 10 + j * 3;} return 42; }''',

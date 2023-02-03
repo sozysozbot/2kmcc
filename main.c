@@ -822,6 +822,8 @@ void parseToplevel() {
         if (maybe_consume(')')) {
             lvars_cursor = lvars_start = calloc(100, sizeof(NameAndType));
             store_func_decl(rettype_and_funcname);
+            if (maybe_consume(';'))
+                return;
             *(funcdefs_cursor++) = constructFuncDef(parseFunctionContent(), rettype_and_funcname, 0, params_start);
             return;
         }
@@ -843,6 +845,8 @@ void parseToplevel() {
             (lvars_cursor++)->type = param->type;
         }
         store_func_decl(rettype_and_funcname);
+        if (maybe_consume(';'))
+            return;
         *(funcdefs_cursor++) = constructFuncDef(parseFunctionContent(), rettype_and_funcname, i + 1, params_start);
         return;
     } else {
