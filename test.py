@@ -59,7 +59,7 @@ def should_not_compile(input: str):
     if compiler_returns != 0:
         print(
             f"{bcolors.OKGREEN}passed: should give compile error:{input=}{bcolors.ENDC}")
-        os.system("rm tmp tmp.s tmp_stdout.txt")
+        os.system("rm tmp.s")
         return True
     else:
         print(
@@ -107,6 +107,21 @@ def check_and_link_with(input: str, linked_lib: str, expected: int, expected_std
 print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
+
+assert check(r'int main() { return "\\"[0]; }', ord('\\'))
+assert check(r'int main() { return "\""[0]; }', ord('\"'))
+assert check(r'int main() { return "\'"[0]; }', ord('\''))
+assert check(r'int main() { return "\n"[0]; }', ord('\n'))
+## According to https://docs.oracle.com/cd/E19120-01/open.solaris/817-5477/eoqka/index.html 
+## \a is not supported in the assembly
+# assert check(r'int main() { return "\a"[0]; }', ord('\a')) 
+assert check(r'int main() { return "\b"[0]; }', ord('\b'))
+assert check(r'int main() { return "\t"[0]; }', ord('\t'))
+assert check(r'int main() { return "\f"[0]; }', ord('\f'))
+assert check(r'int main() { return "\v"[0]; }', ord('\v'))
+
+assert check(r'int main() { return sizeof("abc\\"); }', 5)
+assert check(r'int main() { return sizeof("\\abc\\"); }', 6)
 
 assert check(r"int main() { int p = '\\'; return p; }", ord('\\'))
 assert check(r"int main() { int p = '\"'; return p; }", ord('\"'))
@@ -548,6 +563,8 @@ assert should_not_compile(
     "int main() { int x; int y; x = 3; y = &x; return *y; }")
 
 assert should_not_compile("int main() { int *p; char *q; return p-q;}")
+
+assert should_not_compile("int main() { return p;}")
 
 assert should_not_compile("int main() { int *p; p = 3; return 0;}")
 
