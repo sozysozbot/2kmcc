@@ -59,6 +59,7 @@ def should_not_compile(input: str):
     if compiler_returns != 0:
         print(
             f"{bcolors.OKGREEN}passed: should give compile error:{input=}{bcolors.ENDC}")
+        os.system("rm tmp tmp.s stdout.txt")
         return True
     else:
         print(
@@ -111,6 +112,9 @@ assert check("int main() { int q; int *p = &q; return p == 0;}", 0)
 
 assert check("int main() { int *p; p = 0; return 0;}", 0)
 assert check("int main() { int *p = 0; return 0;}", 0)
+
+# assert check("int main() { int *p = 0; return !p;}", 1)
+# assert check("int main() { int q; int *p = &q; return !p;}", 0)
 
 assert check("""
 int printf();

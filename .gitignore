@@ -1,6 +1,5 @@
 *~
 *.o
-tmp*
 a.out
 2kmcc
 test1
