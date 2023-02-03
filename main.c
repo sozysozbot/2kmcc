@@ -682,6 +682,28 @@ NameAndType *consume_type_and_ident() {
     return consume_type_and_ident_2nd_half(ans);
 }
 
+Stmt *parse_var_def_maybe_with_initializer() {
+    NameAndType *var = consume_type_and_ident();
+    lvars_cursor->name = var->name;
+    (lvars_cursor++)->type = var->type;
+    if (maybe_consume(';')) {
+        Stmt *stmt = calloc(1, sizeof(Stmt));
+        stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
+        stmt->expr = numberexpr(42);
+        return stmt;
+    }
+    consume_otherwise_panic('=');
+    if (maybe_consume('{')) {
+        panic("not supported: initializer list\n");
+    }
+    Expr *rhs = parseExpr();
+    consume_otherwise_panic(';');
+    Stmt *stmt = calloc(1, sizeof(Stmt));
+    stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
+    stmt->expr = binaryExpr(identExpr(var->name), rhs, '=', var->type);
+    return stmt;
+}
+
 Stmt *parseStmt() {
     if (maybe_consume('{')) {
         Stmt *result = calloc(1, sizeof(Stmt));
@@ -725,35 +747,30 @@ Stmt *parseStmt() {
         return stmt;
     }
     if (maybe_consume(enum3('f', 'o', 'r'))) {
-        Stmt *stmt = calloc(1, sizeof(Stmt));
-        stmt->stmt_kind = enum3('f', 'o', 'r');
+        Stmt *for_stmt = calloc(1, sizeof(Stmt));
+        for_stmt->stmt_kind = enum3('f', 'o', 'r');
         consume_otherwise_panic('(');
-        stmt->expr = parseOptionalExprAndToken(';');
-        stmt->for_cond = parseOptionalExprAndToken(';');
-        stmt->for_after = parseOptionalExprAndToken(')');
-        stmt->second_child = parseStmt();
-        return stmt;
+        if (is_int_or_char(tokens_cursor->kind)) {
+            Stmt *initializer = parse_var_def_maybe_with_initializer();
+            for_stmt->expr = numberexpr(42);
+            for_stmt->for_cond = parseOptionalExprAndToken(';');
+            for_stmt->for_after = parseOptionalExprAndToken(')');
+            for_stmt->second_child = parseStmt();
+            Stmt *combined_stmt = calloc(1, sizeof(Stmt));
+            combined_stmt->first_child = initializer;
+            combined_stmt->stmt_kind = enum4('n', 'e', 'x', 't');
+            combined_stmt->second_child = for_stmt;
+            return combined_stmt;
+        } else {
+            for_stmt->expr = parseOptionalExprAndToken(';');
+            for_stmt->for_cond = parseOptionalExprAndToken(';');
+            for_stmt->for_after = parseOptionalExprAndToken(')');
+            for_stmt->second_child = parseStmt();
+            return for_stmt;
+        }
     }
     if (is_int_or_char(tokens_cursor->kind)) {
-        NameAndType *var = consume_type_and_ident();
-        lvars_cursor->name = var->name;
-        (lvars_cursor++)->type = var->type;
-        if (maybe_consume(';')) {
-            Stmt *stmt = calloc(1, sizeof(Stmt));
-            stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
-            stmt->expr = numberexpr(42);
-            return stmt;
-        }
-        consume_otherwise_panic('=');
-        if (maybe_consume('{')) {
-            panic("not supported: initializer list\n");
-        }
-        Expr *rhs = parseExpr();
-        consume_otherwise_panic(';');
-        Stmt *stmt = calloc(1, sizeof(Stmt));
-        stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
-        stmt->expr = binaryExpr(identExpr(var->name), rhs, '=', var->type);
-        return stmt;
+        return parse_var_def_maybe_with_initializer();
     }
     Stmt *stmt = calloc(1, sizeof(Stmt));
     stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
