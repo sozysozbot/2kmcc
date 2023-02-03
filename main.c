@@ -216,7 +216,11 @@ int size(Type *t) {
 Expr *numberexpr(int value) {
     Expr *numberexp = calloc(1, sizeof(Expr));
     numberexp->value = value;
-    numberexp->expr_kind = enum3('N', 'U', 'M');
+    if (value) {
+        numberexp->expr_kind = enum3('N', 'U', 'M');
+    } else {
+        numberexp->expr_kind = '0';  //  An integer constant expression with the value 0 ... is called a null pointer constant
+    }
     numberexp->typ = type(enum3('i', 'n', 't'));
     return numberexp;
 }
@@ -391,30 +395,27 @@ void display_type(Type *t) {
         fprintf(stderr, "%s", decode_kind(t->kind));
 }
 
-void assert_same_type(Type *t1, Type *t2) {
+int is_same_type(Type *t1, Type *t2) {
     if (t1->kind == '*' && t2->kind == '*') {
-        assert_same_type(t1->ptr_to, t2->ptr_to);
-    } else if (t1->kind != t2->kind) {
-        fprintf(stderr, "two different types detected: `");
-        display_type(t1);
-        fprintf(stderr, "` and `");
-        display_type(t2);
-        fprintf(stderr, "`.\n");
-        exit(1);
+        return is_same_type(t1->ptr_to, t2->ptr_to);
     }
+    return t1->kind == t2->kind;
 }
 
-void assert_compatible_type(Type *t1, Type *t2) {
+void panic_two_types(const char *msg, Type *t1, Type *t2) {
+    fprintf(stderr, "%s: `", msg);
+    display_type(t1);
+    fprintf(stderr, "` and `");
+    display_type(t2);
+    fprintf(stderr, "`.\n");
+    exit(1);
+}
+
+int is_compatible_type(Type *t1, Type *t2) {
     if (t1->kind == '*' && t2->kind == '*') {
-        assert_same_type(t1->ptr_to, t2->ptr_to);
-    } else if (t1->kind != t2->kind && !(is_integer(t1) && is_integer(t2))) {
-        fprintf(stderr, "two incompatible types detected: `");
-        display_type(t1);
-        fprintf(stderr, "` and `");
-        display_type(t2);
-        fprintf(stderr, "`.\n");
-        exit(1);
+        return is_same_type(t1->ptr_to, t2->ptr_to);
     }
+    return !(t1->kind != t2->kind && !(is_integer(t1) && is_integer(t2)));
 }
 
 Expr *expr_add(Expr *lhs, Expr *rhs) {
@@ -445,17 +446,19 @@ Expr *expr_subtract(Expr *lhs, Expr *rhs) {
         if (is_integer(rhs->typ)) {
             return binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't')));
         } else if (rhs->typ->kind == '*') {
-            fprintf(stderr, "cannot subtract\n");
+            fprintf(stderr, "cannot subtract a pointer from an integer\n");
             exit(1);
         }
     } else if (lhs->typ->kind == '*') {
         if (is_integer(rhs->typ)) {
             return binaryExpr(lhs, binaryExpr(numberexpr(size(deref(lhs->typ))), rhs, '*', type(enum3('i', 'n', 't'))), '-', lhs->typ);
         } else if (rhs->typ->kind == '*') {
-            assert_same_type(lhs->typ, rhs->typ);
+            if (!is_same_type(lhs->typ, rhs->typ)) {
+                panic_two_types("cannot subtract two expressions with different pointer types", lhs->typ, rhs->typ);
+            }
             return binaryExpr(binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't'))), numberexpr(size(deref(lhs->typ))), '/', type(enum3('i', 'n', 't')));
         } else {
-            fprintf(stderr, "cannot subtract\n");
+            fprintf(stderr, "cannot subtract: invalid type in the second operand\n");
             exit(1);
         }
     }
@@ -578,14 +581,36 @@ Expr *parseRelational() {
     return result;
 }
 
+void assert_compatible_in_equality(Expr *e1, Expr *e2) {
+    if (is_compatible_type(e1->typ, e2->typ))
+        return;
+    if (e1->expr_kind == '0' && e2->typ->kind == '*')  // one operand is a pointer and the other is a null pointer constant
+        return;
+    if (e2->expr_kind == '0' && e1->typ->kind == '*')  // one operand is a pointer and the other is a null pointer constant
+        return;
+    panic_two_types("cannot compare (un)equal two operands with incompatible types", e1->typ, e2->typ);
+}
+
+void assert_compatible_in_simple_assignment(Type *lhs_type, Expr *e2) {
+    if (is_compatible_type(lhs_type, e2->typ))
+        return;
+    if (lhs_type->kind == '*' && e2->expr_kind == '0')  // the left operand is an atomic, qualified, or unqualified pointer, and the right is a null pointer constant
+        return;
+    panic_two_types("cannot assign/initialize because two incompatible types are detected", lhs_type, e2->typ);
+}
+
 Expr *parseEquality() {
     panic_if_eof();
     Expr *result = parseRelational();
     while (tokens_cursor < tokens_end) {
         if (maybe_consume(enum2('=', '='))) {
-            result = binaryExpr(decay_if_arr(result), decay_if_arr(parseRelational()), enum2('=', '='), type(enum3('i', 'n', 't')));
+            Expr *rhs = decay_if_arr(parseRelational());
+            assert_compatible_in_equality(decay_if_arr(result), rhs);
+            result = binaryExpr(decay_if_arr(result), rhs, enum2('=', '='), type(enum3('i', 'n', 't')));
         } else if (maybe_consume(enum2('!', '='))) {
-            result = binaryExpr(decay_if_arr(result), decay_if_arr(parseRelational()), enum2('!', '='), type(enum3('i', 'n', 't')));
+            Expr *rhs = decay_if_arr(parseRelational());
+            assert_compatible_in_equality(decay_if_arr(result), rhs);
+            result = binaryExpr(decay_if_arr(result), rhs, enum2('!', '='), type(enum3('i', 'n', 't')));
         } else {
             return result;
         }
@@ -598,7 +623,7 @@ Expr *parseAssign() {
     Expr *result = parseEquality();
     if (maybe_consume('=')) {
         Expr *rhs = decay_if_arr(parseAssign());
-        assert_compatible_type(result->typ, rhs->typ);
+        assert_compatible_in_simple_assignment(result->typ, rhs);  // no decay, since we cannot assign to an array
         return binaryExpr(result, rhs, '=', result->typ);
     } else if (maybe_consume(enum2('+', '='))) {
         result = expr_add(decay_if_arr(result), assert_integer(parseAssign()));
@@ -700,6 +725,7 @@ Stmt *parse_var_def_maybe_with_initializer() {
     consume_otherwise_panic(';');
     Stmt *stmt = calloc(1, sizeof(Stmt));
     stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
+    assert_compatible_in_simple_assignment(var->type, rhs);
     stmt->expr = binaryExpr(identExpr(var->name), rhs, '=', var->type);
     return stmt;
 }
@@ -1088,6 +1114,8 @@ void EvaluateExprIntoRax(Expr *expr) {
         printf(" call %s\n", expr->func_or_ident_name_or_string_content);
     } else if (expr->expr_kind == enum3('N', 'U', 'M')) {
         printf("  mov rax, %d\n", expr->value);
+    } else if (expr->expr_kind == '0') {
+        printf("  mov rax, 0\n");
     } else if (expr->expr_kind == enum4('1', 'A', 'R', 'Y')) {
         if (expr->op == '*') {
             EvaluateExprIntoRax(expr->first_child);
