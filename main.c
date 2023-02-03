@@ -503,7 +503,7 @@ Expr *parseUnary() {
     } else if (maybe_consume('-')) {
         return binaryExpr(numberExpr(0), assert_integer(parseCast()), '-', type(enum3('i', 'n', 't')));
     } else if (maybe_consume('!')) {
-        return equalityExpr(numberExpr(0), parseCast(), enum2('!', '='));
+        return equalityExpr(numberExpr(0), parseCast(), enum2('=', '=')); // The expression !E is equivalent to (0==E)
     } else if (maybe_consume('*')) {
         Expr *expr = decay_if_arr(parseCast());
         return unaryExpr(expr, '*', deref(expr->typ));
