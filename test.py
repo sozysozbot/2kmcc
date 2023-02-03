@@ -107,6 +107,11 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
 
+assert check("int main() { int q; int *p = &q; return p == 0;}", 0)
+
+assert check("int main() { int *p; p = 0; return 0;}", 0)
+assert check("int main() { int *p = 0; return 0;}", 0)
+
 assert check("""
 int printf();
 int main() {
@@ -534,6 +539,10 @@ assert should_not_compile(
     "int main() { int x; int y; x = 3; y = &x; return *y; }")
 
 assert should_not_compile("int main() { int *p; char *q; return p-q;}")
+
+assert should_not_compile("int main() { int *p; p = 3; return 0;}")
+
+assert should_not_compile("int main() { int *p = 3; return 0;}")
 
 print(f"""
 {bcolors.OKGREEN}
