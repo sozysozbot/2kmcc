@@ -22,7 +22,7 @@ def compile(input: str):
 
 
 def run():
-    f = open("stdout.txt", "w")
+    f = open("tmp_stdout.txt", "w")
     return subprocess.call(["./tmp"], stdout=f)
 
 
@@ -33,7 +33,7 @@ def check(input: str, expected: int, expected_stdout: str = None):
         return False
     os.system("cc -o tmp tmp.s -static")
     returned_value = run()
-    actual_stdout = open("stdout.txt", "r").read()
+    actual_stdout = open("tmp_stdout.txt", "r").read()
 
     if expected != returned_value:
         print(f"{bcolors.FAIL}FAIL:check (wrong answer):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
@@ -46,11 +46,11 @@ def check(input: str, expected: int, expected_stdout: str = None):
     elif expected_stdout != None:
         print(
             f"{bcolors.OKGREEN}passed:{input=} {expected=} {expected_stdout=} {bcolors.ENDC}")
-        os.system("rm tmp tmp.s stdout.txt")
+        os.system("rm tmp tmp.s tmp_stdout.txt")
         return True
     else:
         print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
-        os.system("rm tmp tmp.s stdout.txt")
+        os.system("rm tmp tmp.s tmp_stdout.txt")
         return True
 
 
@@ -59,7 +59,7 @@ def should_not_compile(input: str):
     if compiler_returns != 0:
         print(
             f"{bcolors.OKGREEN}passed: should give compile error:{input=}{bcolors.ENDC}")
-        os.system("rm tmp tmp.s stdout.txt")
+        os.system("rm tmp tmp.s tmp_stdout.txt")
         return True
     else:
         print(
@@ -79,7 +79,7 @@ def check_and_link_with(input: str, linked_lib: str, expected: int, expected_std
     os.system("cc -o tmp tmp.s libtest.s -static")
     os.system("rm libtest.c libtest.s")
     returned_value = run()
-    actual_stdout = open("stdout.txt", "r").read()
+    actual_stdout = open("tmp_stdout.txt", "r").read()
 
     if expected != returned_value:
         print(f"{bcolors.FAIL}FAIL:check (wrong answer):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
@@ -95,12 +95,12 @@ def check_and_link_with(input: str, linked_lib: str, expected: int, expected_std
         print(
             f"{bcolors.OKGREEN}passed:{input=} {expected=} {expected_stdout=} {bcolors.ENDC}")
         print(f"{bcolors.OKGREEN}       {linked_lib=} {bcolors.ENDC}")
-        os.system("rm tmp tmp.s stdout.txt")
+        os.system("rm tmp tmp.s tmp_stdout.txt")
         return True
     else:
         print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
         print(f"{bcolors.OKGREEN}       {linked_lib=} {bcolors.ENDC}")
-        os.system("rm tmp tmp.s stdout.txt")
+        os.system("rm tmp tmp.s tmp_stdout.txt")
         return True
 
 
@@ -113,8 +113,8 @@ assert check("int main() { int q; int *p = &q; return p == 0;}", 0)
 assert check("int main() { int *p; p = 0; return 0;}", 0)
 assert check("int main() { int *p = 0; return 0;}", 0)
 
-# assert check("int main() { int *p = 0; return !p;}", 1)
-# assert check("int main() { int q; int *p = &q; return !p;}", 0)
+assert check("int main() { int *p = 0; return !p;}", 1)
+assert check("int main() { int q; int *p = &q; return !p;}", 0)
 
 assert check("""
 int printf();
