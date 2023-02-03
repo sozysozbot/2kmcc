@@ -486,6 +486,8 @@ Expr *parseCast() {
     return parseUnary();
 }
 
+Type *consume_simple_type();
+
 Expr *parseUnary() {
     panic_if_eof();
     if (maybe_consume('+')) {
@@ -499,8 +501,20 @@ Expr *parseUnary() {
         Expr *expr = parseCast();                        // NO DECAY
         return unaryExpr(expr, '&', ptr_of(expr->typ));  // NO DECAY
     } else if (maybe_consume(enum4('S', 'Z', 'O', 'F'))) {
-        Expr *expr = parseUnary();  // NO DECAY
-        return numberexpr(size(expr->typ));
+        if (tokens_cursor->kind == '(') {
+            if (is_int_or_char((tokens_cursor + 1)->kind)) {
+                tokens_cursor++;
+                Type *typ = consume_simple_type();
+                consume_otherwise_panic(')');
+                return numberexpr(size(typ));
+            } else {
+                Expr *expr = parseUnary();  // NO DECAY
+                return numberexpr(size(expr->typ));
+            }
+        } else {
+            Expr *expr = parseUnary();  // NO DECAY
+            return numberexpr(size(expr->typ));
+        }
     }
     return parsePostfix();
 }
@@ -608,7 +622,7 @@ Expr *parseOptionalExprAndToken(Kind target) {
     return expr;
 }
 
-NameAndType *consume_type_and_ident_1st_half() {
+Type *consume_simple_type() {
     Type *type = calloc(1, sizeof(Type));
     if (maybe_consume(enum3('i', 'n', 't')))
         type->kind = enum3('i', 'n', 't');
@@ -620,6 +634,11 @@ NameAndType *consume_type_and_ident_1st_half() {
     }
     while (maybe_consume('*'))
         type = ptr_of(type);
+    return type;
+}
+
+NameAndType *consume_type_and_ident_1st_half() {
+    Type *type = consume_simple_type();
     expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
     char *name = (tokens_cursor++)->identifier_name_or_string_content;
     NameAndType *ans = calloc(1, sizeof(NameAndType));
