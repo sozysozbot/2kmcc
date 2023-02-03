@@ -121,12 +121,18 @@ Token *tokenize(char *str) {
                 tokens_cursor->kind = enum3('N', 'U', 'M');
                 (tokens_cursor++)->value = str[i + 1];
                 i += 3;
-            } else if (strchr("\\'\"", str[i + 2])) {
+            } else if (strchr("\\'\"?", str[i + 2])) {
                 tokens_cursor->kind = enum3('N', 'U', 'M');
                 (tokens_cursor++)->value = str[i + 2];
                 i += 4;
-            } else 
-                panic("Unsupported escape sequence within a character literal\n");
+            } else if (str[i + 2] == 'n') {
+                tokens_cursor->kind = enum3('N', 'U', 'M');
+                (tokens_cursor++)->value = '\n';
+                i += 4;
+            } else {
+                fprintf("Unsupported escape sequence within a character literal: `\\%c`\n", str[i + 2]);
+                exit(1);
+            }
         } else if (c == '"') {
             int parsed_length = 0;
             for (i += 1; str[i + parsed_length] != '"'; parsed_length++)
