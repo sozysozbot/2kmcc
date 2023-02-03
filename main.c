@@ -411,10 +411,10 @@ Expr *assert_integer(Expr *e) {
 
 void display_type(Type *t) {
     if (t->kind == enum2('[', ']')) {
-        fprintf(stderr, "[%d] ", t->array_size);
+        fprintf(stderr, "array (length: %d) of ", t->array_size);
         display_type(t->ptr_to);
     } else if (t->kind == '*') {
-        fprintf(stderr, "* ");
+        fprintf(stderr, "pointer to ");
         display_type(t->ptr_to);
     } else
         fprintf(stderr, "%s", decode_kind(t->kind));
