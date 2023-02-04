@@ -2,6 +2,22 @@ from test import bcolors, should_not_compile
 
 print(f"{bcolors.OKBLUE}Checking the inputs that should NOT work:{bcolors.ENDC}")
 
+assert should_not_compile('int main(){main(1}')
+assert should_not_compile('int main(){return (123}')
+assert should_not_compile('int main(){return 123}')
+assert should_not_compile('int main(){if a}')
+assert should_not_compile('int main(){while}')
+assert should_not_compile('int main(){while(}')
+assert should_not_compile('int main(){while()}')
+assert should_not_compile('int main(){while(1}')
+assert should_not_compile('int main(){while(1)}')
+
+assert should_not_compile("int main(){return 1[2];}", "cannot deref a non-pointer type")
+
+assert should_not_compile(
+    "struct A{int a; int b;}; int main(){struct A a; struct A b; b *= a; return 3;}",
+    "int/char is expected, but not an int/char")
+
 assert should_not_compile(
     "int main() { 3 5; }",
     "parse error: expected an operator; got a number"
