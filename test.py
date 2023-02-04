@@ -108,6 +108,45 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
 
+assert check("""
+int printf();
+int first() {
+    printf("first, ");
+    return 0;
+}
+int second() {
+    printf("second, ");
+    return 0;
+}
+int main() { return first() && second(); }
+""", 0, expected_stdout="first, ")
+
+assert check("""
+int printf();
+int first() {
+    printf("first, ");
+    return 2;
+}
+int second() {
+    printf("second, ");
+    return 0;
+}
+int main() { return first() && second(); }
+""", 0, expected_stdout="first, second, ")
+
+assert check("""
+int printf();
+int first() {
+    printf("first, ");
+    return 2;
+}
+int second() {
+    printf("second, ");
+    return 2;
+}
+int main() { return first() && second(); }
+""", 1, expected_stdout="first, second, ")
+
 assert check(r'int main() { return "\\"[0]; }', ord('\\'))
 assert check(r'int main() { return "\""[0]; }', ord('\"'))
 assert check(r'int main() { return "\'"[0]; }', ord('\''))

@@ -54,7 +54,7 @@ typedef struct LVar {
 
 typedef struct Token {
     Kind kind;
-    int value_or_string_size; // includes the null terminator, so length+1
+    int value_or_string_size;  // includes the null terminator, so length+1
     char *identifier_name_or_escaped_string_content;
 } Token;
 
@@ -645,9 +645,20 @@ void assert_compatible_in_simple_assignment(Type *lhs_type, Expr *rhs) {
     panic_two_types("cannot assign/initialize because two incompatible types are detected", lhs_type, rhs->typ);
 }
 
-Expr *parseAssign() {
+Expr *parseLogicalAnd() {
     panic_if_eof();
     Expr *result = parseEquality();
+    while (tokens_cursor < tokens_end)
+        if (maybe_consume(enum2('&', '&')))
+            result = equalityExpr(result, parseEquality(), enum2('&', '&'));
+        else
+            return result;
+    return result;
+}
+
+Expr *parseAssign() {
+    panic_if_eof();
+    Expr *result = parseLogicalAnd();
     if (maybe_consume('=')) {
         Expr *rhs = decay_if_arr(parseAssign());
         assert_compatible_in_simple_assignment(result->typ, rhs);  // no decay, since we cannot assign to an array
@@ -1172,6 +1183,19 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("%s", AddSubMulDivAssign_rdi_into_rax(expr->op));  // rsi: &x, rax: x@i
             printf("    mov rdi, rsi\n");                             // rdi: &x, rax: x@i
             write_rax_to_where_rdi_points(size(expr->second_child->typ));
+        } else if (expr->op == enum2('&', '&')) {
+            int label = (labelCounter++);
+            EvaluateExprIntoRax(expr->first_child);
+            printf("    test rax, rax\n");
+            printf("    je .Landfalse%d\n", label);
+            EvaluateExprIntoRax(expr->second_child);
+            printf("    test rax, rax\n");
+            printf("    je  .Landfalse%d\n", label);
+            printf("    mov eax, 1\n");
+            printf("    jmp .Landend%d\n", label);
+            printf(".Landfalse%d:\n", label);
+            printf("    mov     eax, 0\n");
+            printf(".Landend%d:\n", label);
         } else {
             EvaluateExprIntoRax(expr->first_child);
             printf("    push rax\n");
