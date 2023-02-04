@@ -11,6 +11,13 @@ typedef struct Type {
     char *struct_name;
 } Type;
 
+typedef struct StructMember {
+    char *struct_name;
+    char *member_name;
+    int member_offset;
+    Type *member_type;
+} StructMember;
+
 typedef struct Expr {
     Kind op;
     Kind expr_kind;
@@ -82,6 +89,8 @@ Token *tokens_end;
 Token *tokens_cursor;
 char *string_literals_start[10000];
 char **string_literals_cursor;
+StructMember *struct_members_start[10000];
+StructMember **struct_members_cursor;
 int is_alnum(char c) {
     return strchr("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_", c) != 0;
 }
@@ -842,6 +851,23 @@ void store_func_decl(NameAndType *rettype_and_funcname) {
 }
 
 void parseToplevel() {
+    if (maybe_consume(enum4('S', 'T', 'R', 'U'))) {
+        expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
+        char *struct_name = (tokens_cursor++)->identifier_name_or_escaped_string_content;
+        consume_otherwise_panic('{');
+        while (!maybe_consume('}')) {
+            NameAndType *member = consume_type_and_ident();
+            consume_otherwise_panic(';');
+            StructMember *q = calloc(1, sizeof(StructMember));
+            q->member_name = member->name;
+            q->struct_name = struct_name;
+            q->member_type = member->type;
+            q->member_offset = 0; // TODO
+            *struct_members_cursor = q;
+        }
+        consume_otherwise_panic(';');
+        return;
+    }
     NameAndType *first_half = consume_type_and_ident_1st_half();
     if (maybe_consume('(')) {
         NameAndType *rettype_and_funcname = first_half;
@@ -1206,6 +1232,7 @@ int main(int argc, char **argv) {
     if (tokens_start == tokens_end)
         panic("no token found\n");
     tokens_cursor = tokens_start;  // the 2nd tokens_cursor is for parsing
+    struct_members_cursor = struct_members_start;
     funcdecls_cursor = funcdecls_start;
     funcdefs_cursor = funcdefs_start;
     global_vars_cursor = global_vars_start;
