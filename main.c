@@ -554,61 +554,6 @@ Expr *parseUnary() {
     return parsePostfix();
 }
 
-Expr *parseMultiplicative() {
-    panic_if_eof();
-    Expr *result = parseUnary();
-    while (tokens_cursor < tokens_end) {
-        if (tokens_cursor->kind == enum3('N', 'U', 'M')) {
-            fprintf(stderr, "Expected operator got Number");
-            exit(1);
-        } else if (maybe_consume('*')) {
-            result = binaryExpr(assert_integer(result), assert_integer(parseUnary()), '*', type(enum3('i', 'n', 't')));
-        } else if (maybe_consume('/')) {
-            result = binaryExpr(assert_integer(result), assert_integer(parseUnary()), '/', type(enum3('i', 'n', 't')));
-        } else {
-            return result;
-        }
-    }
-    return result;
-}
-
-Expr *parseAdditive() {
-    panic_if_eof();
-    Expr *result = parseMultiplicative();
-    while (tokens_cursor < tokens_end) {
-        if (tokens_cursor->kind == enum3('N', 'U', 'M')) {
-            fprintf(stderr, "Expected operator; got Number");
-            exit(1);
-        } else if (maybe_consume('-')) {
-            result = expr_subtract(decay_if_arr(result), decay_if_arr(parseMultiplicative()));
-        } else if (maybe_consume('+')) {
-            result = expr_add(decay_if_arr(result), decay_if_arr(parseMultiplicative()));
-        } else {
-            return result;
-        }
-    }
-    return result;
-}
-
-Expr *parseRelational() {
-    panic_if_eof();
-    Expr *result = parseAdditive();
-    while (tokens_cursor < tokens_end) {
-        if (maybe_consume('>')) {
-            result = binaryExpr(decay_if_arr(result), decay_if_arr(parseAdditive()), '>', type(enum3('i', 'n', 't')));
-        } else if (maybe_consume(enum2('>', '='))) {
-            result = binaryExpr(decay_if_arr(result), decay_if_arr(parseAdditive()), enum2('>', '='), type(enum3('i', 'n', 't')));
-        } else if (maybe_consume('<')) {
-            result = binaryExpr(decay_if_arr(parseAdditive()), decay_if_arr(result), '>', type(enum3('i', 'n', 't')));  // children & operator swapped
-        } else if (maybe_consume(enum2('<', '='))) {
-            result = binaryExpr(decay_if_arr(parseAdditive()), decay_if_arr(result), enum2('>', '='), type(enum3('i', 'n', 't')));  // children & operator swapped
-        } else {
-            return result;
-        }
-    }
-    return result;
-}
-
 void assert_compatible_in_equality(Expr *e1, Expr *e2) {
     if (is_compatible_type(e1->typ, e2->typ))
         return;
@@ -624,17 +569,51 @@ Expr *equalityExpr(Expr *lhs, Expr *rhs, Kind kind) {
     return binaryExpr(decay_if_arr(lhs), decay_if_arr(rhs), kind, type(enum3('i', 'n', 't')));
 }
 
-Expr *parseEquality() {
+int getPrecedence() {
+    int kind = tokens_cursor->kind;
+    if (kind == enum3('N', 'U', 'M')) {
+        fprintf(stderr, "Expected operator; got Number");
+        exit(1);
+    }
+    if (kind == '*' || kind == '/' || kind == '%') return 10;
+    if (kind == '+' || kind == '-') return 9;
+    if (kind == enum2('<', '<') || kind == enum2('>', '>')) return 8;
+    if (kind == '<' || kind == enum2('<', '=') || kind == '>' || kind == enum2('>', '=')) return 7;
+    if (kind == enum2('=', '=') || kind == enum2('!', '=')) return 6;
+    if (kind == '&') return 5;
+    if (kind == '^') return 4;
+    if (kind == '|') return 3;
+    if (kind == enum2('&', '&')) return 2;
+    if (kind == enum2('|', '|')) return 1;
+    return 0;
+}
+
+Expr *parseLeftToRightInfix(int level) {
     panic_if_eof();
-    Expr *result = parseRelational();
-    while (tokens_cursor < tokens_end)
-        if (maybe_consume(enum2('=', '=')))
-            result = equalityExpr(result, parseRelational(), enum2('=', '='));
-        else if (maybe_consume(enum2('!', '=')))
-            result = equalityExpr(result, parseRelational(), enum2('!', '='));
-        else
-            return result;
-    return result;
+    Expr *expr = parseUnary();
+    while (tokens_cursor < tokens_end) {
+        int precedence = getPrecedence();
+        if (precedence < level) {
+            return expr;
+        }
+        int op = (tokens_cursor++)->kind;
+        if (precedence == 10) {
+            expr = binaryExpr(assert_integer(expr), assert_integer(parseUnary()), op, type(enum3('i', 'n', 't')));
+        } else if (precedence == 9) {
+            if (op == '-') {
+                expr = expr_subtract(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)));
+            } else {
+                expr = expr_add(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)));
+            }
+        } else if (op == '<' || op == enum2('<', '=')) {  // children & operator swapped
+            expr = binaryExpr(decay_if_arr(parseLeftToRightInfix(precedence + 1)), decay_if_arr(expr), op - '<' + '>', type(enum3('i', 'n', 't')));
+        } else if (precedence == 6) {
+            expr = equalityExpr(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)), op);
+        } else {
+            expr = binaryExpr(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)), op, type(enum3('i', 'n', 't')));
+        }
+    }
+    return expr;
 }
 
 void assert_compatible_in_simple_assignment(Type *lhs_type, Expr *rhs) {
@@ -645,20 +624,9 @@ void assert_compatible_in_simple_assignment(Type *lhs_type, Expr *rhs) {
     panic_two_types("cannot assign/initialize because two incompatible types are detected", lhs_type, rhs->typ);
 }
 
-Expr *parseLogicalAnd() {
-    panic_if_eof();
-    Expr *result = parseEquality();
-    while (tokens_cursor < tokens_end)
-        if (maybe_consume(enum2('&', '&')))
-            result = equalityExpr(result, parseEquality(), enum2('&', '&'));
-        else
-            return result;
-    return result;
-}
-
 Expr *parseAssign() {
     panic_if_eof();
-    Expr *result = parseLogicalAnd();
+    Expr *result = parseLeftToRightInfix(1);
     if (maybe_consume('=')) {
         Expr *rhs = decay_if_arr(parseAssign());
         assert_compatible_in_simple_assignment(result->typ, rhs);  // no decay, since we cannot assign to an array
