@@ -450,47 +450,37 @@ int is_compatible_type(Type *t1, Type *t2) {
 
 Expr *expr_add(Expr *lhs, Expr *rhs) {
     if (is_integer(lhs->typ)) {
-        if (is_integer(rhs->typ)) {
+        if (is_integer(rhs->typ))
             return binaryExpr(lhs, rhs, '+', type(enum3('i', 'n', 't')));
-        } else if (rhs->typ->kind == '*') {
+        else if (rhs->typ->kind == '*')
             return expr_add(rhs, lhs);
-        } else {
-            fprintf(stderr, "unknown type in addition\n");
-            exit(1);
-        }
+        else
+            panic("unknown type in addition\n");
     } else if (lhs->typ->kind == '*') {
-        if (is_integer(rhs->typ)) {
+        if (is_integer(rhs->typ))
             return binaryExpr(lhs, binaryExpr(numberExpr(size(deref(lhs->typ))), rhs, '*', type(enum3('i', 'n', 't'))), '+', lhs->typ);
-        } else {
-            fprintf(stderr, "cannot add\n");
-            exit(1);
-        }
-    } else {
-        fprintf(stderr, "unknown type\n");
-        exit(1);
+        else
+            panic("cannot add\n");
     }
+    fprintf(stderr, "unknown type\n");
+    exit(1);
 }
 
 Expr *expr_subtract(Expr *lhs, Expr *rhs) {
     if (is_integer(lhs->typ)) {
-        if (is_integer(rhs->typ)) {
+        if (is_integer(rhs->typ))
             return binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't')));
-        } else if (rhs->typ->kind == '*') {
-            fprintf(stderr, "cannot subtract a pointer from an integer\n");
-            exit(1);
-        }
+        else if (rhs->typ->kind == '*')
+            panic("cannot subtract a pointer from an integer\n");
     } else if (lhs->typ->kind == '*') {
         if (is_integer(rhs->typ)) {
             return binaryExpr(lhs, binaryExpr(numberExpr(size(deref(lhs->typ))), rhs, '*', type(enum3('i', 'n', 't'))), '-', lhs->typ);
         } else if (rhs->typ->kind == '*') {
-            if (!is_same_type(lhs->typ, rhs->typ)) {
+            if (!is_same_type(lhs->typ, rhs->typ))
                 panic_two_types("cannot subtract two expressions with different pointer types", lhs->typ, rhs->typ);
-            }
             return binaryExpr(binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't'))), numberExpr(size(deref(lhs->typ))), '/', type(enum3('i', 'n', 't')));
-        } else {
-            fprintf(stderr, "cannot subtract: invalid type in the second operand\n");
-            exit(1);
-        }
+        } else
+            panic("cannot subtract: invalid type in the second operand\n");
     }
     fprintf(stderr, "unknown type\n");
     exit(1);
