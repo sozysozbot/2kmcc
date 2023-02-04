@@ -89,3 +89,26 @@ def check_and_link_with(input: str, linked_lib: str, expected: int, expected_std
         print(f"{bcolors.OKGREEN}       {linked_lib=} {bcolors.ENDC}")
         os.system("rm tmp tmp.s tmp_stdout.txt tmp_stderr.txt")
         return True
+
+def should_not_compile(input: str, expected_stderr: str = None):
+    compiler_returns = compile(input)
+    actual_stderr = open("tmp_stderr.txt", "r").read()
+    if compiler_returns != 0:
+        print(
+            f"{bcolors.OKGREEN}passed: should give compile error\n  {input=}{bcolors.ENDC}")
+        if expected_stderr != None:
+            if actual_stderr == expected_stderr + "\n":
+                print(
+                    f"{bcolors.OKGREEN}   msg: {actual_stderr}{bcolors.ENDC}")
+            else:
+                print(
+                    f"{bcolors.OKCYAN}error message was not as expected:\n  {expected_stderr=}\n  {actual_stderr=}{bcolors.ENDC}")
+        else:
+            print(
+                f"{bcolors.OKGREEN}error message was:{actual_stderr=}{bcolors.ENDC}")
+        os.system("rm tmp.s tmp_stderr.txt")
+        return True
+    else:
+        print(
+            f"{bcolors.FAIL}FAIL: compiled what should not compile:{input=}{bcolors.ENDC}")
+        return False
