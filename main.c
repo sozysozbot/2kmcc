@@ -571,10 +571,8 @@ Expr *equalityExpr(Expr *lhs, Expr *rhs, Kind kind) {
 
 int getPrecedence() {
     int kind = tokens_cursor->kind;
-    if (kind == enum3('N', 'U', 'M')) {
-        fprintf(stderr, "Expected operator; got Number");
-        exit(1);
-    }
+    if (kind == enum3('N', 'U', 'M'))
+        panic("expected an operator; got a number");
     if (kind == '*' || kind == '/' || kind == '%') return 10;
     if (kind == '+' || kind == '-') return 9;
     if (kind == enum2('<', '<') || kind == enum2('>', '>')) return 8;
@@ -593,25 +591,22 @@ Expr *parseLeftToRightInfix(int level) {
     Expr *expr = parseUnary();
     while (tokens_cursor < tokens_end) {
         int precedence = getPrecedence();
-        if (precedence < level) {
+        if (precedence < level)
             return expr;
-        }
         int op = (tokens_cursor++)->kind;
-        if (precedence == 10) {
+        if (precedence == 10)
             expr = binaryExpr(assert_integer(expr), assert_integer(parseUnary()), op, type(enum3('i', 'n', 't')));
-        } else if (precedence == 9) {
-            if (op == '-') {
+        else if (precedence == 9)
+            if (op == '-')
                 expr = expr_subtract(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)));
-            } else {
+            else
                 expr = expr_add(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)));
-            }
-        } else if (op == '<' || op == enum2('<', '=')) {  // children & operator swapped
+        else if (op == '<' || op == enum2('<', '='))  // children & operator swapped
             expr = binaryExpr(decay_if_arr(parseLeftToRightInfix(precedence + 1)), decay_if_arr(expr), op - '<' + '>', type(enum3('i', 'n', 't')));
-        } else if (precedence == 6) {
+        else if (precedence == 6)
             expr = equalityExpr(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)), op);
-        } else {
+        else
             expr = binaryExpr(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)), op, type(enum3('i', 'n', 't')));
-        }
     }
     return expr;
 }
@@ -637,11 +632,10 @@ Expr *parseAssign() {
     } else if (maybe_consume(enum2('-', '='))) {
         result = expr_subtract(decay_if_arr(result), assert_integer(parseAssign()));
         result->op = enum2('-', '=');
-    } else if (maybe_consume(enum2('*', '='))) {
+    } else if (maybe_consume(enum2('*', '=')))
         result = binaryExpr(assert_integer(result), assert_integer(parseUnary()), enum2('*', '='), type(enum3('i', 'n', 't')));
-    } else if (maybe_consume(enum2('/', '='))) {
+    else if (maybe_consume(enum2('/', '=')))
         result = binaryExpr(assert_integer(result), assert_integer(parseUnary()), enum2('/', '='), type(enum3('i', 'n', 't')));
-    }
     return result;
 }
 
