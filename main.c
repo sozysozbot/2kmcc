@@ -428,7 +428,7 @@ struct Expr *parsePrimary() {
                 consume_otherwise_panic(',');
                 i++;
                 if (i >= 6)
-                    panic("not supported: more than arguments\n");
+                    panic("not supported: more than 6 arguments\n");
             }
         }
         return identExpr(name);

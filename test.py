@@ -16,9 +16,10 @@ class bcolors:
 
 
 def compile(input: str):
-    f = open("tmp.s", "w")
+    assembly = open("tmp.s", "w")
+    msg = open("tmp_stderr.txt", "w")
     # to handle double-quotes correctly
-    return subprocess.call(["./2kmcc", input], stdout=f)
+    return subprocess.call(["./2kmcc", input], stdout=assembly, stderr=msg)
 
 
 def run():
@@ -46,11 +47,11 @@ def check(input: str, expected: int, expected_stdout: str = None):
     elif expected_stdout != None:
         print(
             f"{bcolors.OKGREEN}passed:{input=} {expected=} {expected_stdout=} {bcolors.ENDC}")
-        os.system("rm tmp tmp.s tmp_stdout.txt")
+        os.system("rm tmp tmp.s tmp_stdout.txt tmp_stderr.txt")
         return True
     else:
         print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
-        os.system("rm tmp tmp.s tmp_stdout.txt")
+        os.system("rm tmp tmp.s tmp_stdout.txt tmp_stderr.txt")
         return True
 
 def check_and_link_with(input: str, linked_lib: str, expected: int, expected_stdout: str = None):
@@ -81,10 +82,10 @@ def check_and_link_with(input: str, linked_lib: str, expected: int, expected_std
         print(
             f"{bcolors.OKGREEN}passed:{input=} {expected=} {expected_stdout=} {bcolors.ENDC}")
         print(f"{bcolors.OKGREEN}       {linked_lib=} {bcolors.ENDC}")
-        os.system("rm tmp tmp.s tmp_stdout.txt")
+        os.system("rm tmp tmp.s tmp_stdout.txt tmp_stderr.txt")
         return True
     else:
         print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
         print(f"{bcolors.OKGREEN}       {linked_lib=} {bcolors.ENDC}")
-        os.system("rm tmp tmp.s tmp_stdout.txt")
+        os.system("rm tmp tmp.s tmp_stdout.txt tmp_stderr.txt")
         return True
