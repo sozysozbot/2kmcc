@@ -108,6 +108,49 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
 
+assert check_and_link_with(
+    "struct A { int a; int b; }; int foo(); int main() { struct A s; foo(&s); return (&s)->b - (&s)->a; }",
+    linked_lib="struct A { int a; int b; }; int foo(struct A *p) { p->a = 3; p->b = 24; return 0; }",
+    expected=21)
+
+assert check_and_link_with(
+    "struct A { char a[5]; int b; }; int foo(); int main() { struct A s; foo(&s); return (&s)->a[2] + (&s)->b; }",
+    linked_lib="""
+struct A { char a[5]; int b; }; 
+int foo(struct A *p) { 
+    p->a[0] = 1; 
+    p->a[1] = 3; 
+    p->a[2] = 5; 
+    p->a[3] = 7; 
+    p->a[4] = 9; 
+    p->b = 24; 
+    return 0; 
+}""",
+    expected=5+24)
+
+assert check_and_link_with(
+    "struct A { char a[5]; int b; }; int foo(); int main() { struct A s; foo(&s); return s.a[2] + s.b; }",
+    linked_lib="""
+struct A { char a[5]; int b; }; 
+int foo(struct A *p) { 
+    p->a[0] = 1; 
+    p->a[1] = 3; 
+    p->a[2] = 5; 
+    p->a[3] = 7; 
+    p->a[4] = 9; 
+    p->b = 24; 
+    return 0; 
+}""",
+    expected=5+24)
+
+assert check("struct A { int a; int b; }; int main() { return 0; }", 0)
+assert check("struct A { int a; int b; }; int main() { return sizeof(struct A); }", 8)
+assert check("struct A { char a; int b; }; int main() { return sizeof(struct A); }", 8)
+assert check("struct A { char a[5]; int b; }; int main() { return sizeof(struct A); }", 12)
+
+assert check("int main() { return sizeof(struct A*); }", 8)
+assert check("int main() { struct A *p; return 0; }", 0)
+
 assert check("int main() { return 1+(2!=1+1); }", 1)
 assert check("int main() { return 5+(8+(7!=2)); }", 14)
 
