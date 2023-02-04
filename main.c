@@ -98,6 +98,7 @@ Token *tokenize(char *str) {
         char c = str[i];
         if (is_reserved_then_handle(str + i, &i, "return", 6, enum3('R', 'E', 'T'))) {
         } else if (is_reserved_then_handle(str + i, &i, "sizeof", 6, enum4('S', 'Z', 'O', 'F'))) {
+        } else if (is_reserved_then_handle(str + i, &i, "struct", 6, enum4('S', 'T', 'R', 'U'))) {
         } else if (is_reserved_then_handle(str + i, &i, "if", 2, enum2('i', 'f'))) {
         } else if (is_reserved_then_handle(str + i, &i, "while", 5, enum4('W', 'H', 'I', 'L'))) {
         } else if (is_reserved_then_handle(str + i, &i, "else", 4, enum4('e', 'l', 's', 'e'))) {
@@ -397,6 +398,10 @@ int is_int_or_char(Kind kind) {
     return (kind == enum3('i', 'n', 't')) + (kind == enum4('c', 'h', 'a', 'r'));
 }
 
+int starts_a_type(Kind kind) {
+    return is_int_or_char(kind) + (kind == enum4('S', 'T', 'R', 'U'));
+}
+
 int is_integer(Type *typ) {
     return is_int_or_char(typ->kind);
 }
@@ -537,7 +542,7 @@ Expr *parseUnary() {
         return unaryExpr(expr, '&', ptr_of(expr->typ));  // NO DECAY
     } else if (maybe_consume(enum4('S', 'Z', 'O', 'F'))) {
         if (tokens_cursor->kind == '(') {
-            if (is_int_or_char((tokens_cursor + 1)->kind)) {
+            if (starts_a_type((tokens_cursor + 1)->kind)) {
                 tokens_cursor++;
                 Type *typ = consume_simple_type();
                 consume_otherwise_panic(')');
@@ -776,7 +781,7 @@ Stmt *parseStmt() {
         Stmt *for_stmt = calloc(1, sizeof(Stmt));
         for_stmt->stmt_kind = enum3('f', 'o', 'r');
         consume_otherwise_panic('(');
-        if (is_int_or_char(tokens_cursor->kind)) {
+        if (starts_a_type(tokens_cursor->kind)) {
             Stmt *initializer = parse_var_def_maybe_with_initializer();
             for_stmt->expr = numberExpr(42);
             for_stmt->for_cond = parseOptionalExprAndToken(';');
@@ -795,7 +800,7 @@ Stmt *parseStmt() {
             return for_stmt;
         }
     }
-    if (is_int_or_char(tokens_cursor->kind)) {
+    if (starts_a_type(tokens_cursor->kind)) {
         return parse_var_def_maybe_with_initializer();
     }
     Stmt *stmt = calloc(1, sizeof(Stmt));
