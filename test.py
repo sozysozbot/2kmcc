@@ -113,6 +113,7 @@ assert check("int main() { return 5+(8+(7!=2)); }", 14)
 
 # miscompiles
 
+assert check("int main() { return 8*7!=2; }", 1)
 assert check("int main() { return 8+7!=2; }", 1)
 assert check("int main() { return 1+(1+1!=1+1); }", 1)
 assert check("int main() { return 1+(1+1!=2); }", 1)

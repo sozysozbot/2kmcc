@@ -590,10 +590,14 @@ int getPrecedence() {
 
 Expr *parseLeftToRightInfix(int level) {
     panic_if_eof();
+    fprintf(stderr, "\n'Entering. kind: `%s`, value: %d, level %d';\n{\n", decode_kind(tokens_cursor->kind), tokens_cursor->value_or_string_size, level);
     Expr *expr = parseUnary();
+    fprintf(stderr, "'Parsed a unary. kind: `%s`, level %d'\n", decode_kind(tokens_cursor->kind), level);
     while (tokens_cursor < tokens_end) {
         int precedence = getPrecedence();
+        fprintf(stderr, "'precedence: %d, kind: `%s`, level %d'\n", precedence, decode_kind(tokens_cursor->kind), level);
         if (precedence < level) {
+            fprintf(stderr, "}\n'Early return. precedence: %d, level: %d'\n\n", precedence, level);
             return expr;
         }
         int op = (tokens_cursor++)->kind;
@@ -603,6 +607,7 @@ Expr *parseLeftToRightInfix(int level) {
             if (op == '-') {
                 expr = expr_subtract(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(level + 1)));
             } else {
+                fprintf(stderr, "'encountered `+` at level %d'\n", level);
                 expr = expr_add(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(level + 1)));
             }
         } else if (op == '<' || op == enum2('<', '=')) {  // children & operator swapped
@@ -613,6 +618,7 @@ Expr *parseLeftToRightInfix(int level) {
             expr = binaryExpr(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(level + 1)), op, type(enum3('i', 'n', 't')));
         }
     }
+    fprintf(stderr, "} 'Late return'\n");
     return expr;
 }
 
