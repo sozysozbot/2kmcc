@@ -13,8 +13,9 @@ C compiler self-host struct%
 - the source code of the compiler should be compilable by many other toy C compilers
 
 ## Current status
-- [Step 25 of Rui Ueyama's compilerbook](https://www.sigbus.info/compilerbook#%E3%82%B9%E3%83%86%E3%83%83%E3%83%9725-%E6%96%87%E5%AD%97%E5%88%97%E3%83%AA%E3%83%86%E3%83%A9%E3%83%AB%E3%82%92%E5%AE%9F%E8%A3%85%E3%81%99%E3%82%8B) completed
-- See test.py to get an idea on what the compiler can handle 
+- on the verge of self-hosting
+- See `test_*.py` to get an idea on what the compiler can and cannot handle 
+- Try `make test` to see what it can handle; try `make embarrass` for what it can't
 
 ## Rules for the compiler source code
 - Must self-host
