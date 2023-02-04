@@ -108,6 +108,17 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
 
+assert check("int main() { return 1+(2!=1+1); }", 1)
+assert check("int main() { return 5+(8+(7!=2)); }", 14)
+
+# miscompiles
+
+assert check("int main() { return 8+7!=2; }", 1)
+assert check("int main() { return 1+(1+1!=1+1); }", 1)
+assert check("int main() { return 1+(1+1!=2); }", 1)
+assert check("int main() { return 5+(8+7!=2); }", 6)
+
+
 assert check("""
 int printf();
 int first() {
@@ -303,8 +314,6 @@ assert check("int main() { return 1+(1+1==1+1); }", 2)
 assert check("int main() { return 1!=0; }", 1)
 assert check("int main() { return 1!=1; }", 0)
 assert check("int main() { return 1!=1+5; }", 1)
-assert check("int main() { return 1+(1+1!=1+1); }", 1)
-
 
 # relational
 assert check("int main() { return 1>0; }", 1)
