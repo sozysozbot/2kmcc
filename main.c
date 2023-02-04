@@ -118,6 +118,7 @@ struct Token *tokenize(char *str) {
         } else if (is_reserved_then_handle(str + i, &i, "struct", 6, enum4('S', 'T', 'R', 'U'))) {
         } else if (is_reserved_then_handle(str + i, &i, "if", 2, enum2('i', 'f'))) {
         } else if (is_reserved_then_handle(str + i, &i, "while", 5, enum4('W', 'H', 'I', 'L'))) {
+        } else if (is_reserved_then_handle(str + i, &i, "const", 5, enum4('C', 'N', 'S', 'T'))) {
         } else if (is_reserved_then_handle(str + i, &i, "else", 4, enum4('e', 'l', 's', 'e'))) {
         } else if (is_reserved_then_handle(str + i, &i, "for", 3, enum3('f', 'o', 'r'))) {
         } else if (is_reserved_then_handle(str + i, &i, "int", 3, enum3('i', 'n', 't'))) {
@@ -443,7 +444,7 @@ int is_int_or_char(int kind) {
 }
 
 int starts_a_type(int kind) {
-    return is_int_or_char(kind) + (kind == enum4('S', 'T', 'R', 'U'));
+    return is_int_or_char(kind) + (kind == enum4('S', 'T', 'R', 'U')) + (kind == enum4('C', 'N', 'S', 'T'));
 }
 
 int is_integer(struct Type *typ) {
@@ -728,7 +729,9 @@ struct Expr *parseOptionalExprAndToken(int token_kind) {
 
 struct Type *consume_simple_type() {
     struct Type *type = calloc(1, sizeof(struct Type));
-    if (maybe_consume(enum3('i', 'n', 't')))
+    if (maybe_consume(enum4('C', 'N', 'S', 'T')))
+        return consume_simple_type(); // ignore const for now
+    else if (maybe_consume(enum3('i', 'n', 't')))
         type->kind = enum3('i', 'n', 't');
     else if (maybe_consume(enum4('c', 'h', 'a', 'r')))
         type->kind = enum4('c', 'h', 'a', 'r');
