@@ -420,13 +420,15 @@ struct Expr *parsePrimary() {
             if (maybe_consume(')'))
                 return callingExpr(name, arguments, 0);
             int i = 0;
-            for (; i < 6; i++) {
+            while (1) {
                 arguments[i] = decay_if_arr(parseExpr());
                 if (maybe_consume(')'))
-                    break;
+                    return callingExpr(name, arguments, i + 1);
                 consume_otherwise_panic(',');
+                i++;
+                if (i >= 6)
+                    panic("not supported: more than arguments\n");
             }
-            return callingExpr(name, arguments, i + 1);
         }
         return identExpr(name);
     }
@@ -582,9 +584,8 @@ struct Expr *parsePostfix() {
             char *member_name = (tokens_cursor++)->identifier_name_or_escaped_string_content;
             result = arrowExpr(unaryExpr(result, '&', ptr_of(result->typ)), member_name);
         } else
-            break;
+            return result;
     }
-    return result;
 }
 
 struct Expr *parseUnary();
@@ -965,26 +966,28 @@ void parseToplevel() {
         }
         lvars_cursor = lvars_start = calloc(100, sizeof(char *));
         int i = 0;
-        for (; i < 6; i++) {
+        while (1) {
             struct NameAndType *param = consume_type_and_ident();
             if (maybe_consume(')')) {
                 params_start[i].name = param->name;
                 params_start[i].type = param->type;
                 lvars_cursor->name = param->name;
                 (lvars_cursor++)->type = param->type;
-                break;
+                store_func_decl(rettype_and_funcname);
+                if (maybe_consume(';'))
+                    return;
+                *(funcdefs_cursor++) = constructFuncDef(parseFunctionContent(), rettype_and_funcname, i + 1, params_start);
+                return;
             }
             consume_otherwise_panic(',');
             params_start[i].name = param->name;
             params_start[i].type = param->type;
             lvars_cursor->name = param->name;
             (lvars_cursor++)->type = param->type;
+            i++;
+            if (i >= 6)
+                panic("not supported: more than 6 parameters\n");
         }
-        store_func_decl(rettype_and_funcname);
-        if (maybe_consume(';'))
-            return;
-        *(funcdefs_cursor++) = constructFuncDef(parseFunctionContent(), rettype_and_funcname, i + 1, params_start);
-        return;
     } else {
         struct NameAndType *global_var_type_and_name = consume_type_and_ident_2nd_half(first_half);
         *(global_vars_cursor++) = global_var_type_and_name;
@@ -1245,15 +1248,15 @@ void EvaluateExprIntoRax(struct Expr *expr) {
             EvaluateExprIntoRax(expr->second_child);
             printf("    pop rdi\n");
             write_rax_to_where_rdi_points(size(expr->first_child->typ));  // second_child might be a 0 meaning a null pointer
-        } else if (AddSubMulDivAssign_rdi_into_rax(expr->op_kind)) {           // x @= i
+        } else if (AddSubMulDivAssign_rdi_into_rax(expr->op_kind)) {      // x @= i
             EvaluateExprIntoRax(expr->second_child);
-            printf("    push rax\n");                                 // stack: i
-            EvaluateLValueAddressIntoRax(expr->first_child);          // rax: &x
-            printf("    mov rsi, rax\n");                             // rsi: &x
-            printf("    mov rax, [rax]\n");                           // rsi: &x, rax: x
-            printf("    pop rdi\n");                                  // rsi: &x, rax: x, rdi: i
+            printf("    push rax\n");                                      // stack: i
+            EvaluateLValueAddressIntoRax(expr->first_child);               // rax: &x
+            printf("    mov rsi, rax\n");                                  // rsi: &x
+            printf("    mov rax, [rax]\n");                                // rsi: &x, rax: x
+            printf("    pop rdi\n");                                       // rsi: &x, rax: x, rdi: i
             printf("%s", AddSubMulDivAssign_rdi_into_rax(expr->op_kind));  // rsi: &x, rax: x@i
-            printf("    mov rdi, rsi\n");                             // rdi: &x, rax: x@i
+            printf("    mov rdi, rsi\n");                                  // rdi: &x, rax: x@i
             write_rax_to_where_rdi_points(size(expr->second_child->typ));
         } else if (expr->op_kind == enum2('&', '&')) {
             int label = (labelCounter++);
