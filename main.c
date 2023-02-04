@@ -18,6 +18,12 @@ typedef struct StructMember {
     Type *member_type;
 } StructMember;
 
+typedef struct StructSizeAndAlign {
+    char *struct_name;
+    int size;
+    int align;
+} StructSizeAndAlign;
+
 typedef struct Expr {
     Kind op;
     Kind expr_kind;
@@ -91,6 +97,9 @@ char *string_literals_start[10000];
 char **string_literals_cursor;
 StructMember *struct_members_start[10000];
 StructMember **struct_members_cursor;
+StructSizeAndAlign *struct_sizes_and_alignments_start[100];
+StructSizeAndAlign **struct_sizes_and_alignments_cursor;
+
 int is_alnum(char c) {
     return strchr("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_", c) != 0;
 }
@@ -234,6 +243,8 @@ Type *deref(Type *t) {
     exit(1);
 }
 
+void display_type(Type *t);
+
 int size(Type *t) {
     if (t->kind == '*') {
         return 8;
@@ -243,19 +254,42 @@ int size(Type *t) {
         return 1;
     } else if (t->kind == enum2('[', ']')) {
         return t->array_size * size(t->ptr_to);
-    }
-    fprintf(stderr, "unknown size\n");
+    } else if (t->kind == enum4('S', 'T', 'R', 'U'))
+        for (int i = 0; struct_sizes_and_alignments_start[i]; i++)
+            if (strcmp(t->struct_name, struct_sizes_and_alignments_start[i]->struct_name) == 0)
+                return struct_sizes_and_alignments_start[i]->size;
+    fprintf(stderr, "cannot calculate the size for type `");
+    display_type(t);
+    fprintf(stderr, "`\n");
+    exit(1);
+}
+
+int align(Type *t) {
+    if (t->kind == '*') {
+        return 8;
+    } else if (t->kind == enum3('i', 'n', 't')) {
+        return 4;
+    } else if (t->kind == enum4('c', 'h', 'a', 'r')) {
+        return 1;
+    } else if (t->kind == enum2('[', ']')) {
+        return align(t->ptr_to);
+    } else if (t->kind == enum4('S', 'T', 'R', 'U'))
+        for (int i = 0; struct_sizes_and_alignments_start[i]; i++)
+            if (strcmp(t->struct_name, struct_sizes_and_alignments_start[i]->struct_name) == 0)
+                return struct_sizes_and_alignments_start[i]->align;
+    fprintf(stderr, "cannot calculate the alignment for type `");
+    display_type(t);
+    fprintf(stderr, "`\n");
     exit(1);
 }
 
 Expr *numberExpr(int value) {
     Expr *numberexp = calloc(1, sizeof(Expr));
     numberexp->value = value;
-    if (value) {
+    if (value)
         numberexp->expr_kind = enum3('N', 'U', 'M');
-    } else {
+    else
         numberexp->expr_kind = '0';  //  An integer constant expression with the value 0 ... is called a null pointer constant
-    }
     numberexp->typ = type(enum3('i', 'n', 't'));
     return numberexp;
 }
@@ -431,6 +465,8 @@ void display_type(Type *t) {
     } else if (t->kind == '*') {
         fprintf(stderr, "pointer to ");
         display_type(t->ptr_to);
+    } else if (t->kind == enum4('S', 'T', 'R', 'U')) {
+        fprintf(stderr, "struct %s", t->struct_name);
     } else
         fprintf(stderr, "%s", decode_kind(t->kind));
 }
@@ -850,10 +886,16 @@ void store_func_decl(NameAndType *rettype_and_funcname) {
     *(funcdecls_cursor++) = decl;
 }
 
+int roundup(int sz, int align) {
+    return (sz + align - 1) / align * align;
+}
+
 void parseToplevel() {
     if (maybe_consume(enum4('S', 'T', 'R', 'U'))) {
         expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
         char *struct_name = (tokens_cursor++)->identifier_name_or_escaped_string_content;
+        int overall_alignment = 1;
+        int next_member_offset = 0;
         consume_otherwise_panic('{');
         while (!maybe_consume('}')) {
             NameAndType *member = consume_type_and_ident();
@@ -862,9 +904,17 @@ void parseToplevel() {
             q->member_name = member->name;
             q->struct_name = struct_name;
             q->member_type = member->type;
-            q->member_offset = 0; // TODO
-            *struct_members_cursor = q;
+            q->member_offset = roundup(next_member_offset, align(member->type));
+            next_member_offset = q->member_offset + size(member->type);
+            if (overall_alignment < align(member->type))
+                overall_alignment = align(member->type);
+            *(struct_members_cursor++) = q;
         }
+        StructSizeAndAlign *sa = calloc(1, sizeof(StructSizeAndAlign));
+        sa->struct_name = struct_name;
+        sa->align = overall_alignment;
+        sa->size = roundup(next_member_offset, overall_alignment);
+        *(struct_sizes_and_alignments_cursor++) = sa;
         consume_otherwise_panic(';');
         return;
     }
@@ -960,7 +1010,7 @@ LVar *lastLVar() {
 }
 
 LVar *insertLVar(char *name, int sz) {
-    sz = (sz + 7) / 8 * 8;
+    sz = roundup(sz, 8);
     LVar *newlocal = calloc(1, sizeof(LVar));
     LVar *last = lastLVar();
     newlocal->name = name;
@@ -1068,7 +1118,7 @@ void CodegenFunc(FuncDef *funcdef) {
     for (int i = 0; i < funcdef->param_len; i++)
         stack_adjust += 8;
     for (NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++)
-        stack_adjust += (size(ptr->type) + 7) / 8 * 8;
+        stack_adjust += roundup(size(ptr->type), 8);
     printf("  sub rsp, %d\n", stack_adjust);
     for (int i = 0; i < funcdef->param_len; i++) {
         char *param_name = funcdef->params_start[i].name;
@@ -1233,6 +1283,7 @@ int main(int argc, char **argv) {
         panic("no token found\n");
     tokens_cursor = tokens_start;  // the 2nd tokens_cursor is for parsing
     struct_members_cursor = struct_members_start;
+    struct_sizes_and_alignments_cursor = struct_sizes_and_alignments_start;
     funcdecls_cursor = funcdecls_start;
     funcdefs_cursor = funcdefs_start;
     global_vars_cursor = global_vars_start;

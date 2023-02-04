@@ -109,6 +109,9 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 ######################################
 
 assert check("struct A { int a; int b; }; int main() { return 0; }", 0)
+assert check("struct A { int a; int b; }; int main() { return sizeof(struct A); }", 8)
+assert check("struct A { char a; int b; }; int main() { return sizeof(struct A); }", 8)
+assert check("struct A { char a[5]; int b; }; int main() { return sizeof(struct A); }", 12)
 
 assert check("int main() { return sizeof(struct A*); }", 8)
 assert check("int main() { struct A *p; return 0; }", 0)
