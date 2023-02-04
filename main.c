@@ -8,6 +8,7 @@ typedef struct Type {
     Kind kind;
     struct Type *ptr_to;
     int array_size;
+    char *struct_name;
 } Type;
 
 typedef struct Expr {
@@ -652,8 +653,13 @@ Type *consume_simple_type() {
         type->kind = enum3('i', 'n', 't');
     else if (maybe_consume(enum4('c', 'h', 'a', 'r')))
         type->kind = enum4('c', 'h', 'a', 'r');
-    else {
-        fprintf(stderr, "expected `int` or `char`; got TokenKind `%s`\n", decode_kind(tokens_cursor->kind));
+    else if (maybe_consume(enum4('S', 'T', 'R', 'U'))) {
+        type->kind = enum4('S', 'T', 'R', 'U');
+        expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
+        char *name = (tokens_cursor++)->identifier_name_or_escaped_string_content;
+        type->struct_name = name;
+    } else {
+        fprintf(stderr, "expected `int` or `char` or `struct`; got TokenKind `%s`\n", decode_kind(tokens_cursor->kind));
         exit(1);
     }
     while (maybe_consume('*'))

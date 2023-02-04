@@ -108,6 +108,8 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
 
+assert check("int main() { return sizeof(struct A*); }", 8)
+
 assert check("int main() { return 1+(2!=1+1); }", 1)
 assert check("int main() { return 5+(8+(7!=2)); }", 14)
 
