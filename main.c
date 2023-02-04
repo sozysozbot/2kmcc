@@ -2,75 +2,73 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef int Kind;
-
-typedef struct Type {
-    Kind kind;
+struct Type {
+    int kind;
     struct Type *ptr_to;
     int array_size;
     char *struct_name;
-} Type;
+};
 
-typedef struct StructMember {
+struct StructMember {
     char *struct_name;
     char *member_name;
     int member_offset;
-    Type *member_type;
-} StructMember;
+    struct Type *member_type;
+};
 
-typedef struct StructSizeAndAlign {
+struct StructSizeAndAlign {
     char *struct_name;
     int size;
     int align;
-} StructSizeAndAlign;
+};
 
-typedef struct Expr {
-    Kind op;
-    Kind expr_kind;
+struct Expr {
+    int op_kind;
+    int expr_kind;
     int value;
     struct Expr *first_child;
     struct Expr *second_child;
     struct Expr **func_args_start;
     int func_arg_len;
     char *func_or_ident_name_or_string_content;
-    Type *typ;
-} Expr;
+    struct Type *typ;
+};
 
-typedef struct NameAndType {
+struct NameAndType {
     char *name;
-    Type *type;
-} NameAndType;
+    struct Type *type;
+};
 
-typedef struct FuncDef {
-    struct Stmt *content;
-    char *name;
-    NameAndType *params_start;
-    int param_len;
-    NameAndType *lvar_table_start;
-    NameAndType *lvar_table_end;
-    Type *return_type;
-} FuncDef;
-
-typedef struct Stmt {
-    Kind stmt_kind;
+struct Stmt {
+    int stmt_kind;
     struct Expr *expr;
     struct Expr *for_cond;
     struct Expr *for_after;
     struct Stmt *first_child;
     struct Stmt *second_child;
-} Stmt;
+};
 
-typedef struct LVar {
+struct FuncDef {
+    struct Stmt *content;
+    char *name;
+    struct NameAndType *params_start;
+    int param_len;
+    struct NameAndType *lvar_table_start;
+    struct NameAndType *lvar_table_end;
+    struct Type *return_type;
+};
+
+struct LVar {
     struct LVar *next;
     char *name;
     int offset_from_rbp;
-} LVar;
+};
 
-typedef struct Token {
-    Kind kind;
+struct Token {
+    int kind;
     int value_or_string_size;  // includes the null terminator, so length+1
     char *identifier_name_or_escaped_string_content;
-} Token;
+};
 
 int enum2(int a, int b) {
     return a + b * 256;
@@ -90,15 +88,15 @@ void panic(const char *msg) {
 }
 
 /*** ^ LIB | v PARSE ***/
-Token tokens_start[1000];
-Token *tokens_end;
-Token *tokens_cursor;
+struct Token tokens_start[1000];
+struct Token *tokens_end;
+struct Token *tokens_cursor;
 char *string_literals_start[10000];
 char **string_literals_cursor;
-StructMember *struct_members_start[10000];
-StructMember **struct_members_cursor;
-StructSizeAndAlign *struct_sizes_and_alignments_start[100];
-StructSizeAndAlign **struct_sizes_and_alignments_cursor;
+struct StructMember *struct_members_start[10000];
+struct StructMember **struct_members_cursor;
+struct StructSizeAndAlign *struct_sizes_and_alignments_start[100];
+struct StructSizeAndAlign **struct_sizes_and_alignments_cursor;
 
 int is_alnum(char c) {
     return strchr("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_", c) != 0;
@@ -112,7 +110,7 @@ int is_reserved_then_handle(char *ptr, int *ptr_i, const char *keyword, int keyw
     *ptr_i += keyword_len;
     return 1;
 }
-Token *tokenize(char *str) {
+struct Token *tokenize(char *str) {
     for (int i = 0; str[i];) {
         char c = str[i];
         if (is_reserved_then_handle(str + i, &i, "return", 6, enum3('R', 'E', 'T'))) {
@@ -217,35 +215,35 @@ Token *tokenize(char *str) {
 
 /*** ^ TOKENIZE | v PARSE ***/
 
-Type *type(Kind kind) {
-    Type *t = calloc(1, sizeof(Type));
+struct Type *type(int kind) {
+    struct Type *t = calloc(1, sizeof(struct Type));
     t->kind = kind;
     return t;
 }
 
-Type *ptr_of(Type *t) {
-    Type *new_t = type('*');
+struct Type *ptr_of(struct Type *t) {
+    struct Type *new_t = type('*');
     new_t->ptr_to = t;
     return new_t;
 }
 
-Type *arr_of(Type *t, int array_size) {
-    Type *new_t = type(enum2('[', ']'));
+struct Type *arr_of(struct Type *t, int array_size) {
+    struct Type *new_t = type(enum2('[', ']'));
     new_t->ptr_to = t;
     new_t->array_size = array_size;
     return new_t;
 }
 
-Type *deref(Type *t) {
+struct Type *deref(struct Type *t) {
     if (t->kind == '*')
         return t->ptr_to;
     fprintf(stderr, "Cannot deref a non-pointer type\n");
     exit(1);
 }
 
-void display_type(Type *t);
+void display_type(struct Type *t);
 
-int size(Type *t) {
+int size(struct Type *t) {
     if (t->kind == '*') {
         return 8;
     } else if (t->kind == enum3('i', 'n', 't')) {
@@ -264,7 +262,7 @@ int size(Type *t) {
     exit(1);
 }
 
-int align(Type *t) {
+int align(struct Type *t) {
     if (t->kind == '*') {
         return 8;
     } else if (t->kind == enum3('i', 'n', 't')) {
@@ -283,8 +281,8 @@ int align(Type *t) {
     exit(1);
 }
 
-Expr *numberExpr(int value) {
-    Expr *numberexp = calloc(1, sizeof(Expr));
+struct Expr *numberExpr(int value) {
+    struct Expr *numberexp = calloc(1, sizeof(struct Expr));
     numberexp->value = value;
     if (value)
         numberexp->expr_kind = enum3('N', 'U', 'M');
@@ -294,39 +292,39 @@ Expr *numberExpr(int value) {
     return numberexp;
 }
 
-Expr *unaryExpr(Expr *first_child, Kind unaryop, Type *typ) {
-    Expr *newexp = calloc(1, sizeof(Expr));
+struct Expr *unaryExpr(struct Expr *first_child, int op_kind, struct Type *typ) {
+    struct Expr *newexp = calloc(1, sizeof(struct Expr));
     newexp->first_child = first_child;
     newexp->expr_kind = enum4('1', 'A', 'R', 'Y');
-    newexp->op = unaryop;
+    newexp->op_kind = op_kind;
     newexp->typ = typ;
     return newexp;
 }
 
-Expr *binaryExpr(Expr *first_child, Expr *second_child, Kind binaryop, Type *typ) {
-    Expr *newexp = unaryExpr(first_child, binaryop, typ);
+struct Expr *binaryExpr(struct Expr *first_child, struct Expr *second_child, int op_kind, struct Type *typ) {
+    struct Expr *newexp = unaryExpr(first_child, op_kind, typ);
     newexp->expr_kind = enum4('2', 'A', 'R', 'Y');
     newexp->second_child = second_child;
     return newexp;
 }
 
-Expr *decay_if_arr(Expr *first_child) {
+struct Expr *decay_if_arr(struct Expr *first_child) {
     if (first_child->typ->kind != enum2('[', ']'))
         return first_child;
-    Type *t = calloc(1, sizeof(Type));
+    struct Type *t = calloc(1, sizeof(struct Type));
     t->ptr_to = first_child->typ->ptr_to;
     t->kind = '*';
     return unaryExpr(first_child, enum4('[', ']', '>', '*'), t);
 }
 
-int maybe_consume(Kind kind) {
+int maybe_consume(int kind) {
     if (tokens_cursor->kind != kind)
         return 0;
     tokens_cursor += 1;
     return 1;
 }
 
-char *decode_kind(Kind kind) {
+char *decode_kind(int kind) {
     void *r = &kind;
     char *q = r;
     char *ans = calloc(5, sizeof(char));
@@ -355,18 +353,18 @@ void panic_if_eof() {
     }
 }
 
-Expr *parseExpr(void);
+struct Expr *parseExpr(void);
 
-NameAndType *lvars_start;
-NameAndType *lvars_cursor;
-NameAndType *funcdecls_start[100];
-NameAndType **funcdecls_cursor;
-FuncDef *funcdefs_start[100];
-FuncDef **funcdefs_cursor;
-NameAndType *global_vars_start[100];
-NameAndType **global_vars_cursor;
+struct NameAndType *lvars_start;
+struct NameAndType *lvars_cursor;
+struct NameAndType *funcdecls_start[100];
+struct NameAndType **funcdecls_cursor;
+struct FuncDef *funcdefs_start[100];
+struct FuncDef **funcdefs_cursor;
+struct NameAndType *global_vars_start[100];
+struct NameAndType **global_vars_cursor;
 
-Type *lookup_ident_type(char *name) {
+struct Type *lookup_ident_type(char *name) {
     for (int i = 0; lvars_start[i].name; i++)
         if (strcmp(lvars_start[i].name, name) == 0)
             return lvars_start[i].type;
@@ -377,7 +375,7 @@ Type *lookup_ident_type(char *name) {
     exit(1);
 }
 
-Type *lookup_func_type(char *name) {
+struct Type *lookup_func_type(char *name) {
     for (int i = 0; funcdecls_start[i]; i++)
         if (strcmp(funcdecls_start[i]->name, name) == 0)
             return funcdecls_start[i]->type;
@@ -385,8 +383,8 @@ Type *lookup_func_type(char *name) {
     return type(enum3('i', 'n', 't'));
 }
 
-Expr *callingExpr(char *name, Expr **arguments, int len) {
-    Expr *callexp = calloc(1, sizeof(Expr));
+struct Expr *callingExpr(char *name, struct Expr **arguments, int len) {
+    struct Expr *callexp = calloc(1, sizeof(struct Expr));
     callexp->func_or_ident_name_or_string_content = name;
     callexp->expr_kind = enum4('C', 'A', 'L', 'L');
     callexp->func_args_start = arguments;
@@ -395,22 +393,22 @@ Expr *callingExpr(char *name, Expr **arguments, int len) {
     return callexp;
 }
 
-Expr *identExpr(char *name) {
-    Expr *ident_exp = calloc(1, sizeof(Expr));
+struct Expr *identExpr(char *name) {
+    struct Expr *ident_exp = calloc(1, sizeof(struct Expr));
     ident_exp->func_or_ident_name_or_string_content = name;
     ident_exp->expr_kind = enum4('I', 'D', 'N', 'T');
     ident_exp->typ = lookup_ident_type(name);
     return ident_exp;
 }
 
-Expr *parsePrimary() {
+struct Expr *parsePrimary() {
     panic_if_eof();
     if (tokens_cursor->kind == enum3('N', 'U', 'M'))
         return numberExpr((tokens_cursor++)->value_or_string_size);
     else if (tokens_cursor->kind == enum3('S', 'T', 'R')) {
         int str_size = tokens_cursor->value_or_string_size;
         char *str_content = (tokens_cursor++)->identifier_name_or_escaped_string_content;
-        Expr *string_literal_exp = calloc(1, sizeof(Expr));
+        struct Expr *string_literal_exp = calloc(1, sizeof(struct Expr));
         string_literal_exp->func_or_ident_name_or_string_content = str_content;
         string_literal_exp->expr_kind = enum3('S', 'T', 'R');
         string_literal_exp->typ = arr_of(type(enum4('c', 'h', 'a', 'r')), str_size);
@@ -418,7 +416,7 @@ Expr *parsePrimary() {
     } else if (tokens_cursor->kind == enum4('I', 'D', 'N', 'T')) {
         char *name = (tokens_cursor++)->identifier_name_or_escaped_string_content;
         if (maybe_consume('(')) {
-            Expr **arguments = calloc(6, sizeof(Expr *));
+            struct Expr **arguments = calloc(6, sizeof(struct Expr *));
             if (maybe_consume(')'))
                 return callingExpr(name, arguments, 0);
             int i = 0;
@@ -433,24 +431,24 @@ Expr *parsePrimary() {
         return identExpr(name);
     }
     consume_otherwise_panic('(');
-    Expr *expr = parseExpr();  // NO DECAY
+    struct Expr *expr = parseExpr();  // NO DECAY
     consume_otherwise_panic(')');
     return expr;
 }
 
-int is_int_or_char(Kind kind) {
+int is_int_or_char(int kind) {
     return (kind == enum3('i', 'n', 't')) + (kind == enum4('c', 'h', 'a', 'r'));
 }
 
-int starts_a_type(Kind kind) {
+int starts_a_type(int kind) {
     return is_int_or_char(kind) + (kind == enum4('S', 'T', 'R', 'U'));
 }
 
-int is_integer(Type *typ) {
+int is_integer(struct Type *typ) {
     return is_int_or_char(typ->kind);
 }
 
-Expr *assert_integer(Expr *e) {
+struct Expr *assert_integer(struct Expr *e) {
     if (is_integer(e->typ)) {
         return e;
     }
@@ -458,7 +456,7 @@ Expr *assert_integer(Expr *e) {
     exit(1);
 }
 
-void display_type(Type *t) {
+void display_type(struct Type *t) {
     if (t->kind == enum2('[', ']')) {
         fprintf(stderr, "array (length: %d) of ", t->array_size);
         display_type(t->ptr_to);
@@ -471,14 +469,14 @@ void display_type(Type *t) {
         fprintf(stderr, "%s", decode_kind(t->kind));
 }
 
-int is_same_type(Type *t1, Type *t2) {
+int is_same_type(struct Type *t1, struct Type *t2) {
     if (t1->kind == '*' && t2->kind == '*') {
         return is_same_type(t1->ptr_to, t2->ptr_to);
     }
     return t1->kind == t2->kind;
 }
 
-void panic_two_types(const char *msg, Type *t1, Type *t2) {
+void panic_two_types(const char *msg, struct Type *t1, struct Type *t2) {
     fprintf(stderr, "%s: `", msg);
     display_type(t1);
     fprintf(stderr, "` and `");
@@ -487,14 +485,14 @@ void panic_two_types(const char *msg, Type *t1, Type *t2) {
     exit(1);
 }
 
-int is_compatible_type(Type *t1, Type *t2) {
+int is_compatible_type(struct Type *t1, struct Type *t2) {
     if (t1->kind == '*' && t2->kind == '*') {
         return is_same_type(t1->ptr_to, t2->ptr_to);
     }
     return !(t1->kind != t2->kind && !(is_integer(t1) && is_integer(t2)));
 }
 
-Expr *expr_add(Expr *lhs, Expr *rhs) {
+struct Expr *expr_add(struct Expr *lhs, struct Expr *rhs) {
     if (is_integer(lhs->typ)) {
         if (is_integer(rhs->typ))
             return binaryExpr(lhs, rhs, '+', type(enum3('i', 'n', 't')));
@@ -512,7 +510,7 @@ Expr *expr_add(Expr *lhs, Expr *rhs) {
     exit(1);
 }
 
-Expr *expr_subtract(Expr *lhs, Expr *rhs) {
+struct Expr *expr_subtract(struct Expr *lhs, struct Expr *rhs) {
     if (is_integer(lhs->typ)) {
         if (is_integer(rhs->typ))
             return binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't')));
@@ -532,7 +530,7 @@ Expr *expr_subtract(Expr *lhs, Expr *rhs) {
     exit(1);
 }
 
-int offset_of(Type *t, char *member_name) {
+int offset_of(struct Type *t, char *member_name) {
     if (t->kind != enum4('S', 'T', 'R', 'U'))
         panic("tried to make a member access to a non-struct type\n");
     for (int i = 0; struct_members_start[i]; i++)
@@ -543,37 +541,37 @@ int offset_of(Type *t, char *member_name) {
     exit(1);
 }
 
-Expr *arrowExpr(Expr *lhs, char *member_name) {
-    Type *struct_type = deref(lhs->typ);
+struct Expr *arrowExpr(struct Expr *lhs, char *member_name) {
+    struct Type *struct_type = deref(lhs->typ);
     if (struct_type->kind != enum4('S', 'T', 'R', 'U'))
         panic("tried to access a member of a non-struct type");
     int offset;
-    Type *member_type;
+    struct Type *member_type;
     for (int i = 0; struct_members_start[i]; i++)
         if (strcmp(struct_members_start[i]->struct_name, struct_type->struct_name) == 0)
             if (strcmp(struct_members_start[i]->member_name, member_name) == 0) {
                 offset = struct_members_start[i]->member_offset;
                 member_type = struct_members_start[i]->member_type;
             }
-    Expr *expr = binaryExpr(lhs, numberExpr(offset), '+', ptr_of(member_type));
+    struct Expr *expr = binaryExpr(lhs, numberExpr(offset), '+', ptr_of(member_type));
     return unaryExpr(expr, '*', deref(expr->typ));
 }
 
-Expr *parsePostfix() {
-    Expr *result = parsePrimary();
+struct Expr *parsePostfix() {
+    struct Expr *result = parsePrimary();
     while (1) {
         if (maybe_consume('[')) {
-            Expr *addition = expr_add(decay_if_arr(result), decay_if_arr(parseExpr()));
+            struct Expr *addition = expr_add(decay_if_arr(result), decay_if_arr(parseExpr()));
             consume_otherwise_panic(']');
-            Expr *expr = decay_if_arr(addition);
+            struct Expr *expr = decay_if_arr(addition);
             result = unaryExpr(expr, '*', deref(expr->typ));
         } else if (maybe_consume(enum2('+', '+'))) {  // `a++` is `(a ++) - 1
-            Expr *addition = expr_add(decay_if_arr(result), numberExpr(1));
-            addition->op = enum2('+', '=');
+            struct Expr *addition = expr_add(decay_if_arr(result), numberExpr(1));
+            addition->op_kind = enum2('+', '=');
             result = expr_subtract(addition, numberExpr(1));
         } else if (maybe_consume(enum2('-', '-'))) {  // `a--` is `(a -= 1) + 1
-            Expr *subtraction = expr_subtract(decay_if_arr(result), numberExpr(1));
-            subtraction->op = enum2('-', '=');
+            struct Expr *subtraction = expr_subtract(decay_if_arr(result), numberExpr(1));
+            subtraction->op_kind = enum2('-', '=');
             result = expr_add(subtraction, numberExpr(1));
         } else if (maybe_consume(enum2('-', '>'))) {
             expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
@@ -589,15 +587,15 @@ Expr *parsePostfix() {
     return result;
 }
 
-Expr *parseUnary();
-Expr *parseCast() {
+struct Expr *parseUnary();
+struct Expr *parseCast() {
     return parseUnary();
 }
 
-Type *consume_simple_type();
-Expr *equalityExpr(Expr *lhs, Expr *rhs, Kind kind);
+struct Type *consume_simple_type();
+struct Expr *equalityExpr(struct Expr *lhs, struct Expr *rhs, int kind);
 
-Expr *parseUnary() {
+struct Expr *parseUnary() {
     panic_if_eof();
     if (maybe_consume('+')) {
         return assert_integer(parseCast());
@@ -606,31 +604,31 @@ Expr *parseUnary() {
     } else if (maybe_consume('!')) {
         return equalityExpr(numberExpr(0), parseCast(), enum2('=', '='));  // The expression !E is equivalent to (0==E)
     } else if (maybe_consume('*')) {
-        Expr *expr = decay_if_arr(parseCast());
+        struct Expr *expr = decay_if_arr(parseCast());
         return unaryExpr(expr, '*', deref(expr->typ));
     } else if (maybe_consume('&')) {
-        Expr *expr = parseCast();                        // NO DECAY
+        struct Expr *expr = parseCast();                 // NO DECAY
         return unaryExpr(expr, '&', ptr_of(expr->typ));  // NO DECAY
     } else if (maybe_consume(enum4('S', 'Z', 'O', 'F'))) {
         if (tokens_cursor->kind == '(') {
             if (starts_a_type((tokens_cursor + 1)->kind)) {
                 tokens_cursor++;
-                Type *typ = consume_simple_type();
+                struct Type *typ = consume_simple_type();
                 consume_otherwise_panic(')');
                 return numberExpr(size(typ));
             } else {
-                Expr *expr = parseUnary();  // NO DECAY
+                struct Expr *expr = parseUnary();  // NO DECAY
                 return numberExpr(size(expr->typ));
             }
         } else {
-            Expr *expr = parseUnary();  // NO DECAY
+            struct Expr *expr = parseUnary();  // NO DECAY
             return numberExpr(size(expr->typ));
         }
     }
     return parsePostfix();
 }
 
-void assert_compatible_in_equality(Expr *e1, Expr *e2) {
+void assert_compatible_in_equality(struct Expr *e1, struct Expr *e2) {
     if (is_compatible_type(e1->typ, e2->typ))
         return;
     if (e1->expr_kind == '0' && e2->typ->kind == '*')  // one operand is a pointer and the other is a null pointer constant
@@ -640,7 +638,7 @@ void assert_compatible_in_equality(Expr *e1, Expr *e2) {
     panic_two_types("cannot compare (un)equal two operands with incompatible types", e1->typ, e2->typ);
 }
 
-Expr *equalityExpr(Expr *lhs, Expr *rhs, Kind kind) {
+struct Expr *equalityExpr(struct Expr *lhs, struct Expr *rhs, int kind) {
     assert_compatible_in_equality(decay_if_arr(lhs), decay_if_arr(rhs));
     return binaryExpr(decay_if_arr(lhs), decay_if_arr(rhs), kind, type(enum3('i', 'n', 't')));
 }
@@ -662,9 +660,9 @@ int getPrecedence() {
     return 0;
 }
 
-Expr *parseLeftToRightInfix(int level) {
+struct Expr *parseLeftToRightInfix(int level) {
     panic_if_eof();
-    Expr *expr = parseUnary();
+    struct Expr *expr = parseUnary();
     while (tokens_cursor < tokens_end) {
         int precedence = getPrecedence();
         if (precedence < level)
@@ -687,7 +685,7 @@ Expr *parseLeftToRightInfix(int level) {
     return expr;
 }
 
-void assert_compatible_in_simple_assignment(Type *lhs_type, Expr *rhs) {
+void assert_compatible_in_simple_assignment(struct Type *lhs_type, struct Expr *rhs) {
     if (is_compatible_type(lhs_type, rhs->typ))
         return;
     if (lhs_type->kind == '*' && rhs->expr_kind == '0')  // the left operand is an atomic, qualified, or unqualified pointer, and the right is a null pointer constant
@@ -695,19 +693,19 @@ void assert_compatible_in_simple_assignment(Type *lhs_type, Expr *rhs) {
     panic_two_types("cannot assign/initialize because two incompatible types are detected", lhs_type, rhs->typ);
 }
 
-Expr *parseAssign() {
+struct Expr *parseAssign() {
     panic_if_eof();
-    Expr *result = parseLeftToRightInfix(1);
+    struct Expr *result = parseLeftToRightInfix(1);
     if (maybe_consume('=')) {
-        Expr *rhs = decay_if_arr(parseAssign());
+        struct Expr *rhs = decay_if_arr(parseAssign());
         assert_compatible_in_simple_assignment(result->typ, rhs);  // no decay, since we cannot assign to an array
         return binaryExpr(result, rhs, '=', result->typ);
     } else if (maybe_consume(enum2('+', '='))) {
         result = expr_add(decay_if_arr(result), assert_integer(parseAssign()));
-        result->op = enum2('+', '=');
+        result->op_kind = enum2('+', '=');
     } else if (maybe_consume(enum2('-', '='))) {
         result = expr_subtract(decay_if_arr(result), assert_integer(parseAssign()));
-        result->op = enum2('-', '=');
+        result->op_kind = enum2('-', '=');
     } else if (maybe_consume(enum2('*', '=')))
         result = binaryExpr(assert_integer(result), assert_integer(parseUnary()), enum2('*', '='), type(enum3('i', 'n', 't')));
     else if (maybe_consume(enum2('/', '=')))
@@ -715,20 +713,20 @@ Expr *parseAssign() {
     return result;
 }
 
-Expr *parseExpr() {
+struct Expr *parseExpr() {
     return parseAssign();
 }
 
-Expr *parseOptionalExprAndToken(Kind target) {
-    if (maybe_consume(target))
+struct Expr *parseOptionalExprAndToken(int token_kind) {
+    if (maybe_consume(token_kind))
         return 0;
-    Expr *expr = decay_if_arr(parseExpr());
-    consume_otherwise_panic(target);
+    struct Expr *expr = decay_if_arr(parseExpr());
+    consume_otherwise_panic(token_kind);
     return expr;
 }
 
-Type *consume_simple_type() {
-    Type *type = calloc(1, sizeof(Type));
+struct Type *consume_simple_type() {
+    struct Type *type = calloc(1, sizeof(struct Type));
     if (maybe_consume(enum3('i', 'n', 't')))
         type->kind = enum3('i', 'n', 't');
     else if (maybe_consume(enum4('c', 'h', 'a', 'r')))
@@ -747,22 +745,22 @@ Type *consume_simple_type() {
     return type;
 }
 
-NameAndType *consume_type_and_ident_1st_half() {
-    Type *type = consume_simple_type();
+struct NameAndType *consume_type_and_ident_1st_half() {
+    struct Type *type = consume_simple_type();
     expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
     char *name = (tokens_cursor++)->identifier_name_or_escaped_string_content;
-    NameAndType *ans = calloc(1, sizeof(NameAndType));
+    struct NameAndType *ans = calloc(1, sizeof(struct NameAndType));
     ans->name = name;
     ans->type = type;
     return ans;
 }
 
-NameAndType *consume_type_and_ident_2nd_half(NameAndType *ans) {
-    Type *elem_t = ans->type;
-    Type *insertion_point;
+struct NameAndType *consume_type_and_ident_2nd_half(struct NameAndType *ans) {
+    struct Type *elem_t = ans->type;
+    struct Type *insertion_point;
     if (maybe_consume('[')) {
         expect_otherwise_panic(enum3('N', 'U', 'M'));
-        Type *t = calloc(1, sizeof(Type));
+        struct Type *t = calloc(1, sizeof(struct Type));
         t->ptr_to = elem_t;
         t->kind = enum2('[', ']');
         t->array_size = (tokens_cursor++)->value_or_string_size;
@@ -772,7 +770,7 @@ NameAndType *consume_type_and_ident_2nd_half(NameAndType *ans) {
     }
     while (maybe_consume('[')) {
         expect_otherwise_panic(enum3('N', 'U', 'M'));
-        Type *t = calloc(1, sizeof(Type));
+        struct Type *t = calloc(1, sizeof(struct Type));
         t->ptr_to = elem_t;
         t->kind = enum2('[', ']');
         t->array_size = (tokens_cursor++)->value_or_string_size;
@@ -783,17 +781,17 @@ NameAndType *consume_type_and_ident_2nd_half(NameAndType *ans) {
     return ans;
 }
 
-NameAndType *consume_type_and_ident() {
-    NameAndType *ans = consume_type_and_ident_1st_half();
+struct NameAndType *consume_type_and_ident() {
+    struct NameAndType *ans = consume_type_and_ident_1st_half();
     return consume_type_and_ident_2nd_half(ans);
 }
 
-Stmt *parse_var_def_maybe_with_initializer() {
-    NameAndType *var = consume_type_and_ident();
+struct Stmt *parse_var_def_maybe_with_initializer() {
+    struct NameAndType *var = consume_type_and_ident();
     lvars_cursor->name = var->name;
     (lvars_cursor++)->type = var->type;
     if (maybe_consume(';')) {
-        Stmt *stmt = calloc(1, sizeof(Stmt));
+        struct Stmt *stmt = calloc(1, sizeof(struct Stmt));
         stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
         stmt->expr = numberExpr(42);
         return stmt;
@@ -802,22 +800,22 @@ Stmt *parse_var_def_maybe_with_initializer() {
     if (maybe_consume('{')) {
         panic("not supported: initializer list\n");
     }
-    Expr *rhs = parseExpr();
+    struct Expr *rhs = parseExpr();
     consume_otherwise_panic(';');
-    Stmt *stmt = calloc(1, sizeof(Stmt));
+    struct Stmt *stmt = calloc(1, sizeof(struct Stmt));
     stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
     assert_compatible_in_simple_assignment(var->type, rhs);
     stmt->expr = binaryExpr(identExpr(var->name), rhs, '=', var->type);
     return stmt;
 }
 
-Stmt *parseStmt() {
+struct Stmt *parseStmt() {
     if (maybe_consume('{')) {
-        Stmt *result = calloc(1, sizeof(Stmt));
+        struct Stmt *result = calloc(1, sizeof(struct Stmt));
         result->stmt_kind = enum4('e', 'x', 'p', 'r');
         result->expr = numberExpr(42);
         while (!maybe_consume('}')) {
-            Stmt *newstmt = calloc(1, sizeof(Stmt));
+            struct Stmt *newstmt = calloc(1, sizeof(struct Stmt));
             newstmt->first_child = result;
             newstmt->stmt_kind = enum4('n', 'e', 'x', 't');
             newstmt->second_child = parseStmt();
@@ -826,14 +824,14 @@ Stmt *parseStmt() {
         return result;
     }
     if (maybe_consume(enum3('R', 'E', 'T'))) {
-        Stmt *stmt = calloc(1, sizeof(Stmt));
+        struct Stmt *stmt = calloc(1, sizeof(struct Stmt));
         stmt->stmt_kind = enum3('R', 'E', 'T');
         stmt->expr = decay_if_arr(parseExpr());
         consume_otherwise_panic(';');
         return stmt;
     }
     if (maybe_consume(enum2('i', 'f'))) {
-        Stmt *stmt = calloc(1, sizeof(Stmt));
+        struct Stmt *stmt = calloc(1, sizeof(struct Stmt));
         consume_otherwise_panic('(');
         stmt->expr = decay_if_arr(parseExpr());
         consume_otherwise_panic(')');
@@ -844,26 +842,26 @@ Stmt *parseStmt() {
         return stmt;
     }
     if (maybe_consume(enum4('W', 'H', 'I', 'L'))) {
-        Stmt *stmt = calloc(1, sizeof(Stmt));
+        struct Stmt *stmt = calloc(1, sizeof(struct Stmt));
         consume_otherwise_panic('(');
         stmt->expr = decay_if_arr(parseExpr());
         consume_otherwise_panic(')');
         stmt->stmt_kind = enum4('W', 'H', 'I', 'L');
-        Stmt *statement = parseStmt();
+        struct Stmt *statement = parseStmt();
         stmt->second_child = statement;
         return stmt;
     }
     if (maybe_consume(enum3('f', 'o', 'r'))) {
-        Stmt *for_stmt = calloc(1, sizeof(Stmt));
+        struct Stmt *for_stmt = calloc(1, sizeof(struct Stmt));
         for_stmt->stmt_kind = enum3('f', 'o', 'r');
         consume_otherwise_panic('(');
         if (starts_a_type(tokens_cursor->kind)) {
-            Stmt *initializer = parse_var_def_maybe_with_initializer();
+            struct Stmt *initializer = parse_var_def_maybe_with_initializer();
             for_stmt->expr = numberExpr(42);
             for_stmt->for_cond = parseOptionalExprAndToken(';');
             for_stmt->for_after = parseOptionalExprAndToken(')');
             for_stmt->second_child = parseStmt();
-            Stmt *combined_stmt = calloc(1, sizeof(Stmt));
+            struct Stmt *combined_stmt = calloc(1, sizeof(struct Stmt));
             combined_stmt->first_child = initializer;
             combined_stmt->stmt_kind = enum4('n', 'e', 'x', 't');
             combined_stmt->second_child = for_stmt;
@@ -879,21 +877,21 @@ Stmt *parseStmt() {
     if (starts_a_type(tokens_cursor->kind)) {
         return parse_var_def_maybe_with_initializer();
     }
-    Stmt *stmt = calloc(1, sizeof(Stmt));
+    struct Stmt *stmt = calloc(1, sizeof(struct Stmt));
     stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
     stmt->expr = decay_if_arr(parseExpr());
     consume_otherwise_panic(';');
     return stmt;
 }
 
-Stmt *parseFunctionContent() {
+struct Stmt *parseFunctionContent() {
     consume_otherwise_panic('{');
-    Stmt *result = calloc(1, sizeof(Stmt));
+    struct Stmt *result = calloc(1, sizeof(struct Stmt));
     result->stmt_kind = enum4('e', 'x', 'p', 'r');
     result->expr = numberExpr(1);
     while (!maybe_consume('}')) {
-        Stmt *statement = parseStmt();
-        Stmt *newstmt = calloc(1, sizeof(Stmt));
+        struct Stmt *statement = parseStmt();
+        struct Stmt *newstmt = calloc(1, sizeof(struct Stmt));
         newstmt->first_child = result;
         newstmt->stmt_kind = enum4('n', 'e', 'x', 't');
         newstmt->second_child = statement;
@@ -902,8 +900,8 @@ Stmt *parseFunctionContent() {
     return result;
 }
 
-FuncDef *constructFuncDef(Stmt *content, NameAndType *rettype_and_funcname, int len, NameAndType *params_start) {
-    FuncDef *funcdef = calloc(1, sizeof(FuncDef));
+struct FuncDef *constructFuncDef(struct Stmt *content, struct NameAndType *rettype_and_funcname, int len, struct NameAndType *params_start) {
+    struct FuncDef *funcdef = calloc(1, sizeof(struct FuncDef));
     funcdef->content = content;
     funcdef->name = rettype_and_funcname->name;
     funcdef->return_type = rettype_and_funcname->type;
@@ -914,8 +912,8 @@ FuncDef *constructFuncDef(Stmt *content, NameAndType *rettype_and_funcname, int 
     return funcdef;
 }
 
-void store_func_decl(NameAndType *rettype_and_funcname) {
-    NameAndType *decl = calloc(1, sizeof(NameAndType));
+void store_func_decl(struct NameAndType *rettype_and_funcname) {
+    struct NameAndType *decl = calloc(1, sizeof(struct NameAndType));
     decl->type = rettype_and_funcname->type;
     decl->name = rettype_and_funcname->name;
     *(funcdecls_cursor++) = decl;
@@ -933,9 +931,9 @@ void parseToplevel() {
         int next_member_offset = 0;
         consume_otherwise_panic('{');
         while (!maybe_consume('}')) {
-            NameAndType *member = consume_type_and_ident();
+            struct NameAndType *member = consume_type_and_ident();
             consume_otherwise_panic(';');
-            StructMember *q = calloc(1, sizeof(StructMember));
+            struct StructMember *q = calloc(1, sizeof(struct StructMember));
             q->member_name = member->name;
             q->struct_name = struct_name;
             q->member_type = member->type;
@@ -945,7 +943,7 @@ void parseToplevel() {
                 overall_alignment = align(member->type);
             *(struct_members_cursor++) = q;
         }
-        StructSizeAndAlign *sa = calloc(1, sizeof(StructSizeAndAlign));
+        struct StructSizeAndAlign *sa = calloc(1, sizeof(struct StructSizeAndAlign));
         sa->struct_name = struct_name;
         sa->align = overall_alignment;
         sa->size = roundup(next_member_offset, overall_alignment);
@@ -953,12 +951,12 @@ void parseToplevel() {
         consume_otherwise_panic(';');
         return;
     }
-    NameAndType *first_half = consume_type_and_ident_1st_half();
+    struct NameAndType *first_half = consume_type_and_ident_1st_half();
     if (maybe_consume('(')) {
-        NameAndType *rettype_and_funcname = first_half;
-        NameAndType *params_start = calloc(6, sizeof(NameAndType));
+        struct NameAndType *rettype_and_funcname = first_half;
+        struct NameAndType *params_start = calloc(6, sizeof(struct NameAndType));
         if (maybe_consume(')')) {
-            lvars_cursor = lvars_start = calloc(100, sizeof(NameAndType));
+            lvars_cursor = lvars_start = calloc(100, sizeof(struct NameAndType));
             store_func_decl(rettype_and_funcname);
             if (maybe_consume(';'))
                 return;
@@ -968,7 +966,7 @@ void parseToplevel() {
         lvars_cursor = lvars_start = calloc(100, sizeof(char *));
         int i = 0;
         for (; i < 6; i++) {
-            NameAndType *param = consume_type_and_ident();
+            struct NameAndType *param = consume_type_and_ident();
             if (maybe_consume(')')) {
                 params_start[i].name = param->name;
                 params_start[i].type = param->type;
@@ -988,7 +986,7 @@ void parseToplevel() {
         *(funcdefs_cursor++) = constructFuncDef(parseFunctionContent(), rettype_and_funcname, i + 1, params_start);
         return;
     } else {
-        NameAndType *global_var_type_and_name = consume_type_and_ident_2nd_half(first_half);
+        struct NameAndType *global_var_type_and_name = consume_type_and_ident_2nd_half(first_half);
         *(global_vars_cursor++) = global_var_type_and_name;
         consume_otherwise_panic(';');
         return;
@@ -999,10 +997,10 @@ void parseToplevel() {
 
 int labelCounter;
 
-LVar *locals;
+struct LVar *locals;
 
-LVar *findLVar(char *name) {
-    LVar *local = locals;
+struct LVar *findLVar(char *name) {
+    struct LVar *local = locals;
     if (!local) {
         return 0;
     }
@@ -1031,8 +1029,8 @@ int isGVar(char *name) {
     return 0;
 }
 
-LVar *lastLVar() {
-    LVar *local = locals;
+struct LVar *lastLVar() {
+    struct LVar *local = locals;
     if (!local) {
         return 0;
     }
@@ -1044,10 +1042,10 @@ LVar *lastLVar() {
     }
 }
 
-LVar *insertLVar(char *name, int sz) {
+struct LVar *insertLVar(char *name, int sz) {
     sz = roundup(sz, 8);
-    LVar *newlocal = calloc(1, sizeof(LVar));
-    LVar *last = lastLVar();
+    struct LVar *newlocal = calloc(1, sizeof(struct LVar));
+    struct LVar *last = lastLVar();
     newlocal->name = name;
     if (!last) {
         newlocal->offset_from_rbp = sz;
@@ -1064,11 +1062,11 @@ LVar *insertLVar(char *name, int sz) {
     return newlocal;
 }
 
-void EvaluateExprIntoRax(Expr *expr);
+void EvaluateExprIntoRax(struct Expr *expr);
 
-void EvaluateLValueAddressIntoRax(Expr *expr) {
+void EvaluateLValueAddressIntoRax(struct Expr *expr) {
     if (expr->expr_kind == enum4('I', 'D', 'N', 'T')) {
-        LVar *local = findLVar(expr->func_or_ident_name_or_string_content);
+        struct LVar *local = findLVar(expr->func_or_ident_name_or_string_content);
         if (local) {
             printf("  lea rax, [rbp - %d]\n", local->offset_from_rbp);
         } else if (isGVar(expr->func_or_ident_name_or_string_content)) {
@@ -1079,13 +1077,13 @@ void EvaluateLValueAddressIntoRax(Expr *expr) {
         }
     } else if (expr->expr_kind == enum3('S', 'T', 'R')) {
         printf("  mov eax, OFFSET FLAT:.LC%d\n", find_strlit(expr->func_or_ident_name_or_string_content));
-    } else if (expr->expr_kind == enum4('1', 'A', 'R', 'Y') && expr->op == '*') {
+    } else if (expr->expr_kind == enum4('1', 'A', 'R', 'Y') && expr->op_kind == '*') {
         EvaluateExprIntoRax(expr->first_child);
     } else
         panic("not lvalue");
 }
 
-void CodegenStmt(Stmt *stmt) {
+void CodegenStmt(struct Stmt *stmt) {
     if (stmt->stmt_kind == enum4('e', 'x', 'p', 'r')) {
         EvaluateExprIntoRax(stmt->expr);
     } else if (stmt->stmt_kind == enum4('n', 'e', 'x', 't')) {
@@ -1144,7 +1142,7 @@ const char *nth_arg_reg(int n, int sz) {
     exit(1);
 }
 
-void CodegenFunc(FuncDef *funcdef) {
+void CodegenFunc(struct FuncDef *funcdef) {
     printf(".globl %s\n", funcdef->name);
     printf("%s:\n", funcdef->name);
     printf("  push rbp\n");
@@ -1152,16 +1150,16 @@ void CodegenFunc(FuncDef *funcdef) {
     int stack_adjust = 0;
     for (int i = 0; i < funcdef->param_len; i++)
         stack_adjust += 8;
-    for (NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++)
+    for (struct NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++)
         stack_adjust += roundup(size(ptr->type), 8);
     printf("  sub rsp, %d\n", stack_adjust);
     for (int i = 0; i < funcdef->param_len; i++) {
         char *param_name = funcdef->params_start[i].name;
         insertLVar(param_name, 8);
-        LVar *local = findLVar(param_name);
+        struct LVar *local = findLVar(param_name);
         printf("  mov [rbp - %d], %s\n", local->offset_from_rbp, nth_arg_reg(i, 8));
     }
-    for (NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++)
+    for (struct NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++)
         insertLVar(ptr->name, size(ptr->type));
     CodegenStmt(funcdef->content);
 }
@@ -1194,7 +1192,7 @@ void write_rax_to_where_rdi_points(int sz) {
     }
 }
 
-const char *AddSubMulDivAssign_rdi_into_rax(Kind kind) {
+const char *AddSubMulDivAssign_rdi_into_rax(int kind) {
     if (kind == enum2('+', '=')) {
         return "    add rax,rdi\n";
     } else if (kind == enum2('-', '=')) {
@@ -1207,7 +1205,7 @@ const char *AddSubMulDivAssign_rdi_into_rax(Kind kind) {
     return 0;
 }
 
-void EvaluateExprIntoRax(Expr *expr) {
+void EvaluateExprIntoRax(struct Expr *expr) {
     if (expr->typ->kind == enum2('[', ']')) {
         EvaluateLValueAddressIntoRax(expr);
         return;
@@ -1229,35 +1227,35 @@ void EvaluateExprIntoRax(Expr *expr) {
     } else if (expr->expr_kind == '0') {
         printf("  mov rax, 0\n");
     } else if (expr->expr_kind == enum4('1', 'A', 'R', 'Y')) {
-        if (expr->op == '*') {
+        if (expr->op_kind == '*') {
             EvaluateExprIntoRax(expr->first_child);
             printf("  mov rax, [rax]\n");
-        } else if (expr->op == '&') {
+        } else if (expr->op_kind == '&') {
             EvaluateLValueAddressIntoRax(expr->first_child);
-        } else if (expr->op == enum4('[', ']', '>', '*')) {
+        } else if (expr->op_kind == enum4('[', ']', '>', '*')) {
             EvaluateExprIntoRax(expr->first_child);
         } else {
-            fprintf(stderr, "Invalid unaryop kind:%d", expr->op);
+            fprintf(stderr, "Invalid unaryop kind:%d", expr->op_kind);
             exit(1);
         }
     } else if (expr->expr_kind == enum4('2', 'A', 'R', 'Y')) {
-        if (expr->op == '=') {
+        if (expr->op_kind == '=') {
             EvaluateLValueAddressIntoRax(expr->first_child);
             printf("    push rax\n");
             EvaluateExprIntoRax(expr->second_child);
             printf("    pop rdi\n");
             write_rax_to_where_rdi_points(size(expr->first_child->typ));  // second_child might be a 0 meaning a null pointer
-        } else if (AddSubMulDivAssign_rdi_into_rax(expr->op)) {           // x @= i
+        } else if (AddSubMulDivAssign_rdi_into_rax(expr->op_kind)) {           // x @= i
             EvaluateExprIntoRax(expr->second_child);
             printf("    push rax\n");                                 // stack: i
             EvaluateLValueAddressIntoRax(expr->first_child);          // rax: &x
             printf("    mov rsi, rax\n");                             // rsi: &x
             printf("    mov rax, [rax]\n");                           // rsi: &x, rax: x
             printf("    pop rdi\n");                                  // rsi: &x, rax: x, rdi: i
-            printf("%s", AddSubMulDivAssign_rdi_into_rax(expr->op));  // rsi: &x, rax: x@i
+            printf("%s", AddSubMulDivAssign_rdi_into_rax(expr->op_kind));  // rsi: &x, rax: x@i
             printf("    mov rdi, rsi\n");                             // rdi: &x, rax: x@i
             write_rax_to_where_rdi_points(size(expr->second_child->typ));
-        } else if (expr->op == enum2('&', '&')) {
+        } else if (expr->op_kind == enum2('&', '&')) {
             int label = (labelCounter++);
             EvaluateExprIntoRax(expr->first_child);
             printf("    test rax, rax\n");
@@ -1277,26 +1275,26 @@ void EvaluateExprIntoRax(Expr *expr) {
             printf("    push rax\n");
             printf("    pop rdi\n");
             printf("    pop rax\n");
-            if (AddSubMulDivAssign_rdi_into_rax(enum2(expr->op, '='))) {
-                printf("%s", AddSubMulDivAssign_rdi_into_rax(enum2(expr->op, '=')));
-            } else if (expr->op == enum2('=', '=')) {
+            if (AddSubMulDivAssign_rdi_into_rax(enum2(expr->op_kind, '='))) {
+                printf("%s", AddSubMulDivAssign_rdi_into_rax(enum2(expr->op_kind, '=')));
+            } else if (expr->op_kind == enum2('=', '=')) {
                 printf("  cmp rax, rdi\n");
                 printf("  sete al\n");
                 printf("  movzb rax, al\n");
-            } else if (expr->op == enum2('!', '=')) {
+            } else if (expr->op_kind == enum2('!', '=')) {
                 printf("  cmp rax, rdi\n");
                 printf("  setne al\n");
                 printf("  movzb rax, al\n");
-            } else if (expr->op == '>') {
+            } else if (expr->op_kind == '>') {
                 printf("  cmp rax, rdi\n");
                 printf("  setg al\n");
                 printf("  movzb rax, al\n");
-            } else if (expr->op == enum2('>', '=')) {
+            } else if (expr->op_kind == enum2('>', '=')) {
                 printf("  cmp rax, rdi\n");
                 printf("  setge al\n");
                 printf("  movzb rax, al\n");
             } else {
-                fprintf(stderr, "Invalid binaryop kind: %s\n", decode_kind(expr->op));
+                fprintf(stderr, "Invalid binaryop kind: %s\n", decode_kind(expr->op_kind));
                 exit(1);
             }
         }
