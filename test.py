@@ -108,6 +108,11 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
 
+assert check_and_link_with(
+    "struct A { int a; int b; }; int foo(); int main() { struct A s; foo(&s); return (&s)->b - (&s)->a; }",
+    linked_lib="struct A { int a; int b; }; int foo(struct A *p) { p->a = 3; p->b = 24; return 0; }",
+    expected=21)
+
 assert check("struct A { int a; int b; }; int main() { return 0; }", 0)
 assert check("struct A { int a; int b; }; int main() { return sizeof(struct A); }", 8)
 assert check("struct A { char a; int b; }; int main() { return sizeof(struct A); }", 8)

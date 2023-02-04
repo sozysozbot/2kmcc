@@ -501,14 +501,14 @@ Expr *expr_add(Expr *lhs, Expr *rhs) {
         else if (rhs->typ->kind == '*')
             return expr_add(rhs, lhs);
         else
-            panic("unknown type in addition\n");
+            panic("unknown type encountered in addition\n");
     } else if (lhs->typ->kind == '*') {
         if (is_integer(rhs->typ))
             return binaryExpr(lhs, binaryExpr(numberExpr(size(deref(lhs->typ))), rhs, '*', type(enum3('i', 'n', 't'))), '+', lhs->typ);
         else
             panic("cannot add\n");
     }
-    fprintf(stderr, "unknown type\n");
+    fprintf(stderr, "unknown type encountered in addition\n");
     exit(1);
 }
 
@@ -528,7 +528,18 @@ Expr *expr_subtract(Expr *lhs, Expr *rhs) {
         } else
             panic("cannot subtract: invalid type in the second operand\n");
     }
-    fprintf(stderr, "unknown type\n");
+    fprintf(stderr, "unknown type encountered in subtraction\n");
+    exit(1);
+}
+
+int offset_of(Type *t, char *member_name) {
+    if (t->kind != enum4('S', 'T', 'R', 'U'))
+        panic("tried to make a member access to a non-struct type\n");
+    for (int i = 0; struct_members_start[i]; i++)
+        if (strcmp(struct_members_start[i]->struct_name, t->struct_name) == 0)
+            if (strcmp(struct_members_start[i]->member_name, member_name) == 0)
+                return struct_members_start[i]->member_offset;
+    fprintf(stderr, "cannot find a member named `%s` within a struct named `%s`\n", member_name, t->struct_name);
     exit(1);
 }
 
@@ -548,6 +559,20 @@ Expr *parsePostfix() {
             Expr *subtraction = expr_subtract(decay_if_arr(result), numberExpr(1));
             subtraction->op = enum2('-', '=');
             result = expr_add(subtraction, numberExpr(1));
+        } else if (maybe_consume(enum2('-', '>'))) {
+            expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
+            char *member_name = (tokens_cursor++)->identifier_name_or_escaped_string_content;
+            Type *struct_type = deref(result->typ);
+            int offset;
+            Type *member_type;
+            for (int i = 0; struct_members_start[i]; i++)
+                if (strcmp(struct_members_start[i]->struct_name, struct_type->struct_name) == 0)
+                    if (strcmp(struct_members_start[i]->member_name, member_name) == 0) {
+                        offset = struct_members_start[i]->member_offset;
+                        member_type = struct_members_start[i]->member_type;
+                    }
+            Expr *expr = binaryExpr(result, numberExpr(offset), '+', ptr_of(member_type));
+            result = unaryExpr(expr, '*', deref(expr->typ));
         } else
             break;
     }
