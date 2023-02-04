@@ -590,14 +590,10 @@ int getPrecedence() {
 
 Expr *parseLeftToRightInfix(int level) {
     panic_if_eof();
-    fprintf(stderr, "\n'Entering. kind: `%s`, value: %d, level %d';\n{\n", decode_kind(tokens_cursor->kind), tokens_cursor->value_or_string_size, level);
     Expr *expr = parseUnary();
-    fprintf(stderr, "'Parsed a unary. kind: `%s`, level %d'\n", decode_kind(tokens_cursor->kind), level);
     while (tokens_cursor < tokens_end) {
         int precedence = getPrecedence();
-        fprintf(stderr, "'precedence: %d, kind: `%s`, level %d'\n", precedence, decode_kind(tokens_cursor->kind), level);
         if (precedence < level) {
-            fprintf(stderr, "}\n'Early return. precedence: %d, level: %d'\n\n", precedence, level);
             return expr;
         }
         int op = (tokens_cursor++)->kind;
@@ -605,20 +601,18 @@ Expr *parseLeftToRightInfix(int level) {
             expr = binaryExpr(assert_integer(expr), assert_integer(parseUnary()), op, type(enum3('i', 'n', 't')));
         } else if (precedence == 9) {
             if (op == '-') {
-                expr = expr_subtract(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(level + 1)));
+                expr = expr_subtract(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)));
             } else {
-                fprintf(stderr, "'encountered `+` at level %d'\n", level);
-                expr = expr_add(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(level + 1)));
+                expr = expr_add(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)));
             }
         } else if (op == '<' || op == enum2('<', '=')) {  // children & operator swapped
-            expr = binaryExpr(decay_if_arr(parseLeftToRightInfix(level + 1)), decay_if_arr(expr), op - '<' + '>', type(enum3('i', 'n', 't')));
+            expr = binaryExpr(decay_if_arr(parseLeftToRightInfix(precedence + 1)), decay_if_arr(expr), op - '<' + '>', type(enum3('i', 'n', 't')));
         } else if (precedence == 6) {
-            expr = equalityExpr(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(level + 1)), op);
+            expr = equalityExpr(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)), op);
         } else {
-            expr = binaryExpr(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(level + 1)), op, type(enum3('i', 'n', 't')));
+            expr = binaryExpr(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)), op, type(enum3('i', 'n', 't')));
         }
     }
-    fprintf(stderr, "} 'Late return'\n");
     return expr;
 }
 
