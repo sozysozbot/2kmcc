@@ -543,6 +543,22 @@ int offset_of(Type *t, char *member_name) {
     exit(1);
 }
 
+Expr *arrowExpr(Expr *lhs, char *member_name) {
+    Type *struct_type = deref(lhs->typ);
+    if (struct_type->kind != enum4('S', 'T', 'R', 'U'))
+        panic("tried to access a member of a non-struct type");
+    int offset;
+    Type *member_type;
+    for (int i = 0; struct_members_start[i]; i++)
+        if (strcmp(struct_members_start[i]->struct_name, struct_type->struct_name) == 0)
+            if (strcmp(struct_members_start[i]->member_name, member_name) == 0) {
+                offset = struct_members_start[i]->member_offset;
+                member_type = struct_members_start[i]->member_type;
+            }
+    Expr *expr = binaryExpr(lhs, numberExpr(offset), '+', ptr_of(member_type));
+    return unaryExpr(expr, '*', deref(expr->typ));
+}
+
 Expr *parsePostfix() {
     Expr *result = parsePrimary();
     while (1) {
@@ -562,17 +578,11 @@ Expr *parsePostfix() {
         } else if (maybe_consume(enum2('-', '>'))) {
             expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
             char *member_name = (tokens_cursor++)->identifier_name_or_escaped_string_content;
-            Type *struct_type = deref(result->typ);
-            int offset;
-            Type *member_type;
-            for (int i = 0; struct_members_start[i]; i++)
-                if (strcmp(struct_members_start[i]->struct_name, struct_type->struct_name) == 0)
-                    if (strcmp(struct_members_start[i]->member_name, member_name) == 0) {
-                        offset = struct_members_start[i]->member_offset;
-                        member_type = struct_members_start[i]->member_type;
-                    }
-            Expr *expr = binaryExpr(result, numberExpr(offset), '+', ptr_of(member_type));
-            result = unaryExpr(expr, '*', deref(expr->typ));
+            result = arrowExpr(result, member_name);
+        } else if (maybe_consume('.')) {
+            expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
+            char *member_name = (tokens_cursor++)->identifier_name_or_escaped_string_content;
+            result = arrowExpr(unaryExpr(result, '&', ptr_of(result->typ)), member_name);
         } else
             break;
     }
