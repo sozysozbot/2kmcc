@@ -5,7 +5,9 @@ from test import bcolors, check, check_and_link_with
 print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
-check("""
+assert check("int a; void foo(int *p) { *p = 3; return; } int main() { foo(&a); return a; }", 3)
+
+assert check("""
 void *calloc();
 char *strncpy();
 int printf();
@@ -35,7 +37,7 @@ int main() {
 }
 """, expected=0, expected_stdout="a")
 
-check("""
+assert check("""
 void *calloc();
 char *strncpy();
 int printf();

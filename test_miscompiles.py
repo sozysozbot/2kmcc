@@ -5,6 +5,8 @@ from test import bcolors, check, check_and_link_with
 print(f"{bcolors.WARNING}Checking the inputs that should work but DOESN'T:{bcolors.ENDC}")
 
 # local variables not reset
+check("void foo(int *p) { *p = 3; return; } int main() { int a; foo(&a); return a; }", 3)
+
 check("""
 int printf();
 int enum2(int a, int b) {

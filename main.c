@@ -97,6 +97,7 @@ struct StructMember *struct_members_start[10000];
 struct StructMember **struct_members_cursor;
 struct StructSizeAndAlign *struct_sizes_and_alignments_start[100];
 struct StructSizeAndAlign **struct_sizes_and_alignments_cursor;
+int currently_handling_function_returning_void;
 
 int is_alnum(char c) {
     return strchr("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_", c) != 0;
@@ -829,6 +830,13 @@ struct Stmt *parseStmt() {
     if (maybe_consume(enum3('R', 'E', 'T'))) {
         struct Stmt *stmt = calloc(1, sizeof(struct Stmt));
         stmt->stmt_kind = enum3('R', 'E', 'T');
+        if (maybe_consume(';')) {
+            if (currently_handling_function_returning_void) {
+                stmt->expr = numberExpr(42);
+                return stmt;
+            } else
+                panic("`return` with no value found in a function not returning void");
+        }
         stmt->expr = decay_if_arr(parseExpr());
         consume_otherwise_panic(';');
         return stmt;
@@ -900,7 +908,14 @@ struct Stmt *parseFunctionContent() {
         newstmt->second_child = statement;
         result = newstmt;
     }
-    return result;
+    struct Stmt *implicit_return = calloc(1, sizeof(struct Stmt));
+    implicit_return->stmt_kind = enum3('R', 'E', 'T');
+    implicit_return->expr = numberExpr(42);
+    struct Stmt *finalstmt = calloc(1, sizeof(struct Stmt));
+    finalstmt->first_child = result;
+    finalstmt->stmt_kind = enum4('n', 'e', 'x', 't');
+    finalstmt->second_child = implicit_return;
+    return finalstmt;
 }
 
 struct FuncDef *constructFuncDef(struct Stmt *content, struct NameAndType *rettype_and_funcname, int len, struct NameAndType *params_start) {
@@ -963,6 +978,7 @@ void parseToplevel() {
             store_func_decl(rettype_and_funcname);
             if (maybe_consume(';'))
                 return;
+            currently_handling_function_returning_void = rettype_and_funcname->type->kind == enum4('v', 'o', 'i', 'd');
             *(funcdefs_cursor++) = constructFuncDef(parseFunctionContent(), rettype_and_funcname, 0, params_start);
             return;
         }
@@ -978,6 +994,7 @@ void parseToplevel() {
                 store_func_decl(rettype_and_funcname);
                 if (maybe_consume(';'))
                     return;
+                currently_handling_function_returning_void = rettype_and_funcname->type->kind == enum4('v', 'o', 'i', 'd');
                 *(funcdefs_cursor++) = constructFuncDef(parseFunctionContent(), rettype_and_funcname, i + 1, params_start);
                 return;
             }
