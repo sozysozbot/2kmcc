@@ -6,9 +6,55 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
 
-check("void foo(int *p) { *p = 3; return; } int main() { int a; foo(&a); return a; }", 3)
+assert check("""
+int isDigit(char c);
+int parseInt(char *str) {
+    int result = 0;
+    while (isDigit(*str)) {
+        int digit = *str - '0';
+        result = result * 10 + digit;
+        str++;
+    }
+    return result;
+}
+int intLength(char *str) {
+    int length = 0;
+    while (isDigit(*str)) {
+        length++;
+        str++;
+    }
+    return length;
+}
+int isDigit(char c) {
+    return '0' <= c && c <= '9';
+}
+int main() { return parseInt("123"); }""", 123)
 
-check("""
+assert check("""
+int isDigit(char c) {
+    return '0' <= c && c <= '9';
+}
+int intLength(char *str) {
+    int length = 0;
+    while (isDigit(*str)) {
+        length++;
+        str++;
+    }
+    return length;
+}
+int main() { return intLength("012a"); }
+""", 3)
+
+assert check("""
+int isDigit(char c) {
+    return '0' <= c && c <= '9';
+}
+int main() { for(int a = ' '; a <= '~'; a++) { if (isDigit(a)) {printf("%c", a);} } return 0; }
+""", 0, expected_stdout="0123456789")
+
+assert check("void foo(int *p) { *p = 3; return; } int main() { int a; foo(&a); return a; }", 3)
+
+assert check("""
 int printf();
 int enum2(int a, int b) {
     printf("a=%d, b=%d; ", a, b);
@@ -26,7 +72,7 @@ int main() {
 }
 """, expected=0, expected_stdout="a=1, b=2, c=3; a=1, b=32; res=321")
 
-check("""
+assert check("""
 int printf();
 int enum2(int a, int b) {
     return a + b * 10;
@@ -43,7 +89,7 @@ int main() {
 """, expected=0, expected_stdout="321")
 
 
-check("""
+assert check("""
 void *calloc();
 char *strncpy();
 int printf();
@@ -73,7 +119,7 @@ int main() {
 }
 """, expected=0, expected_stdout="abc")
 
-check("""
+assert check("""
 void *calloc();
 char *strncpy();
 int printf();

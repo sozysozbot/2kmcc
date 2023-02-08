@@ -102,13 +102,13 @@ int main(int argc, char **argv) {
 assert check(step2, 0, stdin="0", expected_stdout=""".intel_syntax noprefix
 .globl main
 main:
-  mov rax, 42
+  mov rax, 0
   ret
 """)
 assert check(step2, 0, stdin="42", expected_stdout=""".intel_syntax noprefix
 .globl main
 main:
-  mov rax, 0
+  mov rax, 42
   ret
 """)
 assert check(step2, 0, stdin="0+10+3", expected_stdout=""".intel_syntax noprefix
