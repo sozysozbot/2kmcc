@@ -1070,13 +1070,8 @@ struct LVar *insertLVar(char *name, int sz) {
     struct LVar *last = lastLVar();
     newlocal->name = name;
     if (!last) {
-        printf("# newlocal->offset_from_rbp = sz;\n");
-        printf("# sz: %d\n", sz);
         newlocal->offset_from_rbp = sz;
     } else {
-        printf("# newlocal->offset_from_rbp = last->offset_from_rbp + sz;\n");
-        printf("# last->offset_from_rbp: %d\n", last->offset_from_rbp);
-        printf("# sz: %d\n", sz);
         newlocal->offset_from_rbp = last->offset_from_rbp + sz;
     }
     newlocal->next = 0;
