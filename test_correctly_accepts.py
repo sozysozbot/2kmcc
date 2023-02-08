@@ -5,6 +5,65 @@ from test import bcolors, check, check_and_link_with
 print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
+check("""
+void *calloc();
+char *strncpy();
+int printf();
+char *decode_kind(int kind) {
+    void *r = &kind;
+    char *q = r;
+    char *ans = calloc(5, sizeof(char));
+    strncpy(ans, q, 4);
+    return ans;
+}
+
+int enum2(int a, int b) {
+    return a + b * 256;
+}
+
+int enum3(int a, int b, int c) {
+    return enum2(a, enum2(b, c));
+}
+
+int enum4(int a, int b, int c, int d) {
+    return enum2(a, enum3(b, c, d));
+}
+
+int main() {
+    printf("%s", decode_kind('a'));
+    return 0;
+}
+""", expected=0, expected_stdout="a")
+
+check("""
+void *calloc();
+char *strncpy();
+int printf();
+char *decode_kind(int kind) {
+    void *r = &kind;
+    char *q = r;
+    char *ans = calloc(5, sizeof(char));
+    strncpy(ans, q, 4);
+    return ans;
+}
+
+int enum2(int a, int b) {
+    return a + b * 256;
+}
+
+int enum3(int a, int b, int c) {
+    return enum2(a, enum2(b, c));
+}
+
+int enum4(int a, int b, int c, int d) {
+    return enum2(a, enum3(b, c, d));
+}
+
+int main() {
+    printf("%s", decode_kind(enum2('a', 'b')));
+    return 0;
+}
+""", expected=0, expected_stdout="ab")
 
 assert check("""
 int bar(int *p, void *q) {
