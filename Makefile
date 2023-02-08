@@ -8,7 +8,12 @@ OBJS=$(SRCS:.c=.o)
 $(OBJS): 
 
 test: 2kmcc
-		python3 test.py 
+		python3 test_correctly_accepts.py 
+		python3 test_correctly_rejects.py 
+
+embarrass: 2kmcc
+		python3 test_miscompiles.py 
+		python3 test_incorrectly_accepts.py 
 
 clean:
 		rm -f 2kmcc *.o *~ tmp*

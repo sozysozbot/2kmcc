@@ -238,7 +238,7 @@ struct Type *arr_of(struct Type *t, int array_size) {
 struct Type *deref(struct Type *t) {
     if (t->kind == '*')
         return t->ptr_to;
-    fprintf(stderr, "Cannot deref a non-pointer type\n");
+    fprintf(stderr, "cannot deref a non-pointer type\n");
     exit(1);
 }
 
@@ -259,7 +259,7 @@ int size(struct Type *t) {
                 return struct_sizes_and_alignments_start[i]->size;
     fprintf(stderr, "cannot calculate the size for type `");
     display_type(t);
-    fprintf(stderr, "`\n");
+    fprintf(stderr, "`.\n");
     exit(1);
 }
 
@@ -335,14 +335,14 @@ char *decode_kind(int kind) {
 
 void consume_otherwise_panic(int kind) {
     if (!maybe_consume(kind)) {
-        fprintf(stderr, "expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
+        fprintf(stderr, "parse error: expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
         exit(1);
     }
 }
 
 void expect_otherwise_panic(int kind) {
     if (tokens_cursor->kind != kind) {
-        fprintf(stderr, "expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
+        fprintf(stderr, "parse error: expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
         exit(1);
     }
 }
@@ -428,7 +428,7 @@ struct Expr *parsePrimary() {
                 consume_otherwise_panic(',');
                 i++;
                 if (i >= 6)
-                    panic("not supported: more than arguments\n");
+                    panic("not supported: more than 6 arguments\n");
             }
         }
         return identExpr(name);
@@ -495,6 +495,15 @@ int is_compatible_type(struct Type *t1, struct Type *t2) {
     return !(t1->kind != t2->kind && !(is_integer(t1) && is_integer(t2)));
 }
 
+void panic_invalid_binary_operand_types(struct Expr *lhs, struct Expr *rhs, int op_kind) {
+    fprintf(stderr, "invalid operands to binary `%s`: types are `", decode_kind(op_kind));
+    display_type(lhs->typ);
+    fprintf(stderr, "` and `");
+    display_type(rhs->typ);
+    fprintf(stderr, "`.\n");
+    exit(1);
+}
+
 struct Expr *expr_add(struct Expr *lhs, struct Expr *rhs) {
     if (is_integer(lhs->typ)) {
         if (is_integer(rhs->typ))
@@ -502,14 +511,14 @@ struct Expr *expr_add(struct Expr *lhs, struct Expr *rhs) {
         else if (rhs->typ->kind == '*')
             return expr_add(rhs, lhs);
         else
-            panic("unknown type encountered in addition\n");
+            panic_invalid_binary_operand_types(lhs, rhs, '+');
     } else if (lhs->typ->kind == '*') {
         if (is_integer(rhs->typ))
             return binaryExpr(lhs, binaryExpr(numberExpr(size(deref(lhs->typ))), rhs, '*', type(enum3('i', 'n', 't'))), '+', lhs->typ);
         else
-            panic("cannot add\n");
+            panic_invalid_binary_operand_types(lhs, rhs, '+');
     }
-    fprintf(stderr, "unknown type encountered in addition\n");
+    panic_invalid_binary_operand_types(lhs, rhs, '+');
     exit(1);
 }
 
@@ -517,37 +526,22 @@ struct Expr *expr_subtract(struct Expr *lhs, struct Expr *rhs) {
     if (is_integer(lhs->typ)) {
         if (is_integer(rhs->typ))
             return binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't')));
-        else if (rhs->typ->kind == '*')
-            panic("cannot subtract a pointer from an integer\n");
     } else if (lhs->typ->kind == '*') {
         if (is_integer(rhs->typ)) {
             return binaryExpr(lhs, binaryExpr(numberExpr(size(deref(lhs->typ))), rhs, '*', type(enum3('i', 'n', 't'))), '-', lhs->typ);
         } else if (rhs->typ->kind == '*') {
-            if (!is_same_type(lhs->typ, rhs->typ))
-                panic_two_types("cannot subtract two expressions with different pointer types", lhs->typ, rhs->typ);
-            return binaryExpr(binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't'))), numberExpr(size(deref(lhs->typ))), '/', type(enum3('i', 'n', 't')));
-        } else
-            panic("cannot subtract: invalid type in the second operand\n");
+            if (is_same_type(lhs->typ, rhs->typ))
+                return binaryExpr(binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't'))), numberExpr(size(deref(lhs->typ))), '/', type(enum3('i', 'n', 't')));
+        }
     }
-    fprintf(stderr, "unknown type encountered in subtraction\n");
-    exit(1);
-}
-
-int offset_of(struct Type *t, char *member_name) {
-    if (t->kind != enum4('S', 'T', 'R', 'U'))
-        panic("tried to make a member access to a non-struct type\n");
-    for (int i = 0; struct_members_start[i]; i++)
-        if (strcmp(struct_members_start[i]->struct_name, t->struct_name) == 0)
-            if (strcmp(struct_members_start[i]->member_name, member_name) == 0)
-                return struct_members_start[i]->member_offset;
-    fprintf(stderr, "cannot find a member named `%s` within a struct named `%s`\n", member_name, t->struct_name);
+    panic_invalid_binary_operand_types(lhs, rhs, '-');
     exit(1);
 }
 
 struct Expr *arrowExpr(struct Expr *lhs, char *member_name) {
     struct Type *struct_type = deref(lhs->typ);
     if (struct_type->kind != enum4('S', 'T', 'R', 'U'))
-        panic("tried to access a member of a non-struct type");
+        panic("tried to access a member of a non-struct type\n");
     int offset;
     struct Type *member_type;
     for (int i = 0; struct_members_start[i]; i++)
@@ -630,25 +624,25 @@ struct Expr *parseUnary() {
     return parsePostfix();
 }
 
-void assert_compatible_in_equality(struct Expr *e1, struct Expr *e2) {
+void assert_compatible_in_equality(struct Expr *e1, struct Expr *e2, int op_kind) {
     if (is_compatible_type(e1->typ, e2->typ))
         return;
     if (e1->expr_kind == '0' && e2->typ->kind == '*')  // one operand is a pointer and the other is a null pointer constant
         return;
     if (e2->expr_kind == '0' && e1->typ->kind == '*')  // one operand is a pointer and the other is a null pointer constant
         return;
-    panic_two_types("cannot compare (un)equal two operands with incompatible types", e1->typ, e2->typ);
+    panic_invalid_binary_operand_types(e1, e2, op_kind);    
 }
 
 struct Expr *equalityExpr(struct Expr *lhs, struct Expr *rhs, int kind) {
-    assert_compatible_in_equality(decay_if_arr(lhs), decay_if_arr(rhs));
+    assert_compatible_in_equality(decay_if_arr(lhs), decay_if_arr(rhs), kind);
     return binaryExpr(decay_if_arr(lhs), decay_if_arr(rhs), kind, type(enum3('i', 'n', 't')));
 }
 
 int getPrecedence() {
     int kind = tokens_cursor->kind;
     if (kind == enum3('N', 'U', 'M'))
-        panic("expected an operator; got a number");
+        panic("parse error: expected an operator; got a number\n");
     if (kind == '*' || kind == '/' || kind == '%') return 10;
     if (kind == '+' || kind == '-') return 9;
     if (kind == enum2('<', '<') || kind == enum2('>', '>')) return 8;
@@ -730,7 +724,7 @@ struct Expr *parseOptionalExprAndToken(int token_kind) {
 struct Type *consume_simple_type() {
     struct Type *type = calloc(1, sizeof(struct Type));
     if (maybe_consume(enum4('C', 'N', 'S', 'T')))
-        return consume_simple_type(); // ignore const for now
+        return consume_simple_type();  // ignore const for now
     else if (maybe_consume(enum3('i', 'n', 't')))
         type->kind = enum3('i', 'n', 't');
     else if (maybe_consume(enum4('c', 'h', 'a', 'r')))
