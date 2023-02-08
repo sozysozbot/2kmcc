@@ -1043,23 +1043,19 @@ int find_strlit(char *str) {
 }
 
 int isGVar(char *name) {
-    for (int i = 0; global_vars_start[i]; i++) {
-        if (strcmp(name, global_vars_start[i]->name) == 0) {
+    for (int i = 0; global_vars_start[i]; i++)
+        if (strcmp(name, global_vars_start[i]->name) == 0)
             return 1;
-        }
-    }
     return 0;
 }
 
 struct LVar *lastLVar() {
     struct LVar *local = locals;
-    if (!local) {
+    if (!local)
         return 0;
-    }
     while (1) {
-        if (!local->next) {
+        if (!local->next)
             return local;
-        }
         local = local->next;
     }
 }
@@ -1069,18 +1065,15 @@ struct LVar *insertLVar(char *name, int sz) {
     struct LVar *newlocal = calloc(1, sizeof(struct LVar));
     struct LVar *last = lastLVar();
     newlocal->name = name;
-    if (!last) {
+    if (!last)
         newlocal->offset_from_rbp = sz;
-    } else {
+    else
         newlocal->offset_from_rbp = last->offset_from_rbp + sz;
-    }
     newlocal->next = 0;
-
-    if (!last) {
+    if (!last)
         locals = newlocal;
-    } else {
+    else
         last->next = newlocal;
-    }
     return newlocal;
 }
 
@@ -1216,15 +1209,14 @@ void write_rax_to_where_rdi_points(int sz) {
 }
 
 const char *AddSubMulDivAssign_rdi_into_rax(int kind) {
-    if (kind == enum2('+', '=')) {
+    if (kind == enum2('+', '='))
         return "    add rax,rdi\n";
-    } else if (kind == enum2('-', '=')) {
+    else if (kind == enum2('-', '='))
         return "    sub rax,rdi\n";
-    } else if (kind == enum2('*', '=')) {
+    else if (kind == enum2('*', '='))
         return "    imul rax,rdi\n";
-    } else if (kind == enum2('/', '=')) {
+    else if (kind == enum2('/', '='))
         return "  cqo\n  idiv rdi\n";
-    }
     return 0;
 }
 
