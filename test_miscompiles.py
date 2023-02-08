@@ -4,7 +4,7 @@ from test import bcolors, check, check_and_link_with
 
 print(f"{bcolors.WARNING}Checking the inputs that should work but DOESN'T:{bcolors.ENDC}")
 
-######################################
+# local variables not reset
 check("""
 int printf();
 int enum2(int a, int b) {
@@ -100,6 +100,25 @@ int main() {
 }
 """, expected=0, expected_stdout="void")
 
+assert check("""
+int printf();
+int enum2(int a, int b) {
+    printf("a=%d, b=%d; ", a, b);
+    return a + b * 10;
+}
+
+int enum3(int a, int b, int c) {
+    return enum2(a, b + c * 10);
+}
+
+int main() {
+    printf("res=%d", enum3(1, 2, 3));
+    return 0;
+}
+""", expected=0, expected_stdout="a=1, b=32; res=321")
+
+
+# incorrect variable scope when nested
 check("""
 int printf();
 int main() 
