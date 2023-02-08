@@ -1087,7 +1087,7 @@ void EvaluateLValueAddressIntoRax(struct Expr *expr) {
         char *name = expr->func_or_ident_name_or_string_content;
         struct LVar *local = findLVar(name);
         if (local) {
-            printf("  lea rax, [rbp - %d] # %s\n", local->offset_from_rbp, name);
+            printf("  lea rax, [rbp - %d] # rax = &%s\n", local->offset_from_rbp, name);
         } else if (isGVar(name)) {
             printf("  mov eax, OFFSET FLAT:%s\n", name);
         } else {
@@ -1179,8 +1179,9 @@ void CodegenFunc(struct FuncDef *funcdef) {
         struct LVar *local = findLVar(param_name);
         printf("  mov [rbp - %d], %s\n", local->offset_from_rbp, nth_arg_reg(i, 8));
     }
-    for (struct NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++)
-        insertLVar(ptr->name, size(ptr->type));
+    for (struct NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++) 
+        if (!findLVar(ptr->name)) // avoid duplicate insertion of parameters
+            insertLVar(ptr->name, size(ptr->type));
     CodegenStmt(funcdef->content);
 }
 
@@ -1291,8 +1292,7 @@ void EvaluateExprIntoRax(struct Expr *expr) {
             EvaluateExprIntoRax(expr->first_child);
             printf("  push rax\n");
             EvaluateExprIntoRax(expr->second_child);
-            printf("  push rax\n");
-            printf("  pop rdi\n");
+            printf("  mov rdi, rax\n");
             printf("  pop rax\n");
             if (AddSubMulDivAssign_rdi_into_rax(enum2(expr->op_kind, '='))) {
                 printf("%s", AddSubMulDivAssign_rdi_into_rax(enum2(expr->op_kind, '=')));
