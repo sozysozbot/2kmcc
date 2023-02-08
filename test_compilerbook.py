@@ -86,10 +86,10 @@ int main(int argc, char **argv) {
             printf("  add rax, %d\\n", parsednum);
         } else if (*p == '-') {
             p++;
-            int parsednum = parseInt(p);
-            int parsedlength = intLength(p);
-            p += parsedlength;
-            printf("  sub rax, %d\\n", parsednum);
+            int parsednum2 = parseInt(p);
+            int parsedlength2 = intLength(p);
+            p += parsedlength2;
+            printf("  sub rax, %d\\n", parsednum2);
         } else {
             return 2;
         }

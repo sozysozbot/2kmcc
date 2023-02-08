@@ -1065,10 +1065,13 @@ struct LVar *insertLVar(char *name, int sz) {
     struct LVar *newlocal = calloc(1, sizeof(struct LVar));
     struct LVar *last = lastLVar();
     newlocal->name = name;
-    if (!last)
+    printf("# inserting a variable named `%s` at offset", name);
+    if (!last) {
         newlocal->offset_from_rbp = sz;
-    else
+    } else {
         newlocal->offset_from_rbp = last->offset_from_rbp + sz;
+    }
+    printf(" %d\n", newlocal->offset_from_rbp);
     newlocal->next = 0;
     if (!last)
         locals = newlocal;
@@ -1081,13 +1084,14 @@ void EvaluateExprIntoRax(struct Expr *expr);
 
 void EvaluateLValueAddressIntoRax(struct Expr *expr) {
     if (expr->expr_kind == enum4('I', 'D', 'N', 'T')) {
-        struct LVar *local = findLVar(expr->func_or_ident_name_or_string_content);
+        char *name = expr->func_or_ident_name_or_string_content;
+        struct LVar *local = findLVar(name);
         if (local) {
-            printf("  lea rax, [rbp - %d]\n", local->offset_from_rbp);
-        } else if (isGVar(expr->func_or_ident_name_or_string_content)) {
-            printf("  mov eax, OFFSET FLAT:%s\n", expr->func_or_ident_name_or_string_content);
+            printf("  lea rax, [rbp - %d] # %s\n", local->offset_from_rbp, name);
+        } else if (isGVar(name)) {
+            printf("  mov eax, OFFSET FLAT:%s\n", name);
         } else {
-            fprintf(stderr, "undefined variable %s\n", expr->func_or_ident_name_or_string_content);
+            fprintf(stderr, "undefined variable %s\n", name);
             exit(1);
         }
     } else if (expr->expr_kind == enum3('S', 'T', 'R')) {
