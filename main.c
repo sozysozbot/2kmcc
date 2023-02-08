@@ -634,7 +634,7 @@ void assert_compatible_in_equality(struct Expr *e1, struct Expr *e2, int op_kind
         return;
     if (e2->expr_kind == '0' && e1->typ->kind == '*')  // one operand is a pointer and the other is a null pointer constant
         return;
-    panic_invalid_binary_operand_types(e1, e2, op_kind);    
+    panic_invalid_binary_operand_types(e1, e2, op_kind);
 }
 
 struct Expr *equalityExpr(struct Expr *lhs, struct Expr *rhs, int kind) {
@@ -1053,8 +1053,13 @@ struct LVar *insertLVar(char *name, int sz) {
     struct LVar *last = lastLVar();
     newlocal->name = name;
     if (!last) {
+        printf("# newlocal->offset_from_rbp = sz;\n");
+        printf("# sz: %d\n", sz);
         newlocal->offset_from_rbp = sz;
     } else {
+        printf("# newlocal->offset_from_rbp = last->offset_from_rbp + sz;\n");
+        printf("# last->offset_from_rbp: %d\n", last->offset_from_rbp);
+        printf("# sz: %d\n", sz);
         newlocal->offset_from_rbp = last->offset_from_rbp + sz;
     }
     newlocal->next = 0;
