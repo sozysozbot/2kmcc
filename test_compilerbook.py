@@ -1,6 +1,8 @@
 from test import bcolors, check
 
+print(f"{bcolors.OKBLUE}今までのステップをコンパイルできるか確認していく{bcolors.ENDC}")
 print(f"{bcolors.OKBLUE}Checking the earlier steps from the compilerbook:{bcolors.ENDC}")
+print(f"{bcolors.OKBLUE}================================================={bcolors.ENDC}")
 
 ###################################################################################################
 print(f"{bcolors.OKBLUE}ステップ1：整数1個をコンパイルする言語の作成{bcolors.ENDC}")
@@ -37,6 +39,7 @@ main:
 """)
 
 ###################################################################################################
+print(f"{bcolors.OKBLUE}-------------------------------------------------{bcolors.ENDC}")
 print(f"{bcolors.OKBLUE}ステップ2：加減算のできるコンパイラの作成{bcolors.ENDC}")
 print(f"{bcolors.OKBLUE}Step 2: making a compiler that can add and subtract{bcolors.ENDC}") 
 ###################################################################################################
