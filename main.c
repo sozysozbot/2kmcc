@@ -88,7 +88,7 @@ void panic(const char *msg) {
 }
 
 /*** ^ LIB | v PARSE ***/
-struct Token tokens_start[1000];
+struct Token tokens_start[50000];
 struct Token *tokens_end;
 struct Token *tokens_cursor;
 char *string_literals_start[10000];
@@ -1170,6 +1170,7 @@ const char *nth_arg_reg(int n, int sz) {
 }
 
 void CodegenFunc(struct FuncDef *funcdef) {
+    locals = 0;
     printf(".globl %s\n", funcdef->name);
     printf("%s:\n", funcdef->name);
     printf("  push rbp\n");
