@@ -1154,9 +1154,9 @@ void CodegenStmt(struct Stmt *stmt) {
 
 const char *nth_arg_reg(int n, int sz) {
     if (sz == 8)
-        return "rdi\0rsi\0rdx\0rcx\0r8 \0r9" + 4 * n;
+        return &"rdi\0rsi\0rdx\0rcx\0r8 \0r9"[4 * n];
     else if (sz == 4)
-        return "edi\0esi\0edx\0ecx\0r8d\0r9d" + 4 * n;
+        return &"edi\0esi\0edx\0ecx\0r8d\0r9d"[4 * n];
     fprintf(stderr, "unhandlable size %d\n", sz);
     exit(1);
 }
