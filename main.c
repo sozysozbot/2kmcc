@@ -1200,12 +1200,12 @@ void deref_rax(int sz) {
 
 void write_rax_to_where_rdi_points(int sz) {
     if (sz == 8)
-        printf("    mov [rdi], rax\n");
+        printf("  mov [rdi], rax\n");
     else if (sz == 4)
-        printf("    mov [rdi], eax\n");
+        printf("  mov [rdi], eax\n");
     else if (sz == 1) {
-        printf("    mov ecx, eax\n");
-        printf("    mov [rdi], cl\n");
+        printf("  mov ecx, eax\n");
+        printf("  mov [rdi], cl\n");
     } else {
         fprintf(stderr, "unhandlable size %d\n", sz);
         exit(1);
@@ -1214,11 +1214,11 @@ void write_rax_to_where_rdi_points(int sz) {
 
 const char *AddSubMulDivAssign_rdi_into_rax(int kind) {
     if (kind == enum2('+', '='))
-        return "    add rax,rdi\n";
+        return "  add rax,rdi\n";
     else if (kind == enum2('-', '='))
-        return "    sub rax,rdi\n";
+        return "  sub rax,rdi\n";
     else if (kind == enum2('*', '='))
-        return "    imul rax,rdi\n";
+        return "  imul rax,rdi\n";
     else if (kind == enum2('/', '='))
         return "  cqo\n  idiv rdi\n";
     return 0;
@@ -1235,12 +1235,12 @@ void EvaluateExprIntoRax(struct Expr *expr) {
     } else if (expr->expr_kind == enum4('C', 'A', 'L', 'L')) {
         for (int i = 0; i < expr->func_arg_len; i++) {
             EvaluateExprIntoRax(expr->func_args_start[i]);
-            printf("    push rax\n");
+            printf("  push rax\n");
         }
         for (int i = expr->func_arg_len - 1; i >= 0; i--)
-            printf("    pop %s\n", nth_arg_reg(i, 8));
+            printf("  pop %s\n", nth_arg_reg(i, 8));
         printf("  mov rax, 0\n");
-        printf(" call %s\n", expr->func_or_ident_name_or_string_content);
+        printf("  call %s\n", expr->func_or_ident_name_or_string_content);
     } else if (expr->expr_kind == enum3('N', 'U', 'M')) {
         printf("  mov rax, %d\n", expr->value);
     } else if (expr->expr_kind == '0') {
@@ -1260,40 +1260,40 @@ void EvaluateExprIntoRax(struct Expr *expr) {
     } else if (expr->expr_kind == enum4('2', 'A', 'R', 'Y')) {
         if (expr->op_kind == '=') {
             EvaluateLValueAddressIntoRax(expr->first_child);
-            printf("    push rax\n");
+            printf("  push rax\n");
             EvaluateExprIntoRax(expr->second_child);
-            printf("    pop rdi\n");
+            printf("  pop rdi\n");
             write_rax_to_where_rdi_points(size(expr->first_child->typ));  // second_child might be a 0 meaning a null pointer
         } else if (AddSubMulDivAssign_rdi_into_rax(expr->op_kind)) {      // x @= i
             EvaluateExprIntoRax(expr->second_child);
-            printf("    push rax\n");                                      // stack: i
+            printf("  push rax\n");                                      // stack: i
             EvaluateLValueAddressIntoRax(expr->first_child);               // rax: &x
-            printf("    mov rsi, rax\n");                                  // rsi: &x
-            printf("    mov rax, [rax]\n");                                // rsi: &x, rax: x
-            printf("    pop rdi\n");                                       // rsi: &x, rax: x, rdi: i
+            printf("  mov rsi, rax\n");                                  // rsi: &x
+            printf("  mov rax, [rax]\n");                                // rsi: &x, rax: x
+            printf("  pop rdi\n");                                       // rsi: &x, rax: x, rdi: i
             printf("%s", AddSubMulDivAssign_rdi_into_rax(expr->op_kind));  // rsi: &x, rax: x@i
-            printf("    mov rdi, rsi\n");                                  // rdi: &x, rax: x@i
+            printf("  mov rdi, rsi\n");                                  // rdi: &x, rax: x@i
             write_rax_to_where_rdi_points(size(expr->second_child->typ));
         } else if (expr->op_kind == enum2('&', '&')) {
             int label = (labelCounter++);
             EvaluateExprIntoRax(expr->first_child);
-            printf("    test rax, rax\n");
-            printf("    je .Landfalse%d\n", label);
+            printf("  test rax, rax\n");
+            printf("  je .Landfalse%d\n", label);
             EvaluateExprIntoRax(expr->second_child);
-            printf("    test rax, rax\n");
-            printf("    je  .Landfalse%d\n", label);
-            printf("    mov eax, 1\n");
-            printf("    jmp .Landend%d\n", label);
+            printf("  test rax, rax\n");
+            printf("  je  .Landfalse%d\n", label);
+            printf("  mov eax, 1\n");
+            printf("  jmp .Landend%d\n", label);
             printf(".Landfalse%d:\n", label);
-            printf("    mov     eax, 0\n");
+            printf("  mov     eax, 0\n");
             printf(".Landend%d:\n", label);
         } else {
             EvaluateExprIntoRax(expr->first_child);
-            printf("    push rax\n");
+            printf("  push rax\n");
             EvaluateExprIntoRax(expr->second_child);
-            printf("    push rax\n");
-            printf("    pop rdi\n");
-            printf("    pop rax\n");
+            printf("  push rax\n");
+            printf("  pop rdi\n");
+            printf("  pop rax\n");
             if (AddSubMulDivAssign_rdi_into_rax(enum2(expr->op_kind, '='))) {
                 printf("%s", AddSubMulDivAssign_rdi_into_rax(enum2(expr->op_kind, '=')));
             } else if (expr->op_kind == enum2('=', '=')) {
