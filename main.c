@@ -97,6 +97,7 @@ struct StructMember *struct_members_start[10000];
 struct StructMember **struct_members_cursor;
 struct StructSizeAndAlign *struct_sizes_and_alignments_start[100];
 struct StructSizeAndAlign **struct_sizes_and_alignments_cursor;
+int currently_handling_function_returning_void;
 
 int is_alnum(char c) {
     return strchr("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_", c) != 0;
@@ -120,6 +121,7 @@ struct Token *tokenize(char *str) {
         } else if (is_reserved_then_handle(str + i, &i, "while", 5, enum4('W', 'H', 'I', 'L'))) {
         } else if (is_reserved_then_handle(str + i, &i, "const", 5, enum4('C', 'N', 'S', 'T'))) {
         } else if (is_reserved_then_handle(str + i, &i, "else", 4, enum4('e', 'l', 's', 'e'))) {
+        } else if (is_reserved_then_handle(str + i, &i, "void", 4, enum4('v', 'o', 'i', 'd'))) {
         } else if (is_reserved_then_handle(str + i, &i, "for", 3, enum3('f', 'o', 'r'))) {
         } else if (is_reserved_then_handle(str + i, &i, "int", 3, enum3('i', 'n', 't'))) {
         } else if (is_reserved_then_handle(str + i, &i, "char", 4, enum4('c', 'h', 'a', 'r'))) {
@@ -444,7 +446,7 @@ int is_int_or_char(int kind) {
 }
 
 int starts_a_type(int kind) {
-    return is_int_or_char(kind) + (kind == enum4('S', 'T', 'R', 'U')) + (kind == enum4('C', 'N', 'S', 'T'));
+    return is_int_or_char(kind) + (kind == enum4('v', 'o', 'i', 'd')) + (kind == enum4('S', 'T', 'R', 'U')) + (kind == enum4('C', 'N', 'S', 'T'));
 }
 
 int is_integer(struct Type *typ) {
@@ -490,6 +492,8 @@ void panic_two_types(const char *msg, struct Type *t1, struct Type *t2) {
 
 int is_compatible_type(struct Type *t1, struct Type *t2) {
     if (t1->kind == '*' && t2->kind == '*') {
+        if ((t1->ptr_to->kind == enum4('v', 'o', 'i', 'd')) + (t2->ptr_to->kind == enum4('v', 'o', 'i', 'd')))
+            return 1;
         return is_same_type(t1->ptr_to, t2->ptr_to);
     }
     return !(t1->kind != t2->kind && !(is_integer(t1) && is_integer(t2)));
@@ -631,7 +635,7 @@ void assert_compatible_in_equality(struct Expr *e1, struct Expr *e2, int op_kind
         return;
     if (e2->expr_kind == '0' && e1->typ->kind == '*')  // one operand is a pointer and the other is a null pointer constant
         return;
-    panic_invalid_binary_operand_types(e1, e2, op_kind);    
+    panic_invalid_binary_operand_types(e1, e2, op_kind);
 }
 
 struct Expr *equalityExpr(struct Expr *lhs, struct Expr *rhs, int kind) {
@@ -729,6 +733,8 @@ struct Type *consume_simple_type() {
         type->kind = enum3('i', 'n', 't');
     else if (maybe_consume(enum4('c', 'h', 'a', 'r')))
         type->kind = enum4('c', 'h', 'a', 'r');
+    else if (maybe_consume(enum4('v', 'o', 'i', 'd')))
+        type->kind = enum4('v', 'o', 'i', 'd');
     else if (maybe_consume(enum4('S', 'T', 'R', 'U'))) {
         type->kind = enum4('S', 'T', 'R', 'U');
         expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
@@ -824,6 +830,13 @@ struct Stmt *parseStmt() {
     if (maybe_consume(enum3('R', 'E', 'T'))) {
         struct Stmt *stmt = calloc(1, sizeof(struct Stmt));
         stmt->stmt_kind = enum3('R', 'E', 'T');
+        if (maybe_consume(';')) {
+            if (currently_handling_function_returning_void) {
+                stmt->expr = numberExpr(42);
+                return stmt;
+            } else
+                panic("`return` with no value found in a function not returning void");
+        }
         stmt->expr = decay_if_arr(parseExpr());
         consume_otherwise_panic(';');
         return stmt;
@@ -895,7 +908,14 @@ struct Stmt *parseFunctionContent() {
         newstmt->second_child = statement;
         result = newstmt;
     }
-    return result;
+    struct Stmt *implicit_return = calloc(1, sizeof(struct Stmt));
+    implicit_return->stmt_kind = enum3('R', 'E', 'T');
+    implicit_return->expr = numberExpr(42);
+    struct Stmt *finalstmt = calloc(1, sizeof(struct Stmt));
+    finalstmt->first_child = result;
+    finalstmt->stmt_kind = enum4('n', 'e', 'x', 't');
+    finalstmt->second_child = implicit_return;
+    return finalstmt;
 }
 
 struct FuncDef *constructFuncDef(struct Stmt *content, struct NameAndType *rettype_and_funcname, int len, struct NameAndType *params_start) {
@@ -958,6 +978,7 @@ void parseToplevel() {
             store_func_decl(rettype_and_funcname);
             if (maybe_consume(';'))
                 return;
+            currently_handling_function_returning_void = rettype_and_funcname->type->kind == enum4('v', 'o', 'i', 'd');
             *(funcdefs_cursor++) = constructFuncDef(parseFunctionContent(), rettype_and_funcname, 0, params_start);
             return;
         }
@@ -973,6 +994,7 @@ void parseToplevel() {
                 store_func_decl(rettype_and_funcname);
                 if (maybe_consume(';'))
                     return;
+                currently_handling_function_returning_void = rettype_and_funcname->type->kind == enum4('v', 'o', 'i', 'd');
                 *(funcdefs_cursor++) = constructFuncDef(parseFunctionContent(), rettype_and_funcname, i + 1, params_start);
                 return;
             }
@@ -1048,8 +1070,13 @@ struct LVar *insertLVar(char *name, int sz) {
     struct LVar *last = lastLVar();
     newlocal->name = name;
     if (!last) {
+        printf("# newlocal->offset_from_rbp = sz;\n");
+        printf("# sz: %d\n", sz);
         newlocal->offset_from_rbp = sz;
     } else {
+        printf("# newlocal->offset_from_rbp = last->offset_from_rbp + sz;\n");
+        printf("# last->offset_from_rbp: %d\n", last->offset_from_rbp);
+        printf("# sz: %d\n", sz);
         newlocal->offset_from_rbp = last->offset_from_rbp + sz;
     }
     newlocal->next = 0;
