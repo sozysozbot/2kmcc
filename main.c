@@ -120,6 +120,7 @@ struct Token *tokenize(char *str) {
         } else if (is_reserved_then_handle(str + i, &i, "while", 5, enum4('W', 'H', 'I', 'L'))) {
         } else if (is_reserved_then_handle(str + i, &i, "const", 5, enum4('C', 'N', 'S', 'T'))) {
         } else if (is_reserved_then_handle(str + i, &i, "else", 4, enum4('e', 'l', 's', 'e'))) {
+        } else if (is_reserved_then_handle(str + i, &i, "void", 4, enum4('v', 'o', 'i', 'd'))) {
         } else if (is_reserved_then_handle(str + i, &i, "for", 3, enum3('f', 'o', 'r'))) {
         } else if (is_reserved_then_handle(str + i, &i, "int", 3, enum3('i', 'n', 't'))) {
         } else if (is_reserved_then_handle(str + i, &i, "char", 4, enum4('c', 'h', 'a', 'r'))) {
@@ -444,7 +445,7 @@ int is_int_or_char(int kind) {
 }
 
 int starts_a_type(int kind) {
-    return is_int_or_char(kind) + (kind == enum4('S', 'T', 'R', 'U')) + (kind == enum4('C', 'N', 'S', 'T'));
+    return is_int_or_char(kind) + (kind == enum4('v', 'o', 'i', 'd')) + (kind == enum4('S', 'T', 'R', 'U')) + (kind == enum4('C', 'N', 'S', 'T'));
 }
 
 int is_integer(struct Type *typ) {
@@ -490,6 +491,8 @@ void panic_two_types(const char *msg, struct Type *t1, struct Type *t2) {
 
 int is_compatible_type(struct Type *t1, struct Type *t2) {
     if (t1->kind == '*' && t2->kind == '*') {
+        if ((t1->ptr_to->kind == enum4('v', 'o', 'i', 'd')) + (t2->ptr_to->kind == enum4('v', 'o', 'i', 'd')))
+            return 1;
         return is_same_type(t1->ptr_to, t2->ptr_to);
     }
     return !(t1->kind != t2->kind && !(is_integer(t1) && is_integer(t2)));
@@ -729,6 +732,8 @@ struct Type *consume_simple_type() {
         type->kind = enum3('i', 'n', 't');
     else if (maybe_consume(enum4('c', 'h', 'a', 'r')))
         type->kind = enum4('c', 'h', 'a', 'r');
+    else if (maybe_consume(enum4('v', 'o', 'i', 'd')))
+        type->kind = enum4('v', 'o', 'i', 'd');
     else if (maybe_consume(enum4('S', 'T', 'R', 'U'))) {
         type->kind = enum4('S', 'T', 'R', 'U');
         expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
