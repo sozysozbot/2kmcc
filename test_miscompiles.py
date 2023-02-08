@@ -7,6 +7,23 @@ print(f"{bcolors.WARNING}Checking the inputs that should work but DOESN'T:{bcolo
 ######################################
 check("""
 int enum2(int a, int b) {
+    printf("a=%d, b=%d; ", a, b);
+    return a + b * 10;
+}
+
+int enum3(int a, int b, int c) {
+    printf("a=%d, b=%d, c=%d; ", a, b, c);
+    return enum2(a, b + c * 10);
+}
+
+int main() {
+    printf("res=%d", enum3(1, 2, 3));
+    return 0;
+}
+""", expected=0, expected_stdout="a=1, b=2, c=3; a=1, b=32; res=321")
+
+check("""
+int enum2(int a, int b) {
     return a + b * 10;
 }
 
