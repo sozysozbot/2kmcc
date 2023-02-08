@@ -386,7 +386,7 @@ main:
     pop rdi
     pop rax
     sub rax,rdi
-  lea rax, [rbp - 48]
+  lea rax, [rbp - 64]
     push rax
   lea rax, [rbp - 40]
   mov rax,[rax]
@@ -396,7 +396,7 @@ main:
  call parseInt
     pop rdi
     mov [rdi], eax
-  lea rax, [rbp - 56]
+  lea rax, [rbp - 72]
     push rax
   lea rax, [rbp - 40]
   mov rax,[rax]
@@ -408,7 +408,7 @@ main:
     mov [rdi], eax
   mov rax, 1
     push rax
-  lea rax, [rbp - 56]
+  lea rax, [rbp - 72]
   mov eax,[rax]
     push rax
     pop rdi
@@ -424,7 +424,7 @@ main:
     mov [rdi], eax
   mov eax, OFFSET FLAT:.LC4
     push rax
-  lea rax, [rbp - 48]
+  lea rax, [rbp - 64]
   mov eax,[rax]
     push rax
     pop rsi
@@ -474,7 +474,7 @@ main:
     pop rdi
     pop rax
     sub rax,rdi
-  lea rax, [rbp - 48]
+  lea rax, [rbp - 64]
     push rax
   lea rax, [rbp - 40]
   mov rax,[rax]
@@ -484,7 +484,7 @@ main:
  call parseInt
     pop rdi
     mov [rdi], eax
-  lea rax, [rbp - 56]
+  lea rax, [rbp - 72]
     push rax
   lea rax, [rbp - 40]
   mov rax,[rax]
@@ -496,7 +496,7 @@ main:
     mov [rdi], eax
   mov rax, 1
     push rax
-  lea rax, [rbp - 56]
+  lea rax, [rbp - 72]
   mov eax,[rax]
     push rax
     pop rdi
@@ -512,7 +512,7 @@ main:
     mov [rdi], eax
   mov eax, OFFSET FLAT:.LC5
     push rax
-  lea rax, [rbp - 48]
+  lea rax, [rbp - 64]
   mov eax,[rax]
     push rax
     pop rsi
@@ -522,7 +522,7 @@ main:
   jmp .Lend6
 .Lelse6:
   mov rax, 42
-  mov rax, 1
+  mov rax, 2
   mov rsp, rbp
   pop rbp
   ret

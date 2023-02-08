@@ -13,15 +13,15 @@ int printf();
 int atoi(); 
 
 int main(int argc, char **argv) {
-  if (argc != 2) {
-    return 3;
-  }
-  printf(".intel_syntax noprefix\\n");
-  printf(".globl main\\n");
-  printf("main:\\n");
-  printf("  mov rax, %d\\n", atoi(argv[1]));
-  printf("  ret\\n");
-  return 0;
+    if (argc != 2) {
+        return 3;
+    }
+    printf(".intel_syntax noprefix\\n");
+    printf(".globl main\\n");
+    printf("main:\\n");
+    printf("  mov rax, %d\\n", atoi(argv[1]));
+    printf("  ret\\n");
+    return 0;
 }
 """
 
@@ -73,10 +73,10 @@ int main(int argc, char **argv) {
     printf(".intel_syntax noprefix\\n");
     printf(".globl main\\n");
     printf("main:\\n");
-    int parsednum = parseInt(p);
-    int parsedlength = intLength(p);
-    p += parsedlength;
-    printf("  mov rax, %d\\n", parsednum);
+    int parsednum_ = parseInt(p);
+    int parsedlength_ = intLength(p);
+    p += parsedlength_;
+    printf("  mov rax, %d\\n", parsednum_);
     while (*p) {
         if (*p == '+') {
             p++;
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
             p += parsedlength;
             printf("  sub rax, %d\\n", parsednum);
         } else {
-            return 1;
+            return 2;
         }
     }
     printf("  ret\\n");
