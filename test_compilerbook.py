@@ -2,21 +2,34 @@ import subprocess
 from test import bcolors, check, compile_with_2kmcc, run_resulting_binary
 import os
 
-def compile_with_stepn(input: str, output_assembly_path: str = "tmp.s"):
-    assembly = open(output_assembly_path, "w")
-    msg = open("tmp_compile_stderr.txt", "w")
-    return subprocess.call(["./stepn", input], stdout=assembly, stderr=msg)
+def check_stepN_test_case(n: int, step_n: str, input_to_step_n: str, expected_output: int):
+    return check_stepN_that_gcc_compiled(n, step_n, input_to_step_n, expected_output) and check_stepN_that_2kmcc_compiled(
+        n, step_n, input_to_step_n, expected_output)
+
+
+def check_stepN_that_gcc_compiled(n: int, step_n: str, input_to_step_n: str, expected_output: int):
+    open("tmp_gcc_stepn.c", "w").write(step_n)
+    os.system("gcc -Wno-builtin-declaration-mismatch -std=c11 -g -static -o tmp_gcc_stepn tmp_gcc_stepn.c")
+    value_returned_from_stepN = run_resulting_binary(
+        "./tmp_gcc_stepn", stdin=input_to_step_n, stdout_path="tmp_final.s")
+    return rest(n, value_returned_from_stepN, expected_output, step_n, input_to_step_n, "gcc")
+
 
 def check_stepN_that_2kmcc_compiled(n: int, step_n: str, input_to_step_n: str, expected_output: int):
-    compiler_returns = compile_with_2kmcc(step_n, "stepn.s")
+    compiler_returns = compile_with_2kmcc(step_n, "tmp_2kmcc_stepn.s")
     if compiler_returns != 0:
         print(
             f"{bcolors.FAIL}FAIL:check (2kmcc gave a compile error):{step_n=}{bcolors.ENDC}")
         msg = open("tmp_compile_stderr.txt", "r").read()
         print(f"  The error message is: {bcolors.FAIL}{msg}{bcolors.ENDC}")
         return False
-    os.system("cc -o stepn stepn.s -static")
-    value_returned_from_stepN = run_resulting_binary("./stepn", stdin=input_to_step_n, stdout_path="tmp_final.s")
+    os.system("rm tmp_compile_stderr.txt")
+    os.system("cc -o tmp_2kmcc_stepn tmp_2kmcc_stepn.s -static")
+    value_returned_from_stepN = run_resulting_binary(
+        "./tmp_2kmcc_stepn", stdin=input_to_step_n, stdout_path="tmp_final.s")
+    return rest(n, value_returned_from_stepN, expected_output, step_n, input_to_step_n, "2kmcc")
+
+def rest(n: int, value_returned_from_stepN: int, expected_output: int, step_n: str, input_to_step_n: str, compiler: str):
     os.system("cc -o tmp_final tmp_final.s -static")
     actual_output = run_resulting_binary("./tmp_final")
 
@@ -31,9 +44,11 @@ def check_stepN_that_2kmcc_compiled(n: int, step_n: str, input_to_step_n: str, e
         print(f"{bcolors.FAIL}  {expected_output=}\n  {actual_output=}{bcolors.ENDC}")
         return False
     else:
-        print(f"{bcolors.OKGREEN}step #{n} passed:\n  {input_to_step_n=}\n  {expected_output=} {bcolors.ENDC}")
-        os.system("rm stepn stepn.s tmp_final tmp_final.s tmp_run_stdout.txt tmp_compile_stderr.txt")
+        print(f"{bcolors.OKGREEN}step #{n} passed (when compiled with {compiler}):\n  {input_to_step_n=}\n  {expected_output=} {bcolors.ENDC}")
+        os.system(
+            f"rm tmp_{compiler}_stepn* tmp_final tmp_final.s tmp_run_stdout.txt")
         return True
+
 
 print(f"{bcolors.OKBLUE}今までのステップをコンパイルできるか確認していく{bcolors.ENDC}")
 print(f"{bcolors.OKBLUE}Checking the earlier steps from the compilerbook:{bcolors.ENDC}")
@@ -60,8 +75,8 @@ int main(int argc, char **argv) {
 }
 """
 
-assert check_stepN_that_2kmcc_compiled(1, step1, '0', 0)
-assert check_stepN_that_2kmcc_compiled(1, step1, '42', 42)
+assert check_stepN_test_case(1, step1, '0', 0)
+assert check_stepN_test_case(1, step1, '42', 42)
 assert check(step1, 0, stdin="42", expected_stdout=""".intel_syntax noprefix
 .globl main
 main:
@@ -135,10 +150,10 @@ int main(int argc, char **argv) {
     return 0;
 }"""
 
-assert check_stepN_that_2kmcc_compiled(2, step2, '0', 0)
-assert check_stepN_that_2kmcc_compiled(2, step2, '42', 42)
-assert check_stepN_that_2kmcc_compiled(2, step2, '0+10+3', 13)
-assert check_stepN_that_2kmcc_compiled(2, step2, '111+10-42', 79)
+assert check_stepN_test_case(2, step2, '0', 0)
+assert check_stepN_test_case(2, step2, '42', 42)
+assert check_stepN_test_case(2, step2, '0+10+3', 13)
+assert check_stepN_test_case(2, step2, '111+10-42', 79)
 
 assert check(step2, 0, stdin="0", expected_stdout=""".intel_syntax noprefix
 .globl main
@@ -293,12 +308,12 @@ int main(int argc, char **argv) {
 }
 """
 
-assert check_stepN_that_2kmcc_compiled(3, step3, '0', 0)
-assert check_stepN_that_2kmcc_compiled(3, step3, '42', 42)
-assert check_stepN_that_2kmcc_compiled(3, step3, '0+10+3', 13)
-assert check_stepN_that_2kmcc_compiled(3, step3, '111+10-42', 79)
-assert check_stepN_that_2kmcc_compiled(3, step3, '   111   + 10 -     42', 79)
-assert check_stepN_that_2kmcc_compiled(3, step3, '   0 +    10+    3', 13)
+assert check_stepN_test_case(3, step3, '0', 0)
+assert check_stepN_test_case(3, step3, '42', 42)
+assert check_stepN_test_case(3, step3, '0+10+3', 13)
+assert check_stepN_test_case(3, step3, '111+10-42', 79)
+assert check_stepN_test_case(3, step3, '   111   + 10 -     42', 79)
+assert check_stepN_test_case(3, step3, '   0 +    10+    3', 13)
 assert check(step3, 0, stdin="0", expected_stdout=""".intel_syntax noprefix
 .globl main
 main:
@@ -564,20 +579,20 @@ int main(int argc, char **argv) {
     return 0;
 }
 """
-assert check_stepN_that_2kmcc_compiled(5, step5, '0', 0)
-assert check_stepN_that_2kmcc_compiled(5, step5, '42', 42)
-assert check_stepN_that_2kmcc_compiled(5, step5, '0+10+3', 13)
-assert check_stepN_that_2kmcc_compiled(5, step5, '111+10-42', 79)
-assert check_stepN_that_2kmcc_compiled(5, step5, '   111   + 10 -     42', 79)
-assert check_stepN_that_2kmcc_compiled(5, step5, '   0 +    10+    3', 13)
-assert check_stepN_that_2kmcc_compiled(5, step5, '10*2', 20)
-assert check_stepN_that_2kmcc_compiled(5, step5, '10+1*2', 12)
-assert check_stepN_that_2kmcc_compiled(5, step5, '10+3*2+10-5', 21)
-assert check_stepN_that_2kmcc_compiled(5, step5, '(10+3)*2+10-5', 31)
-assert check_stepN_that_2kmcc_compiled(5, step5, '(10+1)*2', 22)
-assert check_stepN_that_2kmcc_compiled(5, step5, '(10+1)/2', 5)
-assert check_stepN_that_2kmcc_compiled(5, step5, '(15+1)/2+3', 11)
-assert check_stepN_that_2kmcc_compiled(5, step5, '10+1 /2/5', 10)
+assert check_stepN_test_case(5, step5, '0', 0)
+assert check_stepN_test_case(5, step5, '42', 42)
+assert check_stepN_test_case(5, step5, '0+10+3', 13)
+assert check_stepN_test_case(5, step5, '111+10-42', 79)
+assert check_stepN_test_case(5, step5, '   111   + 10 -     42', 79)
+assert check_stepN_test_case(5, step5, '   0 +    10+    3', 13)
+assert check_stepN_test_case(5, step5, '10*2', 20)
+assert check_stepN_test_case(5, step5, '10+1*2', 12)
+assert check_stepN_test_case(5, step5, '10+3*2+10-5', 21)
+assert check_stepN_test_case(5, step5, '(10+3)*2+10-5', 31)
+assert check_stepN_test_case(5, step5, '(10+1)*2', 22)
+assert check_stepN_test_case(5, step5, '(10+1)/2', 5)
+assert check_stepN_test_case(5, step5, '(15+1)/2+3', 11)
+assert check_stepN_test_case(5, step5, '10+1 /2/5', 10)
 
 ###################################################################################################
 print(f"{bcolors.OKBLUE}-------------------------------------------------{bcolors.ENDC}")
@@ -823,18 +838,18 @@ int main(int argc, char **argv) {
     return 0;
 }"""
 
-assert check_stepN_that_2kmcc_compiled(6, step6, '0', 0)
-assert check_stepN_that_2kmcc_compiled(6, step6, '42', 42)
-assert check_stepN_that_2kmcc_compiled(6, step6, '0+10+3', 13)
-assert check_stepN_that_2kmcc_compiled(6, step6, '111+10-42', 79)
-assert check_stepN_that_2kmcc_compiled(6, step6, '   111   + 10 -     42', 79)
-assert check_stepN_that_2kmcc_compiled(6, step6, '   0 +    10+    3', 13)
-assert check_stepN_that_2kmcc_compiled(6, step6, '10*2', 20)
-assert check_stepN_that_2kmcc_compiled(6, step6, '10+1*2', 12)
-assert check_stepN_that_2kmcc_compiled(6, step6, '10+3*2+10-5', 21)
-assert check_stepN_that_2kmcc_compiled(6, step6, '(10+3)*2+10-5', 31)
-assert check_stepN_that_2kmcc_compiled(6, step6, '(10+1)*2', 22)
-assert check_stepN_that_2kmcc_compiled(6, step6, '(10+1)/2', 5)
-assert check_stepN_that_2kmcc_compiled(6, step6, '(15+1)/2+3', 11)
-assert check_stepN_that_2kmcc_compiled(6, step6, '10+1 /2/5', 10)
-assert check_stepN_that_2kmcc_compiled(6, step6, '-2*-3', 6)
+assert check_stepN_test_case(6, step6, '0', 0)
+assert check_stepN_test_case(6, step6, '42', 42)
+assert check_stepN_test_case(6, step6, '0+10+3', 13)
+assert check_stepN_test_case(6, step6, '111+10-42', 79)
+assert check_stepN_test_case(6, step6, '   111   + 10 -     42', 79)
+assert check_stepN_test_case(6, step6, '   0 +    10+    3', 13)
+assert check_stepN_test_case(6, step6, '10*2', 20)
+assert check_stepN_test_case(6, step6, '10+1*2', 12)
+assert check_stepN_test_case(6, step6, '10+3*2+10-5', 21)
+assert check_stepN_test_case(6, step6, '(10+3)*2+10-5', 31)
+assert check_stepN_test_case(6, step6, '(10+1)*2', 22)
+assert check_stepN_test_case(6, step6, '(10+1)/2', 5)
+assert check_stepN_test_case(6, step6, '(15+1)/2+3', 11)
+assert check_stepN_test_case(6, step6, '10+1 /2/5', 10)
+assert check_stepN_test_case(6, step6, '-2*-3', 6)

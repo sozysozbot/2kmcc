@@ -1,5 +1,5 @@
 CFLAGS=-std=c11 -g -static -Wall -Wextra
-SRCS=$(wildcard *.c)
+SRCS=main.c
 OBJS=$(SRCS:.c=.o)
 
 2kmcc: $(OBJS)
