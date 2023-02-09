@@ -6,6 +6,19 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
 
+assert check("""
+struct Token {
+    char kind;
+    int value;
+};
+
+struct Token tokens[5];
+
+int main(int argc, char **argv) {
+    return sizeof(tokens);
+}
+""", 40)
+
 assert check("""int printf();
 int isDigit(char c) {
     return '0' <= c && c <= '9';

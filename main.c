@@ -947,27 +947,29 @@ void parseToplevel() {
         char *struct_name = (tokens_cursor++)->identifier_name_or_escaped_string_content;
         int overall_alignment = 1;
         int next_member_offset = 0;
-        consume_otherwise_panic('{');
-        while (!maybe_consume('}')) {
-            struct NameAndType *member = consume_type_and_ident();
+        if (maybe_consume('{')) {  // `struct Foo { int a; };
+            while (!maybe_consume('}')) {
+                struct NameAndType *member = consume_type_and_ident();
+                consume_otherwise_panic(';');
+                struct StructMember *q = calloc(1, sizeof(struct StructMember));
+                q->member_name = member->name;
+                q->struct_name = struct_name;
+                q->member_type = member->type;
+                q->member_offset = roundup(next_member_offset, align(member->type));
+                next_member_offset = q->member_offset + size(member->type);
+                if (overall_alignment < align(member->type))
+                    overall_alignment = align(member->type);
+                *(struct_members_cursor++) = q;
+            }
+            struct StructSizeAndAlign *sa = calloc(1, sizeof(struct StructSizeAndAlign));
+            sa->struct_name = struct_name;
+            sa->align = overall_alignment;
+            sa->size = roundup(next_member_offset, overall_alignment);
+            *(struct_sizes_and_alignments_cursor++) = sa;
             consume_otherwise_panic(';');
-            struct StructMember *q = calloc(1, sizeof(struct StructMember));
-            q->member_name = member->name;
-            q->struct_name = struct_name;
-            q->member_type = member->type;
-            q->member_offset = roundup(next_member_offset, align(member->type));
-            next_member_offset = q->member_offset + size(member->type);
-            if (overall_alignment < align(member->type))
-                overall_alignment = align(member->type);
-            *(struct_members_cursor++) = q;
-        }
-        struct StructSizeAndAlign *sa = calloc(1, sizeof(struct StructSizeAndAlign));
-        sa->struct_name = struct_name;
-        sa->align = overall_alignment;
-        sa->size = roundup(next_member_offset, overall_alignment);
-        *(struct_sizes_and_alignments_cursor++) = sa;
-        consume_otherwise_panic(';');
-        return;
+            return;
+        } else                   // global var definition: `struct Foo **id[5];`
+            tokens_cursor -= 2;  // thus bring back the cursor and let the rest of the function do the job
     }
     struct NameAndType *first_half = consume_type_and_ident_1st_half();
     if (maybe_consume('(')) {
