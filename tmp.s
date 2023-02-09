@@ -13,7 +13,8 @@ isDigit:
   mov rbp, rsp
   sub rsp, 16
 # inserting a variable named `c` at offset 8
-  mov [rbp - 8], rdi
+  mov rax, rdi
+  mov [rbp - 8], al
   mov rax, 1
   lea rax, [rbp - 8] # rax = &c
   movzx ecx, BYTE PTR [rax]
@@ -57,7 +58,8 @@ parseInt:
   mov rbp, rsp
   sub rsp, 32
 # inserting a variable named `str` at offset 8
-  mov [rbp - 8], rdi
+  mov rax, rdi
+  mov [rbp - 8], rax
 # inserting a variable named `result` at offset 16
 # inserting a variable named `digit` at offset 24
   mov rax, 1
@@ -71,7 +73,9 @@ parseInt:
   mov rax,[rax]
   mov rax, [rax]
   push rax
-  pop rdi
+  pop rax
+  movsx rax, al
+  mov rdi, rax
   mov rax, 0
   call isDigit
   cmp rax, 0

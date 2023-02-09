@@ -1161,6 +1161,17 @@ const char *nth_arg_reg(int n, int sz) {
     exit(1);
 }
 
+const char *rax_eax_al(int sz) {
+    if (sz == 8)
+        return "rax";
+    else if (sz == 4)
+        return "eax";
+    else if (sz == 1)
+        return "al";
+    fprintf(stderr, "unhandlable size %d\n", sz);
+    exit(1);
+}
+
 void CodegenFunc(struct FuncDef *funcdef) {
     locals = 0;
     printf(".globl %s\n", funcdef->name);
@@ -1177,10 +1188,11 @@ void CodegenFunc(struct FuncDef *funcdef) {
         char *param_name = funcdef->params_start[i].name;
         insertLVar(param_name, 8);
         struct LVar *local = findLVar(param_name);
-        printf("  mov [rbp - %d], %s\n", local->offset_from_rbp, nth_arg_reg(i, 8));
+        printf("  mov rax, %s\n", nth_arg_reg(i, 8));
+        printf("  mov [rbp - %d], %s\n", local->offset_from_rbp, rax_eax_al(size(funcdef->params_start[i].type)));
     }
-    for (struct NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++) 
-        if (!findLVar(ptr->name)) // avoid duplicate insertion of parameters
+    for (struct NameAndType *ptr = funcdef->lvar_table_start; ptr != funcdef->lvar_table_end; ptr++)
+        if (!findLVar(ptr->name))  // avoid duplicate insertion of parameters
             insertLVar(ptr->name, size(ptr->type));
     CodegenStmt(funcdef->content);
 }
@@ -1238,8 +1250,15 @@ void EvaluateExprIntoRax(struct Expr *expr) {
             EvaluateExprIntoRax(expr->func_args_start[i]);
             printf("  push rax\n");
         }
-        for (int i = expr->func_arg_len - 1; i >= 0; i--)
-            printf("  pop %s\n", nth_arg_reg(i, 8));
+        for (int i = expr->func_arg_len - 1; i >= 0; i--) {
+            if (size(expr->func_args_start[i]->typ) == 1) {
+                printf("  pop rax\n");
+                printf("  movsx rax, al\n");
+                printf("  mov %s, rax\n", nth_arg_reg(i, 8));
+            } else {
+                printf("  pop %s\n", nth_arg_reg(i, 8));
+            }
+        }
         printf("  mov rax, 0\n");
         printf("  call %s\n", expr->func_or_ident_name_or_string_content);
     } else if (expr->expr_kind == enum3('N', 'U', 'M')) {
@@ -1267,13 +1286,13 @@ void EvaluateExprIntoRax(struct Expr *expr) {
             write_rax_to_where_rdi_points(size(expr->first_child->typ));  // second_child might be a 0 meaning a null pointer
         } else if (AddSubMulDivAssign_rdi_into_rax(expr->op_kind)) {      // x @= i
             EvaluateExprIntoRax(expr->second_child);
-            printf("  push rax\n");                                      // stack: i
+            printf("  push rax\n");                                        // stack: i
             EvaluateLValueAddressIntoRax(expr->first_child);               // rax: &x
-            printf("  mov rsi, rax\n");                                  // rsi: &x
-            printf("  mov rax, [rax]\n");                                // rsi: &x, rax: x
-            printf("  pop rdi\n");                                       // rsi: &x, rax: x, rdi: i
+            printf("  mov rsi, rax\n");                                    // rsi: &x
+            printf("  mov rax, [rax]\n");                                  // rsi: &x, rax: x
+            printf("  pop rdi\n");                                         // rsi: &x, rax: x, rdi: i
             printf("%s", AddSubMulDivAssign_rdi_into_rax(expr->op_kind));  // rsi: &x, rax: x@i
-            printf("  mov rdi, rsi\n");                                  // rdi: &x, rax: x@i
+            printf("  mov rdi, rsi\n");                                    // rdi: &x, rax: x@i
             write_rax_to_where_rdi_points(size(expr->second_child->typ));
         } else if (expr->op_kind == enum2('&', '&')) {
             int label = (labelCounter++);
