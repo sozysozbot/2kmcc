@@ -1268,7 +1268,10 @@ void EvaluateExprIntoRax(struct Expr *expr) {
     } else if (expr->expr_kind == enum4('1', 'A', 'R', 'Y')) {
         if (expr->op_kind == '*') {
             EvaluateExprIntoRax(expr->first_child);
-            printf("  mov rax, [rax]\n");
+            printf("  mov %s, [rax]\n", rax_eax_al(size(expr->typ)));
+            if (size(expr->typ) == 1) {
+                printf("  movsx rax, al\n");
+            }
         } else if (expr->op_kind == '&') {
             EvaluateLValueAddressIntoRax(expr->first_child);
         } else if (expr->op_kind == enum4('[', ']', '>', '*')) {
