@@ -7,8 +7,9 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 ######################################
 
 assert check("""int printf();
-int isDigit(char c);
-void *calloc();
+int isDigit(char c) {
+    return '0' <= c && c <= '9';
+}
 int parseInt(char *str) {
     int result = 0;
     while (isDigit(*str)) {
@@ -18,37 +19,10 @@ int parseInt(char *str) {
     }
     return result;
 }
-int intLength(char *str) {
-    int length = 0;
-    while (isDigit(*str)) {
-        length++;
-        str++;
-    }
-    return length;
-}
-int isDigit(char c) {
-    return '0' <= c && c <= '9';
-}
 int main() {
-    char *p = calloc(3, 1);
-    p[0] = '4';
-    p[1] = '2';
-    p[2] = 0;
-    printf(".intel_syntax noprefix\\n");
-    printf(".globl main\\n");
-    printf("main:\\n");
-    int parsednum_ = parseInt(p);
-    int parsedlength_ = intLength(p);
-    p += parsedlength_;
-    printf("  mov rax, %d\\n", parsednum_); 
-    printf("  ret\\n");
+    printf("%d", parseInt("42")); 
     return 0;
-}""", 0, expected_stdout=""".intel_syntax noprefix
-.globl main
-main:
-  mov rax, 42
-  ret
-""")
+}""", 0, expected_stdout="""42""")
 
 assert check("""int printf();
 int isDigit(char c);

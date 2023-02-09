@@ -698,7 +698,7 @@ struct Expr *parseAssign() {
     struct Expr *result = parseLeftToRightInfix(1);
     if (maybe_consume('=')) {
         struct Expr *rhs = decay_if_arr(parseAssign());
-        assert_compatible_in_simple_assignment(result->typ, rhs);  // no decay, since we cannot assign to an array
+        assert_compatible_in_simple_assignment(result->typ, rhs);  // no decay of lhs, since we cannot assign to an array
         return binaryExpr(result, rhs, '=', result->typ);
     } else if (maybe_consume(enum2('+', '='))) {
         result = expr_add(decay_if_arr(result), assert_integer(parseAssign()));
@@ -804,7 +804,7 @@ struct Stmt *parse_var_def_maybe_with_initializer() {
     if (maybe_consume('{')) {
         panic("not supported: initializer list\n");
     }
-    struct Expr *rhs = parseExpr();
+    struct Expr *rhs = decay_if_arr(parseExpr());
     consume_otherwise_panic(';');
     struct Stmt *stmt = calloc(1, sizeof(struct Stmt));
     stmt->stmt_kind = enum4('e', 'x', 'p', 'r');

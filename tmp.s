@@ -2,193 +2,11 @@
   .text
   .section .rodata
 .LC0:
-  .string ".intel_syntax noprefix\n"
+  .string "%d"
 .LC1:
-  .string ".globl main\n"
-.LC2:
-  .string "main:\n"
-.LC3:
-  .string "  mov rax, %d\n"
-.LC4:
-  .string "  ret\n"
+  .string "42"
   .text
 .text
-.globl parseInt
-parseInt:
-  push rbp
-  mov rbp, rsp
-  sub rsp, 32
-# inserting a variable named `str` at offset 8
-  mov [rbp - 8], rdi
-# inserting a variable named `str` at offset 16
-# inserting a variable named `result` at offset 24
-# inserting a variable named `digit` at offset 32
-  mov rax, 1
-  lea rax, [rbp - 24] # result
-    push rax
-  mov rax, 0
-    pop rdi
-    mov [rdi], eax
-.Lbegin0:
-  lea rax, [rbp - 8] # str
-  mov rax,[rax]
-  mov rax, [rax]
-    push rax
-    pop rdi
-  mov rax, 0
- call isDigit
-  cmp rax, 0
-  je  .Lend0
-  mov rax, 42
-  lea rax, [rbp - 32] # digit
-    push rax
-  lea rax, [rbp - 8] # str
-  mov rax,[rax]
-  mov rax, [rax]
-    push rax
-  mov rax, 48
-    push rax
-    pop rdi
-    pop rax
-    sub rax,rdi
-    pop rdi
-    mov [rdi], eax
-  lea rax, [rbp - 24] # result
-    push rax
-  lea rax, [rbp - 24] # result
-  mov eax,[rax]
-    push rax
-  mov rax, 10
-    push rax
-    pop rdi
-    pop rax
-    imul rax,rdi
-    push rax
-  lea rax, [rbp - 32] # digit
-  mov eax,[rax]
-    push rax
-    pop rdi
-    pop rax
-    add rax,rdi
-    pop rdi
-    mov [rdi], eax
-  mov rax, 1
-    push rax
-  mov rax, 1
-    push rax
-    pop rdi
-    pop rax
-    imul rax,rdi
-    push rax
-  lea rax, [rbp - 8] # str
-    mov rsi, rax
-    mov rax, [rax]
-    pop rdi
-    add rax,rdi
-    mov rdi, rsi
-    mov [rdi], eax
-    push rax
-  mov rax, 1
-    push rax
-  mov rax, 1
-    push rax
-    pop rdi
-    pop rax
-    imul rax,rdi
-    push rax
-    pop rdi
-    pop rax
-    sub rax,rdi
-  jmp  .Lbegin0
-.Lend0:
-  lea rax, [rbp - 24] # result
-  mov eax,[rax]
-  mov rsp, rbp
-  pop rbp
-  ret
-  mov rax, 42
-  mov rsp, rbp
-  pop rbp
-  ret
-.globl intLength
-intLength:
-  push rbp
-  mov rbp, rsp
-  sub rsp, 24
-# inserting a variable named `str` at offset 8
-  mov [rbp - 8], rdi
-# inserting a variable named `str` at offset 16
-# inserting a variable named `length` at offset 24
-  mov rax, 1
-  lea rax, [rbp - 24] # length
-    push rax
-  mov rax, 0
-    pop rdi
-    mov [rdi], eax
-.Lbegin1:
-  lea rax, [rbp - 8] # str
-  mov rax,[rax]
-  mov rax, [rax]
-    push rax
-    pop rdi
-  mov rax, 0
- call isDigit
-  cmp rax, 0
-  je  .Lend1
-  mov rax, 42
-  mov rax, 1
-    push rax
-  lea rax, [rbp - 24] # length
-    mov rsi, rax
-    mov rax, [rax]
-    pop rdi
-    add rax,rdi
-    mov rdi, rsi
-    mov [rdi], eax
-    push rax
-  mov rax, 1
-    push rax
-    pop rdi
-    pop rax
-    sub rax,rdi
-  mov rax, 1
-    push rax
-  mov rax, 1
-    push rax
-    pop rdi
-    pop rax
-    imul rax,rdi
-    push rax
-  lea rax, [rbp - 8] # str
-    mov rsi, rax
-    mov rax, [rax]
-    pop rdi
-    add rax,rdi
-    mov rdi, rsi
-    mov [rdi], eax
-    push rax
-  mov rax, 1
-    push rax
-  mov rax, 1
-    push rax
-    pop rdi
-    pop rax
-    imul rax,rdi
-    push rax
-    pop rdi
-    pop rax
-    sub rax,rdi
-  jmp  .Lbegin1
-.Lend1:
-  lea rax, [rbp - 24] # length
-  mov eax,[rax]
-  mov rsp, rbp
-  pop rbp
-  ret
-  mov rax, 42
-  mov rsp, rbp
-  pop rbp
-  ret
 .globl isDigit
 isDigit:
   push rbp
@@ -196,39 +14,126 @@ isDigit:
   sub rsp, 16
 # inserting a variable named `c` at offset 8
   mov [rbp - 8], rdi
-# inserting a variable named `c` at offset 16
   mov rax, 1
-  lea rax, [rbp - 8] # c
+  lea rax, [rbp - 8] # rax = &c
   movzx ecx, BYTE PTR [rax]
   mov eax, ecx
-    push rax
+  push rax
   mov rax, 48
-    push rax
-    pop rdi
-    pop rax
+  mov rdi, rax
+  pop rax
   cmp rax, rdi
   setge al
   movzb rax, al
-    test rax, rax
-    je .Landfalse2
+  test rax, rax
+  je .Landfalse0
   mov rax, 57
-    push rax
-  lea rax, [rbp - 8] # c
+  push rax
+  lea rax, [rbp - 8] # rax = &c
   movzx ecx, BYTE PTR [rax]
   mov eax, ecx
-    push rax
-    pop rdi
-    pop rax
+  mov rdi, rax
+  pop rax
   cmp rax, rdi
   setge al
   movzb rax, al
-    test rax, rax
-    je  .Landfalse2
-    mov eax, 1
-    jmp .Landend2
-.Landfalse2:
-    mov     eax, 0
-.Landend2:
+  test rax, rax
+  je  .Landfalse0
+  mov eax, 1
+  jmp .Landend0
+.Landfalse0:
+  mov     eax, 0
+.Landend0:
+  mov rsp, rbp
+  pop rbp
+  ret
+  mov rax, 42
+  mov rsp, rbp
+  pop rbp
+  ret
+.globl parseInt
+parseInt:
+  push rbp
+  mov rbp, rsp
+  sub rsp, 32
+# inserting a variable named `str` at offset 8
+  mov [rbp - 8], rdi
+# inserting a variable named `result` at offset 16
+# inserting a variable named `digit` at offset 24
+  mov rax, 1
+  lea rax, [rbp - 16] # rax = &result
+  push rax
+  mov rax, 0
+  pop rdi
+  mov [rdi], eax
+.Lbegin1:
+  lea rax, [rbp - 8] # rax = &str
+  mov rax,[rax]
+  mov rax, [rax]
+  push rax
+  pop rdi
+  mov rax, 0
+  call isDigit
+  cmp rax, 0
+  je  .Lend1
+  mov rax, 42
+  lea rax, [rbp - 24] # rax = &digit
+  push rax
+  lea rax, [rbp - 8] # rax = &str
+  mov rax,[rax]
+  mov rax, [rax]
+  push rax
+  mov rax, 48
+  mov rdi, rax
+  pop rax
+  sub rax,rdi
+  pop rdi
+  mov [rdi], eax
+  lea rax, [rbp - 16] # rax = &result
+  push rax
+  lea rax, [rbp - 16] # rax = &result
+  mov eax,[rax]
+  push rax
+  mov rax, 10
+  mov rdi, rax
+  pop rax
+  imul rax,rdi
+  push rax
+  lea rax, [rbp - 24] # rax = &digit
+  mov eax,[rax]
+  mov rdi, rax
+  pop rax
+  add rax,rdi
+  pop rdi
+  mov [rdi], eax
+  mov rax, 1
+  push rax
+  mov rax, 1
+  mov rdi, rax
+  pop rax
+  imul rax,rdi
+  push rax
+  lea rax, [rbp - 8] # rax = &str
+  mov rsi, rax
+  mov rax, [rax]
+  pop rdi
+  add rax,rdi
+  mov rdi, rsi
+  mov [rdi], eax
+  push rax
+  mov rax, 1
+  push rax
+  mov rax, 1
+  mov rdi, rax
+  pop rax
+  imul rax,rdi
+  mov rdi, rax
+  pop rax
+  sub rax,rdi
+  jmp  .Lbegin1
+.Lend1:
+  lea rax, [rbp - 16] # rax = &result
+  mov eax,[rax]
   mov rsp, rbp
   pop rbp
   ret
@@ -240,145 +145,20 @@ isDigit:
 main:
   push rbp
   mov rbp, rsp
-  sub rsp, 24
-# inserting a variable named `p` at offset 8
-# inserting a variable named `parsednum_` at offset 16
-# inserting a variable named `parsedlength_` at offset 24
+  sub rsp, 0
   mov rax, 1
-  lea rax, [rbp - 8] # p
-    push rax
-  mov rax, 3
-    push rax
-  mov rax, 1
-    push rax
-    pop rsi
-    pop rdi
-  mov rax, 0
- call calloc
-    pop rdi
-    mov [rdi], rax
-  lea rax, [rbp - 8] # p
-  mov rax,[rax]
-    push rax
-  mov rax, 1
-    push rax
-  mov rax, 0
-    push rax
-    pop rdi
-    pop rax
-    imul rax,rdi
-    push rax
-    pop rdi
-    pop rax
-    add rax,rdi
-    push rax
-  mov rax, 52
-    pop rdi
-    mov ecx, eax
-    mov [rdi], cl
-  lea rax, [rbp - 8] # p
-  mov rax,[rax]
-    push rax
-  mov rax, 1
-    push rax
-  mov rax, 1
-    push rax
-    pop rdi
-    pop rax
-    imul rax,rdi
-    push rax
-    pop rdi
-    pop rax
-    add rax,rdi
-    push rax
-  mov rax, 50
-    pop rdi
-    mov ecx, eax
-    mov [rdi], cl
-  lea rax, [rbp - 8] # p
-  mov rax,[rax]
-    push rax
-  mov rax, 1
-    push rax
-  mov rax, 2
-    push rax
-    pop rdi
-    pop rax
-    imul rax,rdi
-    push rax
-    pop rdi
-    pop rax
-    add rax,rdi
-    push rax
-  mov rax, 0
-    pop rdi
-    mov ecx, eax
-    mov [rdi], cl
   mov eax, OFFSET FLAT:.LC0
-    push rax
-    pop rdi
-  mov rax, 0
- call printf
+  push rax
   mov eax, OFFSET FLAT:.LC1
-    push rax
-    pop rdi
+  push rax
+  pop rdi
   mov rax, 0
- call printf
-  mov eax, OFFSET FLAT:.LC2
-    push rax
-    pop rdi
+  call parseInt
+  push rax
+  pop rsi
+  pop rdi
   mov rax, 0
- call printf
-  lea rax, [rbp - 16] # parsednum_
-    push rax
-  lea rax, [rbp - 8] # p
-  mov rax,[rax]
-    push rax
-    pop rdi
-  mov rax, 0
- call parseInt
-    pop rdi
-    mov [rdi], eax
-  lea rax, [rbp - 24] # parsedlength_
-    push rax
-  lea rax, [rbp - 8] # p
-  mov rax,[rax]
-    push rax
-    pop rdi
-  mov rax, 0
- call intLength
-    pop rdi
-    mov [rdi], eax
-  mov rax, 1
-    push rax
-  lea rax, [rbp - 24] # parsedlength_
-  mov eax,[rax]
-    push rax
-    pop rdi
-    pop rax
-    imul rax,rdi
-    push rax
-  lea rax, [rbp - 8] # p
-    mov rsi, rax
-    mov rax, [rax]
-    pop rdi
-    add rax,rdi
-    mov rdi, rsi
-    mov [rdi], eax
-  mov eax, OFFSET FLAT:.LC3
-    push rax
-  lea rax, [rbp - 16] # parsednum_
-  mov eax,[rax]
-    push rax
-    pop rsi
-    pop rdi
-  mov rax, 0
- call printf
-  mov eax, OFFSET FLAT:.LC4
-    push rax
-    pop rdi
-  mov rax, 0
- call printf
+  call printf
   mov rax, 0
   mov rsp, rbp
   pop rbp

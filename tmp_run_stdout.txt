@@ -1,5 +1,1 @@
-.intel_syntax noprefix
-.globl main
-main:
-  mov rax, 128042
-  ret
+360313898
