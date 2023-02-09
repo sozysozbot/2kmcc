@@ -15,18 +15,18 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-def compile_with_2kmcc(input: str):
-    assembly = open("tmp.s", "w")
+def compile_with_2kmcc(input: str, output_assembly_path: str = "tmp.s"):
+    assembly = open(output_assembly_path, "w")
     msg = open("tmp_compile_stderr.txt", "w")
     # to handle double-quotes correctly
     return subprocess.call(["./2kmcc", input], stdout=assembly, stderr=msg)
 
-def run_resulting_binary(stdin: str = None):
-    f = open("tmp_run_stdout.txt", "w")
+def run_resulting_binary(executable_path: str, stdin: str = None, stdout_path: str = "tmp_run_stdout.txt"):
+    f = open(stdout_path, "w")
     if stdin == None:
-        return subprocess.call(["./tmp"], stdout=f)
+        return subprocess.call([executable_path], stdout=f)
     else:
-        return subprocess.call(["./tmp", stdin], stdout=f)
+        return subprocess.call([executable_path, stdin], stdout=f)
 
 def check(input: str, expected: int, stdin: str = None, expected_stdout: str = None):
     compiler_returns = compile_with_2kmcc(input)
@@ -36,7 +36,7 @@ def check(input: str, expected: int, stdin: str = None, expected_stdout: str = N
         print(f"  The error message is: {bcolors.FAIL}{msg}{bcolors.ENDC}")
         return False
     os.system("cc -o tmp tmp.s -static")
-    returned_value = run_resulting_binary(stdin)
+    returned_value = run_resulting_binary("./tmp", stdin)
     actual_stdout = open("tmp_run_stdout.txt", "r").read()
 
     if expected != returned_value:
@@ -72,7 +72,7 @@ def check_and_link_with(input: str, linked_lib: str, expected: int, expected_std
     os.system("cc -S -o libtest.s libtest.c")
     os.system("cc -o tmp tmp.s libtest.s -static")
     os.system("rm libtest.c libtest.s")
-    returned_value = run_resulting_binary()
+    returned_value = run_resulting_binary("./tmp")
     actual_stdout = open("tmp_run_stdout.txt", "r").read()
 
     if expected != returned_value:

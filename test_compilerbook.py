@@ -1,36 +1,39 @@
+import subprocess
 from test import bcolors, check, compile_with_2kmcc, run_resulting_binary
 import os
 
+def compile_with_stepn(input: str, output_assembly_path: str = "tmp.s"):
+    assembly = open(output_assembly_path, "w")
+    msg = open("tmp_compile_stderr.txt", "w")
+    return subprocess.call(["./stepn", input], stdout=assembly, stderr=msg)
 
-def check_stepN_that_2kmcc_compiled(n: int, step_n: str, input_to_step_n: str, expected_output_of_step_n: int):
-    compiler_returns = compile_with_2kmcc(step_n)
+def check_stepN_that_2kmcc_compiled(n: int, step_n: str, input_to_step_n: str, expected_output: int):
+    compiler_returns = compile_with_2kmcc(step_n, "stepn.s")
     if compiler_returns != 0:
         print(
             f"{bcolors.FAIL}FAIL:check (2kmcc gave a compile error):{step_n=}{bcolors.ENDC}")
         msg = open("tmp_compile_stderr.txt", "r").read()
         print(f"  The error message is: {bcolors.FAIL}{msg}{bcolors.ENDC}")
         return False
-    os.system("cc -o tmp tmp.s -static")
-    value_returned_from_stepN = run_resulting_binary(stdin=input_to_step_n)
-    actual_stdout = open("tmp_run_stdout.txt", "r").read()
-    open("tmp_run_stdout.s", "w").write(actual_stdout)
-    os.system("cc -o tmp_run_stdout tmp_run_stdout.s -static")
+    os.system("cc -o stepn stepn.s -static")
+    value_returned_from_stepN = run_resulting_binary("./stepn", stdin=input_to_step_n, stdout_path="tmp_final.s")
+    os.system("cc -o tmp_final tmp_final.s -static")
+    actual_output = run_resulting_binary("./tmp_final")
 
     if 0 != value_returned_from_stepN:
         print(f"{bcolors.FAIL}FAIL:check (stepN returned with non-zero):{bcolors.ENDC}")
         print(f"  {step_n=}")
         return False
-    elif expected_output_of_step_n != value_returned_from_stepN:
+    elif expected_output != actual_output:
         print(
             f"{bcolors.FAIL}FAIL:check (stepN returned with zero, but gives wrong result):{bcolors.ENDC}")
         print(f"  {step_n=}")
-        print(f"{bcolors.FAIL}  {expected_output_of_step_n=}\n  {value_returned_from_stepN=}{bcolors.ENDC}")
+        print(f"{bcolors.FAIL}  {expected_output=}\n  {actual_output=}{bcolors.ENDC}")
         return False
     else:
-        print(f"{bcolors.OKGREEN}passed:{n=} {input_to_step_n=} {expected_output_of_step_n=} {bcolors.ENDC}")
-        os.system("rm tmp tmp.s tmp_run_stdout.txt tmp_compile_stderr.txt")
+        print(f"{bcolors.OKGREEN}step #{n} passed:\n  {input_to_step_n=}\n  {expected_output=} {bcolors.ENDC}")
+        os.system("rm stepn stepn.s tmp_final tmp_final.s tmp_run_stdout.txt tmp_compile_stderr.txt")
         return True
-
 
 print(f"{bcolors.OKBLUE}今までのステップをコンパイルできるか確認していく{bcolors.ENDC}")
 print(f"{bcolors.OKBLUE}Checking the earlier steps from the compilerbook:{bcolors.ENDC}")
@@ -57,6 +60,8 @@ int main(int argc, char **argv) {
 }
 """
 
+assert check_stepN_that_2kmcc_compiled(1, step1, '0', 0)
+assert check_stepN_that_2kmcc_compiled(1, step1, '42', 42)
 assert check(step1, 0, stdin="42", expected_stdout=""".intel_syntax noprefix
 .globl main
 main:
@@ -130,6 +135,10 @@ int main(int argc, char **argv) {
     return 0;
 }"""
 
+assert check_stepN_that_2kmcc_compiled(2, step2, '0', 0)
+assert check_stepN_that_2kmcc_compiled(2, step2, '42', 42)
+assert check_stepN_that_2kmcc_compiled(2, step2, '0+10+3', 13)
+assert check_stepN_that_2kmcc_compiled(2, step2, '111+10-42', 79)
 
 assert check(step2, 0, stdin="0", expected_stdout=""".intel_syntax noprefix
 .globl main
@@ -284,6 +293,12 @@ int main(int argc, char **argv) {
 }
 """
 
+assert check_stepN_that_2kmcc_compiled(3, step3, '0', 0)
+assert check_stepN_that_2kmcc_compiled(3, step3, '42', 42)
+assert check_stepN_that_2kmcc_compiled(3, step3, '0+10+3', 13)
+assert check_stepN_that_2kmcc_compiled(3, step3, '111+10-42', 79)
+assert check_stepN_that_2kmcc_compiled(3, step3, '   111   + 10 -     42', 79)
+assert check_stepN_that_2kmcc_compiled(3, step3, '   0 +    10+    3', 13)
 assert check(step3, 0, stdin="0", expected_stdout=""".intel_syntax noprefix
 .globl main
 main:
@@ -340,39 +355,39 @@ struct Expr {
     struct Expr *second_child;
 };
 
-typedef struct Token {
+struct Token {
     char kind;
     int value;
-} Token;
+};
 
 int isDigit(char c);
 int intLength(char *str);
 int parseInt(char *str);
-struct Expr *parseMultiplicative(Token **ptrptr, Token *token_end);
-struct Expr *parseAdditive(Token **ptrptr, Token *token_end);
-struct Expr *parseExpr(Token **ptrptr, Token *token_end);
+struct Expr *parseMultiplicative(struct Token **ptrptr, struct Token *token_end);
+struct Expr *parseAdditive(struct Token **ptrptr, struct Token *token_end);
+struct Expr *parseExpr(struct Token **ptrptr, struct Token *token_end);
 
-Token tokens[1000];
+struct Token tokens[1000];
 
 void EvaluateExprIntoRax(struct Expr *expr) {
     if (expr->expr_kind == '#') {
-        printf("  mov rax, %d\n", expr->value);
+        printf("  mov rax, %d\\n", expr->value);
     } else if (expr->expr_kind == '@') {
         EvaluateExprIntoRax(expr->first_child);
-        printf("    push rax\n");
+        printf("    push rax\\n");
         EvaluateExprIntoRax(expr->second_child);
-        printf("    push rax\n");
-        printf("    pop rdi\n");
-        printf("    pop rax\n");
+        printf("    push rax\\n");
+        printf("    pop rdi\\n");
+        printf("    pop rax\\n");
         if (expr->binary_op == '+') {
-            printf("    add rax,rdi\n");
+            printf("    add rax,rdi\\n");
         } else if (expr->binary_op == '-') {
-            printf("    sub rax,rdi\n");
+            printf("    sub rax,rdi\\n");
         } else if (expr->binary_op == '*') {
-            printf("    imul rax,rdi\n");
+            printf("    imul rax,rdi\\n");
         } else if (expr->binary_op == '/') {
-            printf("  cqo\n");
-            printf("  idiv rdi\n");
+            printf("  cqo\\n");
+            printf("  idiv rdi\\n");
         } else {
             exit(1);
         }
@@ -397,17 +412,17 @@ struct Expr *binaryExpr(struct Expr *first_child, struct Expr *second_child, cha
     return newexp;
 }
 
-struct Expr *parsePrimary(Token **ptrptr, Token *token_end) {
-    Token *maybe_number = *ptrptr;
+struct Expr *parsePrimary(struct Token **ptrptr, struct Token *token_end) {
+    struct Token *maybe_number = *ptrptr;
     if (maybe_number >= token_end) {
         exit(1);
     }
     if (maybe_number->kind != '#') {
-        Token *maybe_leftparenthesis = maybe_number;
+        struct Token *maybe_leftparenthesis = maybe_number;
         if (maybe_leftparenthesis->kind == '(') {
             *ptrptr += 1;
             struct Expr *expr = parseExpr(ptrptr, token_end);
-            Token *maybe_rightparenthesis = *ptrptr;
+            struct Token *maybe_rightparenthesis = *ptrptr;
             if (maybe_rightparenthesis->kind != ')') {
                 exit(1);
             }
@@ -420,18 +435,18 @@ struct Expr *parsePrimary(Token **ptrptr, Token *token_end) {
     return numberexpr(maybe_number->value);
 }
 
-struct Expr *parseExpr(Token **ptrptr, Token *token_end) {
+struct Expr *parseExpr(struct Token **ptrptr, struct Token *token_end) {
     return parseAdditive(ptrptr, token_end);
 }
-struct Expr *parseMultiplicative(Token **ptrptr, Token *token_end) {
-    Token *tokens = *ptrptr;
+struct Expr *parseMultiplicative(struct Token **ptrptr, struct Token *token_end) {
+    struct Token *tokens = *ptrptr;
     if (token_end == tokens) {
         exit(1);
     }
     struct Expr *result = parsePrimary(&tokens, token_end);
 
     for (; tokens < token_end;) {
-        Token maybe_operator = *tokens;
+        struct Token maybe_operator = *tokens;
         if (maybe_operator.kind == '#') {
             exit(1);
         } else if (maybe_operator.kind == '*') {
@@ -451,7 +466,7 @@ struct Expr *parseMultiplicative(Token **ptrptr, Token *token_end) {
     return result;
 }
 
-struct Expr *parseAdditive(Token **ptrptr, Token *token_end) {
+struct Expr *parseAdditive(struct Token **ptrptr, struct Token *token_end) {
     struct Token *tokens = *ptrptr;
     if (token_end == tokens) {
         exit(1);
@@ -459,7 +474,7 @@ struct Expr *parseAdditive(Token **ptrptr, Token *token_end) {
     struct Expr *result = parseMultiplicative(&tokens, token_end);
 
     for (; tokens < token_end;) {
-        Token maybe_operator = *tokens;
+        struct Token maybe_operator = *tokens;
         if (maybe_operator.kind == '#') {
             exit(1);
         } else if (maybe_operator.kind == '-') {
@@ -506,23 +521,16 @@ int tokenize(char *str) {
 
 int parseInt(char *str) {
     int result = 0;
-    while (1) {
-        if (!isDigit(*str)) {
-            break;
-        } else {
-            int digit = *str - '0';
-            result = result * 10 + digit;
-        }
+    while (isDigit(*str)) {
+        int digit = *str - '0';
+        result = result * 10 + digit;
         str++;
     }
     return result;
 }
 int intLength(char *str) {
     int length = 0;
-    while (1) {
-        if (!isDigit(*str)) {
-            break;
-        }
+    while (isDigit(*str)) {
         length++;
         str++;
     }
@@ -545,14 +553,14 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    printf(".intel_syntax noprefix\n");
-    printf(".globl main\n");
-    printf("main:\n");
+    printf(".intel_syntax noprefix\\n");
+    printf(".globl main\\n");
+    printf("main:\\n");
     struct Token *ptr = tokens;
     struct Token *token_end = tokens + token_length;
     struct Expr *expr = parseExpr(&ptr, token_end);
     EvaluateExprIntoRax(expr);
-    printf("  ret\n");
+    printf("  ret\\n");
     return 0;
 }
 """
