@@ -10,7 +10,24 @@ assert check("""int printf();
 int isDigit(char c) {
     return '0' <= c && c <= '9';
 }
-int parseInt(char *str) {
+int parseInt(const char *str) {
+    int result = 0;
+    while (isDigit(*str)) {
+        int digit = *str - '0';
+        result = result * 10 + digit;
+        str++;
+    }
+    return result;
+}
+int main() {
+    return parseInt("42");
+}""", 42)
+
+assert check("""int printf();
+int isDigit(char c) {
+    return '0' <= c && c <= '9';
+}
+int parseInt(const char *str) {
     int result = 0;
     while (isDigit(*str)) {
         int digit = *str - '0';
