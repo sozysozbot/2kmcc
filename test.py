@@ -40,11 +40,15 @@ def check(input: str, expected: int, stdin: str = None, expected_stdout: str = N
     actual_stdout = open("tmp_run_stdout.txt", "r").read()
 
     if expected != returned_value:
-        print(f"{bcolors.FAIL}FAIL:check (wrong answer):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
+        print(f"{bcolors.FAIL}FAIL:check (wrong value returned):{bcolors.ENDC}")
+        print(f"  {input=}")
+        print(f"{bcolors.FAIL}  {expected=}\n  {returned_value=}{bcolors.ENDC}")
         print(f"{bcolors.FAIL}Consult tmp.s to find out what went wrong{bcolors.ENDC}")
         return False
     elif expected_stdout != None and actual_stdout != expected_stdout:
-        print(f"{bcolors.FAIL}FAIL:check (correct answer but wrong stdout):\n  {input=}\n  {expected_stdout=}\n  {actual_stdout=}{bcolors.ENDC}")
+        print(f"{bcolors.FAIL}FAIL:check (correct value returned but wrong stdout):{bcolors.ENDC}")
+        print(f"  {input=}")
+        print(f"{bcolors.FAIL}  {expected_stdout=}\n  {actual_stdout=}{bcolors.ENDC}")
         print(f"{bcolors.FAIL}Consult tmp.s to find out what went wrong{bcolors.ENDC}")
         return False
     elif expected_stdout != None:
@@ -72,7 +76,7 @@ def check_and_link_with(input: str, linked_lib: str, expected: int, expected_std
     actual_stdout = open("tmp_run_stdout.txt", "r").read()
 
     if expected != returned_value:
-        print(f"{bcolors.FAIL}FAIL:check (wrong answer):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
+        print(f"{bcolors.FAIL}FAIL:check (wrong value returned):{input=} {expected=} {returned_value=}{bcolors.ENDC}")
         print(f"{bcolors.FAIL}  {linked_lib=} {bcolors.ENDC}")
         print(f"{bcolors.FAIL}Consult tmp.s to find out what went wrong{bcolors.ENDC}")
         return False

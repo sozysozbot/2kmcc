@@ -6,3 +6,4 @@ test1
 test2
 .vscode
 *.pyc
+tmp
