@@ -15,13 +15,13 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-def compile(input: str):
+def compile_with_2kmcc(input: str):
     assembly = open("tmp.s", "w")
     msg = open("tmp_compile_stderr.txt", "w")
     # to handle double-quotes correctly
     return subprocess.call(["./2kmcc", input], stdout=assembly, stderr=msg)
 
-def run(stdin: str = None):
+def run_resulting_binary(stdin: str = None):
     f = open("tmp_run_stdout.txt", "w")
     if stdin == None:
         return subprocess.call(["./tmp"], stdout=f)
@@ -29,14 +29,14 @@ def run(stdin: str = None):
         return subprocess.call(["./tmp", stdin], stdout=f)
 
 def check(input: str, expected: int, stdin: str = None, expected_stdout: str = None):
-    compiler_returns = compile(input)
+    compiler_returns = compile_with_2kmcc(input)
     if compiler_returns != 0:
         print(f"{bcolors.FAIL}FAIL:check (compile error):{input=}{bcolors.ENDC}")
         msg = open("tmp_compile_stderr.txt", "r").read()
         print(f"  The error message is: {bcolors.FAIL}{msg}{bcolors.ENDC}")
         return False
     os.system("cc -o tmp tmp.s -static")
-    returned_value = run(stdin)
+    returned_value = run_resulting_binary(stdin)
     actual_stdout = open("tmp_run_stdout.txt", "r").read()
 
     if expected != returned_value:
@@ -62,7 +62,7 @@ def check(input: str, expected: int, stdin: str = None, expected_stdout: str = N
         return True
 
 def check_and_link_with(input: str, linked_lib: str, expected: int, expected_stdout: str = None):
-    compiler_returns = compile(input)
+    compiler_returns = compile_with_2kmcc(input)
     if compiler_returns != 0:
         print(f"{bcolors.FAIL}FAIL:check (compile error):{input=}{bcolors.ENDC}")
         return False
@@ -72,7 +72,7 @@ def check_and_link_with(input: str, linked_lib: str, expected: int, expected_std
     os.system("cc -S -o libtest.s libtest.c")
     os.system("cc -o tmp tmp.s libtest.s -static")
     os.system("rm libtest.c libtest.s")
-    returned_value = run()
+    returned_value = run_resulting_binary()
     actual_stdout = open("tmp_run_stdout.txt", "r").read()
 
     if expected != returned_value:
@@ -98,7 +98,7 @@ def check_and_link_with(input: str, linked_lib: str, expected: int, expected_std
         return True
 
 def should_not_compile(input: str, expected_stderr: str = None):
-    compiler_returns = compile(input)
+    compiler_returns = compile_with_2kmcc(input)
     actual_stderr = open("tmp_compile_stderr.txt", "r").read()
     if compiler_returns != 0:
         print(
