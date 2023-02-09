@@ -1,0 +1,1 @@
+parse error: expected TokenKind `{`; got TokenKind `IDNT`
