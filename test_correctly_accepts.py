@@ -17,7 +17,7 @@ struct Token tokens[5];
 int main(int argc, char **argv) {
     return sizeof(tokens);
 }
-""", 80)
+""", 40)
 
 assert check("""int printf();
 int isDigit(char c) {

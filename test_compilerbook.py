@@ -206,15 +206,15 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    printf(".intel_syntax noprefix\n");
-    printf(".globl main\n");
-    printf("main:\n");
+    printf(".intel_syntax noprefix\\n");
+    printf(".globl main\\n");
+    printf("main:\\n");
 
     struct Token token = tokens[0];
     if (token.kind != '#') {
         return 1;
     }
-    printf("  mov rax, %d\n", token.value);
+    printf("  mov rax, %d\\n", token.value);
 
     for (int i = 1; i < token_length;) {
         struct Token maybe_operator = tokens[i];
@@ -230,7 +230,7 @@ int main(int argc, char **argv) {
             if (maybe_number.kind != '#') {
                 return 1;
             }
-            printf("  add rax, %d\n", maybe_number.value);
+            printf("  add rax, %d\\n", maybe_number.value);
             i++;
         } else if (maybe_operator.kind == '-') {
             i++;
@@ -241,13 +241,13 @@ int main(int argc, char **argv) {
             if (maybe_number.kind != '#') {
                 return 1;
             }
-            printf("  sub rax, %d\n", maybe_number.value);
+            printf("  sub rax, %d\\n", maybe_number.value);
             i++;
         } else {
             return 1;
         }
     }
-    printf("  ret\n");
+    printf("  ret\\n");
     return 0;
 }
 """
