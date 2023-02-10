@@ -6,6 +6,31 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
 
+assert check("""
+int printf();
+
+int main() {
+    for (int i = 0 - 1; i >= 2; i--) {
+        printf("%d", i);
+    }
+    return 0;
+}
+""", 0, expected_stdout="")
+
+assert check("""
+int printf();
+
+int main() {
+    for (int i = -7; i <= 2; i++) {
+        printf("%d", i);
+    }
+    return 0;
+}
+""", 0, expected_stdout="-7-6-5-4-3-2-1012")
+
+assert check(r'int foo(void); int foo() { return 3; } int main() { return foo(); }', 3)
+assert check(r'int main(void) { return sizeof("\0173"); }', 3)
+
 assert check(r'int main() { return sizeof("\0173"); }', 3)
 assert check(r'int main() { return "\0173"[1]; }', 51)
 assert check(r'int main() { return "\0173"[0]; }', 0o17)

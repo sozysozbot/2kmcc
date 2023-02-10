@@ -1018,7 +1018,16 @@ void parseToplevel() {
     if (maybe_consume('(')) {
         struct NameAndType *rettype_and_funcname = first_half;
         struct NameAndType *params_start = calloc(6, sizeof(struct NameAndType));
-        if (maybe_consume(')')) {
+        if (maybe_consume(')')) {  // fixme: `int foo();` should say nothing about its argument types
+            lvars_cursor = lvars_start = calloc(100, sizeof(struct NameAndType));
+            store_func_decl(rettype_and_funcname);
+            if (maybe_consume(';'))
+                return;
+            currently_handling_function_returning_void = rettype_and_funcname->type->kind == enum4('v', 'o', 'i', 'd');
+            *(funcdefs_cursor++) = constructFuncDef(parseFunctionContent(), rettype_and_funcname, 0, params_start);
+            return;
+        } else if (tokens_cursor->kind == enum4('v', 'o', 'i', 'd') && (tokens_cursor[1].kind == ')')) {
+            tokens_cursor += 2;
             lvars_cursor = lvars_start = calloc(100, sizeof(struct NameAndType));
             store_func_decl(rettype_and_funcname);
             if (maybe_consume(';'))
@@ -1217,6 +1226,17 @@ const char *rax_eax_al(int sz) {
     exit(1);
 }
 
+const char *rdi_edi_dil(int sz) {
+    if (sz == 8)
+        return "rdi";
+    else if (sz == 4)
+        return "edi";
+    else if (sz == 1)
+        return "dil";
+    fprintf(stderr, "unhandlable size %d\n", sz);
+    exit(1);
+}
+
 void CodegenFunc(struct FuncDef *funcdef) {
     locals = 0;
     printf(".globl %s\n", funcdef->name);
@@ -1361,22 +1381,23 @@ void EvaluateExprIntoRax(struct Expr *expr) {
             EvaluateExprIntoRax(expr->second_child);
             printf("  mov rdi, rax\n");
             printf("  pop rax\n");
+            int siz = size(expr->first_child->typ);
             if (AddSubMulDivAssign_rdi_into_rax(enum2(expr->op_kind, '='))) {
                 printf("%s", AddSubMulDivAssign_rdi_into_rax(enum2(expr->op_kind, '=')));
             } else if (expr->op_kind == enum2('=', '=')) {
-                printf("  cmp rax, rdi\n");
+                printf("  cmp %s, %s\n", rax_eax_al(siz), rdi_edi_dil(siz));
                 printf("  sete al\n");
                 printf("  movzb rax, al\n");
             } else if (expr->op_kind == enum2('!', '=')) {
-                printf("  cmp rax, rdi\n");
+                printf("  cmp %s, %s\n", rax_eax_al(siz), rdi_edi_dil(siz));
                 printf("  setne al\n");
                 printf("  movzb rax, al\n");
             } else if (expr->op_kind == '>') {
-                printf("  cmp rax, rdi\n");
+                printf("  cmp %s, %s\n", rax_eax_al(siz), rdi_edi_dil(siz));
                 printf("  setg al\n");
                 printf("  movzb rax, al\n");
             } else if (expr->op_kind == enum2('>', '=')) {
-                printf("  cmp rax, rdi\n");
+                printf("  cmp %s, %s\n", rax_eax_al(siz), rdi_edi_dil(siz));
                 printf("  setge al\n");
                 printf("  movzb rax, al\n");
             } else {
