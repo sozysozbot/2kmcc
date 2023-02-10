@@ -10,12 +10,23 @@ assert check("""
 int printf();
 
 int main() {
-    for (int i = 0 - 1; i >= 0; i--) {
+    for (int i = 0 - 1; i >= 2; i--) {
         printf("%d", i);
     }
     return 0;
 }
 """, 0, expected_stdout="")
+
+assert check("""
+int printf();
+
+int main() {
+    for (int i = -7; i <= 2; i++) {
+        printf("%d", i);
+    }
+    return 0;
+}
+""", 0, expected_stdout="-7-6-5-4-3-2-1012")
 
 assert check(r'int foo(void); int foo() { return 3; } int main() { return foo(); }', 3)
 assert check(r'int main(void) { return sizeof("\0173"); }', 3)
