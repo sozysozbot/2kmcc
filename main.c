@@ -485,11 +485,11 @@ struct Expr *parsePrimary() {
 }
 
 int is_int_or_char(int kind) {
-    return (kind == enum3('i', 'n', 't')) + (kind == enum4('c', 'h', 'a', 'r'));
+    return (kind == enum3('i', 'n', 't')) || (kind == enum4('c', 'h', 'a', 'r'));
 }
 
 int starts_a_type(int kind) {
-    return is_int_or_char(kind) + (kind == enum4('v', 'o', 'i', 'd')) + (kind == enum4('S', 'T', 'R', 'U')) + (kind == enum4('C', 'N', 'S', 'T'));
+    return is_int_or_char(kind) || (kind == enum4('v', 'o', 'i', 'd')) || (kind == enum4('S', 'T', 'R', 'U')) || (kind == enum4('C', 'N', 'S', 'T'));
 }
 
 int is_integer(struct Type *typ) {
@@ -535,7 +535,7 @@ void panic_two_types(const char *msg, struct Type *t1, struct Type *t2) {
 
 int is_compatible_type(struct Type *t1, struct Type *t2) {
     if (t1->kind == '*' && t2->kind == '*') {
-        if ((t1->ptr_to->kind == enum4('v', 'o', 'i', 'd')) + (t2->ptr_to->kind == enum4('v', 'o', 'i', 'd')))
+        if ((t1->ptr_to->kind == enum4('v', 'o', 'i', 'd')) || (t2->ptr_to->kind == enum4('v', 'o', 'i', 'd')))
             return 1;
         return is_same_type(t1->ptr_to, t2->ptr_to);
     }
@@ -1375,6 +1375,20 @@ void EvaluateExprIntoRax(struct Expr *expr) {
             printf(".Landfalse%d:\n", label);
             printf("  mov     eax, 0\n");
             printf(".Landend%d:\n", label);
+        } else if (expr->op_kind == enum2('|', '|')) {
+            int label = (labelCounter++);
+            EvaluateExprIntoRax(expr->first_child);
+            printf("  test rax, rax\n");
+            printf("  jne .Lorleft%d\n", label);
+            EvaluateExprIntoRax(expr->second_child);
+            printf("  test rax, rax\n");
+            printf("  je  .Lorright%d\n", label);
+            printf(".Lorleft%d:\n", label);
+            printf("  mov eax, 1\n");
+            printf("  jmp .Lorend%d\n", label);
+            printf(".Lorright%d:\n", label);
+            printf("  mov     eax, 0\n");
+            printf(".Lorend%d:\n", label);
         } else {
             EvaluateExprIntoRax(expr->first_child);
             printf("  push rax\n");
