@@ -6,6 +6,9 @@ print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
 
+assert check(r'int foo(void); int foo() { return 3; } int main() { return foo(); }', 3)
+assert check(r'int main(void) { return sizeof("\0173"); }', 3)
+
 assert check(r'int main() { return sizeof("\0173"); }', 3)
 assert check(r'int main() { return "\0173"[1]; }', 51)
 assert check(r'int main() { return "\0173"[0]; }', 0o17)

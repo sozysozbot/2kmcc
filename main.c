@@ -1018,7 +1018,16 @@ void parseToplevel() {
     if (maybe_consume('(')) {
         struct NameAndType *rettype_and_funcname = first_half;
         struct NameAndType *params_start = calloc(6, sizeof(struct NameAndType));
-        if (maybe_consume(')')) {
+        if (maybe_consume(')')) {  // fixme: `int foo();` should say nothing about its argument types
+            lvars_cursor = lvars_start = calloc(100, sizeof(struct NameAndType));
+            store_func_decl(rettype_and_funcname);
+            if (maybe_consume(';'))
+                return;
+            currently_handling_function_returning_void = rettype_and_funcname->type->kind == enum4('v', 'o', 'i', 'd');
+            *(funcdefs_cursor++) = constructFuncDef(parseFunctionContent(), rettype_and_funcname, 0, params_start);
+            return;
+        } else if (tokens_cursor->kind == enum4('v', 'o', 'i', 'd') && (tokens_cursor[1].kind == ')')) {
+            tokens_cursor += 2;
             lvars_cursor = lvars_start = calloc(100, sizeof(struct NameAndType));
             store_func_decl(rettype_and_funcname);
             if (maybe_consume(';'))
