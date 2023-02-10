@@ -68,6 +68,7 @@ struct Token {
     int kind;
     int value_or_string_size;  // includes the null terminator, so length+1
     char *identifier_name_or_escaped_string_content;
+    char *position;
 };
 
 int enum2(int a, int b) {
@@ -98,6 +99,7 @@ struct StructMember **struct_members_cursor;
 struct StructSizeAndAlign *struct_sizes_and_alignments_start[100];
 struct StructSizeAndAlign **struct_sizes_and_alignments_cursor;
 int currently_handling_function_returning_void;
+char *entire_input_start;
 
 int is_alnum(char c) {
     return strchr("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_", c) != 0;
@@ -111,9 +113,11 @@ int is_reserved_then_handle(char *ptr, int *ptr_i, const char *keyword, int keyw
     *ptr_i += keyword_len;
     return 1;
 }
+
 struct Token *tokenize(char *str) {
     for (int i = 0; str[i];) {
         char c = str[i];
+        tokens_cursor->position = str + i;
         if (is_reserved_then_handle(str + i, &i, "return", 6, enum3('R', 'E', 'T'))) {
         } else if (is_reserved_then_handle(str + i, &i, "sizeof", 6, enum4('S', 'Z', 'O', 'F'))) {
         } else if (is_reserved_then_handle(str + i, &i, "struct", 6, enum4('S', 'T', 'R', 'U'))) {
@@ -345,8 +349,34 @@ char *decode_kind(int kind) {
     return ans;
 }
 
+void show_error_at(char *location, const char *msg) {
+    char *line = location;
+    while (entire_input_start < line && line[-1] != '\n')
+        line--;
+
+    char *end = location;
+    while (*end != '\n' && *end != 0)
+        end++;
+
+    int line_num = 1;
+    for (char *p = entire_input_start; p < line; p++)
+        if (*p == '\n')
+            line_num++;
+
+    int indent = fprintf(stderr, "line #%d: ", line_num);
+    int offset = end - line;
+    fprintf(stderr, "%.*s\n", offset, line);
+
+    int pos = location - line + indent;
+    fprintf(stderr, "%*s", pos, "");
+    fprintf(stderr, "^ %s\n", msg);
+}
+
 void consume_otherwise_panic(int kind) {
     if (!maybe_consume(kind)) {
+        int diff = tokens_cursor->position - entire_input_start;
+        fprintf(stderr, "pos: %p, start: %p, diff: %d\n", tokens_cursor->position, entire_input_start, diff);
+        show_error_at(tokens_cursor->position, "");
         fprintf(stderr, "parse error: expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
         exit(1);
     }
@@ -354,6 +384,9 @@ void consume_otherwise_panic(int kind) {
 
 void expect_otherwise_panic(int kind) {
     if (tokens_cursor->kind != kind) {
+        int diff = tokens_cursor->position - entire_input_start;
+        fprintf(stderr, "pos: %p, start: %p, diff: %d\n", tokens_cursor->position, entire_input_start, diff);
+        show_error_at(tokens_cursor->position, "");
         fprintf(stderr, "parse error: expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
         exit(1);
     }
@@ -1364,6 +1397,7 @@ int main(int argc, char **argv) {
         panic("incorrect cmd line arg\n");
     string_literals_cursor = string_literals_start;
     tokens_cursor = tokens_start;  // the 1st tokens_cursor is for storing the tokens
+    entire_input_start = argv[1];
     tokens_end = tokenize(argv[1]);
     if (tokens_start == tokens_end)
         panic("no token found\n");
