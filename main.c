@@ -162,9 +162,19 @@ struct Token *tokenize(char *str) {
                 if (!str[i + parsed_length])
                     panic("unterminated string literal");
                 if (str[i + parsed_length] == '\\') {
-                    if (strchr("01234567x", str[i + parsed_length + 1]))
-                        panic("Not supported: Unsupported escape sequence within a string literal\n");
-                    parsed_length++;
+                    if (str[i + parsed_length + 1] == 'x') {
+                        panic("Not supported: hexadecimal escape sequence within a string literal\n");
+                    } else if (strchr("01234567", str[i + parsed_length + 1])) {
+                        parsed_length++;
+                        if (strchr("01234567", str[i + parsed_length + 1])) {
+                            parsed_length++;
+                            if (strchr("01234567", str[i + parsed_length + 1])) {
+                                parsed_length++;
+                            }
+                        }
+                    } else {
+                        parsed_length++;
+                    }
                 }
             }
             char *escaped_string_content = calloc(parsed_length + 1, sizeof(char));
