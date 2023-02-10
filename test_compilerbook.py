@@ -1574,7 +1574,22 @@ void CodegenStmt(struct Stmt *stmt) {
 }
 
 const char *nth_arg_reg(int n) {
-    return "rdi\\0rsi\\0rdx\\0rcx\\0r8 \\0r9" + 4 * n;
+    if (n == 0) {
+        return "rdi";
+    } else if (n == 1) {
+        return "rsi";
+    } else if (n == 2) {
+        return "rdx";
+    } else if (n == 3) {
+        return "rcx";
+    } else if (n == 4) {
+        return "r8";
+    } else if (n == 5) {
+        return "r9";
+    } else {
+        printf("!!!!!!!!!error: incorrect n: %d\\n", n);
+        exit(1);
+    }
 }
 
 void CodegenFunc(struct FuncDef *funcdef) {
@@ -1599,33 +1614,41 @@ void CodegenFunc(struct FuncDef *funcdef) {
 
 void EvaluateExprIntoRax(struct Expr *expr) {
     if (expr->expr_kind == enum4('I', 'D', 'N', 'T')) {
+        printf("#1\\n");
         EvaluateLValueAddressIntoRax(expr);
         printf("  mov rax,[rax]\\n");
         return;
     } else if (expr->expr_kind == enum4('C', 'A', 'L', 'L')) {
         for (int i = 0; i < expr->func_arg_len; i++) {
+            printf("#2\\n");
             EvaluateExprIntoRax(expr->func_args[i]);
             printf("    push rax\\n");
         }
         for (int i = expr->func_arg_len - 1; i >= 0; i--) {
+            printf("#3\\n");
             printf("    pop %s\\n", nth_arg_reg(i));
         }
+        printf("#4\\n");
         printf(" call %s\\n", expr->name);
         return;
     } else if (expr->expr_kind == enum3('N', 'U', 'M')) {
+        printf("#5\\n");
         printf("  mov rax, %d\\n", expr->value);
         return;
     } else if (expr->expr_kind == enum4('1', 'A', 'R', 'Y')) {
         if (expr->op_kind == '*') {
+            printf("#6\\n");
             EvaluateExprIntoRax(expr->first_child);
             printf("  mov rax, [rax]\\n");
         } else if (expr->op_kind == '&') {
+            printf("#7\\n");
             EvaluateLValueAddressIntoRax(expr->first_child);
         } else {
             exit(1);
         }
     } else if (expr->expr_kind == enum4('2', 'A', 'R', 'Y')) {
         if (expr->op_kind == '=') {
+            printf("#8\\n");
             EvaluateLValueAddressIntoRax(expr->first_child);
             printf("    push rax\\n");
             EvaluateExprIntoRax(expr->second_child);
@@ -1634,6 +1657,7 @@ void EvaluateExprIntoRax(struct Expr *expr) {
             printf("    pop rax\\n");
             printf("    mov [rax], rdi\\n");
         } else {
+            printf("#9\\n");
             EvaluateExprIntoRax(expr->first_child);
             printf("    push rax\\n");
             EvaluateExprIntoRax(expr->second_child);
