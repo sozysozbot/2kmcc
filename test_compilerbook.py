@@ -1047,7 +1047,7 @@ int tokenize(char *str) {
             token_index++;
         } else if (c == ' ') {
             i++;
-        } else if (('a' <= c && c <= 'z') || c == '_') {
+        } else if (strchr("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_", c)) {
             char *start = &str[i];
             for (i++; is_alnum(str[i]); i++) {
             }
@@ -1451,7 +1451,7 @@ void parseProgram() {
 
 /*** ^ PARSE | v CODEGEN ***/
 
-int labelCounter = 0;
+int labelCounter;
 
 struct LVar *locals;
 
@@ -1528,7 +1528,7 @@ void CodegenStmt(struct Stmt *stmt) {
         printf("  pop rbp\\n");
         printf("  ret\\n");
     } else if (stmt->stmt_kind == enum2('i', 'f')) {
-        int label = ++labelCounter;
+        int label = labelCounter++;
 
         EvaluateExprIntoRax(stmt->expr);
         printf("  cmp rax, 0\\n");
@@ -1541,7 +1541,7 @@ void CodegenStmt(struct Stmt *stmt) {
         }
         printf(".Lend%d:\\n", label);
     } else if (stmt->stmt_kind == enum4('W', 'H', 'I', 'L')) {
-        int label = ++labelCounter;
+        int label = labelCounter++;
 
         printf(".Lbegin%d:\\n", label);
         EvaluateExprIntoRax(stmt->expr);
@@ -1551,7 +1551,7 @@ void CodegenStmt(struct Stmt *stmt) {
         printf("  jmp  .Lbegin%d\\n", label);
         printf(".Lend%d:\\n", label);
     } else if (stmt->stmt_kind == enum3('f', 'o', 'r')) {
-        int label = ++labelCounter;
+        int label = labelCounter++;
 
         if (stmt->expr) {
             EvaluateExprIntoRax(stmt->expr);
