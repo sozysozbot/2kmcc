@@ -1,4 +1,4 @@
-CFLAGS=-std=c11 -g -static -Wall -Wextra
+CFLAGS=-std=c11 -g -static -Wall -Wextra -Wno-builtin-declaration-mismatch
 SRCS=main.c
 OBJS=$(SRCS:.c=.o)
 
