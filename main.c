@@ -223,7 +223,7 @@ struct Token *tokenize(char *str) {
         } else if (strchr(" \n", c)) {
             i += 1;
         } else {
-            fprintf(stderr, "unknown character %c(%d)\n", c, c);
+            fprintf(stderr, "unknown character `%c` (%d)\n", c, c);
             exit(1);
         }
     }
@@ -375,7 +375,6 @@ void show_error_at(char *location, const char *msg) {
 void consume_otherwise_panic(int kind) {
     if (!maybe_consume(kind)) {
         int diff = tokens_cursor->position - entire_input_start;
-        fprintf(stderr, "pos: %p, start: %p, diff: %d\n", tokens_cursor->position, entire_input_start, diff);
         show_error_at(tokens_cursor->position, "");
         fprintf(stderr, "parse error: expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
         exit(1);
@@ -385,7 +384,6 @@ void consume_otherwise_panic(int kind) {
 void expect_otherwise_panic(int kind) {
     if (tokens_cursor->kind != kind) {
         int diff = tokens_cursor->position - entire_input_start;
-        fprintf(stderr, "pos: %p, start: %p, diff: %d\n", tokens_cursor->position, entire_input_start, diff);
         show_error_at(tokens_cursor->position, "");
         fprintf(stderr, "parse error: expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
         exit(1);
@@ -425,7 +423,7 @@ struct Type *lookup_func_type(char *name) {
     for (int i = 0; funcdecls_start[i]; i++)
         if (strcmp(funcdecls_start[i]->name, name) == 0)
             return funcdecls_start[i]->type;
-    fprintf(stderr, "cannot find a function named `%s`. Implicitly assumes that it return an int\n", name);
+    // fprintf(stderr, "cannot find a function named `%s`. Implicitly assumes that it return an int\n", name);
     return type(enum3('i', 'n', 't'));
 }
 

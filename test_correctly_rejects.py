@@ -2,13 +2,14 @@ from test import bcolors, should_not_compile
 
 print(f"{bcolors.OKBLUE}Checking the inputs that should NOT work:{bcolors.ENDC}")
 
-# tokenization error
+print(f"{bcolors.OKBLUE}tokenization error:{bcolors.ENDC}")
 assert should_not_compile(
     "int main() { 3 $ 5; }",
-    "unknown character $(36)"
+    "unknown character `$` (36)"
 )
+assert should_not_compile("int main() { return @3; }", "unknown character `@` (64)")
 
-# parse error
+print(f"{bcolors.OKBLUE}parse error:{bcolors.ENDC}")
 assert should_not_compile('int main(){main(1}')
 assert should_not_compile('int main(){return (123}')
 assert should_not_compile('int main(){return 123}')
@@ -18,20 +19,27 @@ assert should_not_compile('int main(){while(}')
 assert should_not_compile('int main(){while()}')
 assert should_not_compile('int main(){while(1}')
 assert should_not_compile('int main(){while(1)}')
+assert should_not_compile(
+    "int main() { 3 5; }",
+    "parse error: expected an operator; got a number"
+)
 
-# type error: pointer required
+print(f"{bcolors.OKBLUE}type error: pointer required{bcolors.ENDC}")
 assert should_not_compile("int main(){return 1[2];}", "cannot deref a non-pointer type")
 assert should_not_compile(
     "int main() { int x; *x; return 0; }",
     "cannot deref a non-pointer type"
 )
 
-# type error: integer required
+print(f"{bcolors.OKBLUE}type error: integer required{bcolors.ENDC}")
 assert should_not_compile(
     "struct A{int a; int b;}; int main(){struct A a; struct A b; b *= a; return 3;}",
     "int/char is expected, but not an int/char")
 
-# incorrect struct use
+print(f"{bcolors.OKBLUE}incorrect use of void:{bcolors.ENDC}")
+assert should_not_compile("struct A { void a; }; int main() { return 0; }")
+
+print(f"{bcolors.OKBLUE}incorrect struct use:{bcolors.ENDC}")
 assert should_not_compile(
     "int main() { return sizeof(struct A); }",
     "cannot calculate the size for type `struct A`."
@@ -53,7 +61,7 @@ assert should_not_compile(
     "invalid operands to binary `-`: types are `struct A` and `int`."
 )
 
-# type mismatch
+print(f"{bcolors.OKBLUE}type mismatch:{bcolors.ENDC}")
 assert should_not_compile(
     "int main() { int x; int y; x = 3; y = &x; return *y; }",
     "cannot assign/initialize because two incompatible types are detected: `int` and `pointer to int`."
@@ -75,11 +83,7 @@ assert should_not_compile(
     "cannot assign/initialize because two incompatible types are detected: `pointer to int` and `int`."
 )
 
-# other type errors
-assert should_not_compile(
-    "int main() { 3 5; }",
-    "parse error: expected an operator; got a number"
-)
+print(f"{bcolors.OKBLUE}other type errors:{bcolors.ENDC}")
 assert should_not_compile(
     "int main() { int a; return a.b; }",
     "tried to access a member of a non-struct type"
