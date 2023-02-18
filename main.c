@@ -268,13 +268,28 @@ struct Type *arr_of(struct Type *t, int array_size) {
     return new_t;
 }
 
+void display_type(struct Type *t) {
+    if (t->kind == enum2('[', ']')) {
+        printf("array (length: %d) of ", t->array_size);
+        display_type(t->ptr_to);
+    } else if (t->kind == '*') {
+        printf("pointer to ");
+        display_type(t->ptr_to);
+    } else if (t->kind == enum4('S', 'T', 'R', 'U')) {
+        printf("struct %s", t->struct_name);
+    } else
+        printf("%s", decode_kind(t->kind));
+}
+
 struct Type *deref(struct Type *t) {
     if (t->kind == '*')
         return t->ptr_to;
-    panic("cannot deref a non-pointer type\n");
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    printf("! cannot deref a non-pointer type: `");
+    display_type(t);
+    printf("`\n");
+    exit(1);
 }
-
-void display_type(struct Type *t);
 
 int size(struct Type *t) {
     if (t->kind == '*') {
@@ -373,10 +388,11 @@ void show_error_at(char *location, const char *msg) {
         if (*p == '\n')
             line_num++;
     printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    int indent = printf("! line #%d: ", line_num);
+    int indent = printf("! line #%d: ", line_num) - 2;
     int offset = end - line;
     printf("%.*s\n", offset, line);
-    printf("! %*s", location - line + indent, "");
+    int pos = location - line + indent; // ptrdiff_t -> int
+    printf("! %*s", pos, "");
     printf("^ %s\n", msg);
 }
 
@@ -503,20 +519,11 @@ struct Expr *assert_integer(struct Expr *e) {
     if (is_integer(e->typ)) {
         return e;
     }
-    panic("int/char is expected, but not an int/char\n");
-}
-
-void display_type(struct Type *t) {
-    if (t->kind == enum2('[', ']')) {
-        printf("array (length: %d) of ", t->array_size);
-        display_type(t->ptr_to);
-    } else if (t->kind == '*') {
-        printf("pointer to ");
-        display_type(t->ptr_to);
-    } else if (t->kind == enum4('S', 'T', 'R', 'U')) {
-        printf("struct %s", t->struct_name);
-    } else
-        printf("%s", decode_kind(t->kind));
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    printf("! int/char is expected, but not an int/char; the type is instead `");
+    display_type(e->typ);
+    printf("`.\n");
+    exit(1);
 }
 
 int is_same_type(struct Type *t1, struct Type *t2) {

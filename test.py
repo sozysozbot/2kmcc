@@ -17,9 +17,12 @@ class bcolors:
 
 def compile_with_2kmcc(input: str, output_assembly_path: str = "tmp.s"):
     assembly = open(output_assembly_path, "w")
-    msg = open("tmp_compile_stderr.txt", "w")
-    # to handle double-quotes correctly
-    return subprocess.call(["./2kmcc", input], stdout=assembly, stderr=msg)
+    ret = subprocess.call(["./2kmcc", input], stdout=assembly)
+    if ret != 0:
+        result = open(output_assembly_path, "r").read()
+        msg = result.split("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n", maxsplit=1)[1]
+        open("tmp_compile_errmsg.txt", "w").write(msg)
+    return ret
 
 def run_resulting_binary(executable_path: str, stdin: str = None, stdout_path: str = "tmp_run_stdout.txt"):
     f = open(stdout_path, "w")
@@ -32,7 +35,7 @@ def check(input: str, expected: int, stdin: str = None, expected_stdout: str = N
     compiler_returns = compile_with_2kmcc(input)
     if compiler_returns != 0:
         print(f"{bcolors.FAIL}FAIL:check (compile error):{input=}{bcolors.ENDC}")
-        msg = open("tmp_compile_stderr.txt", "r").read()
+        msg = open("tmp_compile_errmsg.txt", "r").read()
         print(f"  The error message is: {bcolors.FAIL}{msg}{bcolors.ENDC}")
         return False
     os.system("cc -o tmp tmp.s -static")
@@ -54,11 +57,11 @@ def check(input: str, expected: int, stdin: str = None, expected_stdout: str = N
     elif expected_stdout != None:
         print(
             f"{bcolors.OKGREEN}passed:{input=} {expected=} {expected_stdout=} {bcolors.ENDC}")
-        os.system("rm tmp tmp.s tmp_run_stdout.txt tmp_compile_stderr.txt")
+        os.system("rm tmp tmp.s tmp_run_stdout.txt")
         return True
     else:
         print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
-        os.system("rm tmp tmp.s tmp_run_stdout.txt tmp_compile_stderr.txt")
+        os.system("rm tmp tmp.s tmp_run_stdout.txt")
         return True
 
 def check_and_link_with(input: str, linked_lib: str, expected: int, expected_stdout: str = None):
@@ -89,31 +92,31 @@ def check_and_link_with(input: str, linked_lib: str, expected: int, expected_std
         print(
             f"{bcolors.OKGREEN}passed:{input=} {expected=} {expected_stdout=} {bcolors.ENDC}")
         print(f"{bcolors.OKGREEN}       {linked_lib=} {bcolors.ENDC}")
-        os.system("rm tmp tmp.s tmp_run_stdout.txt tmp_compile_stderr.txt")
+        os.system("rm tmp tmp.s tmp_run_stdout.txt")
         return True
     else:
         print(f"{bcolors.OKGREEN}passed:{input=} {expected=} {bcolors.ENDC}")
         print(f"{bcolors.OKGREEN}       {linked_lib=} {bcolors.ENDC}")
-        os.system("rm tmp tmp.s tmp_run_stdout.txt tmp_compile_stderr.txt")
+        os.system("rm tmp tmp.s tmp_run_stdout.txt")
         return True
 
-def should_not_compile(input: str, expected_stderr: str = None):
+def should_not_compile(input: str, expected_errmsg: str = None):
     compiler_returns = compile_with_2kmcc(input)
-    actual_stderr = open("tmp_compile_stderr.txt", "r").read()
+    actual_errmsg = open("tmp_compile_errmsg.txt", "r").read()
     if compiler_returns != 0:
         print(
             f"{bcolors.OKGREEN}passed: should give compile error\n  {input=}{bcolors.ENDC}")
-        if expected_stderr != None:
-            if actual_stderr == expected_stderr + "\n":
+        if expected_errmsg != None:
+            if actual_errmsg == "! " + expected_errmsg + "\n":
                 print(
-                    f"{bcolors.OKGREEN}   msg: {actual_stderr}{bcolors.ENDC}")
+                    f"{bcolors.OKGREEN}   msg: {actual_errmsg}{bcolors.ENDC}")
             else:
                 print(
-                    f"{bcolors.OKCYAN}error message was not as expected:\n  {expected_stderr=}\n  {actual_stderr=}{bcolors.ENDC}")
+                    f"{bcolors.OKCYAN}error message was not as expected:\n  {expected_errmsg=}\n  {actual_errmsg=}{bcolors.ENDC}")
         else:
             print(
-                f"{bcolors.OKGREEN}error message was:\n```\n{actual_stderr}```{bcolors.ENDC}")
-        os.system("rm tmp.s tmp_compile_stderr.txt")
+                f"{bcolors.OKGREEN}error message was:\n```\n{actual_errmsg}```{bcolors.ENDC}")
+        os.system("rm tmp.s tmp_compile_errmsg.txt")
         return True
     else:
         print(
