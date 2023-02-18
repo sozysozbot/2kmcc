@@ -32,17 +32,17 @@ assert should_not_compile(
 
 ############################################################
 print(f"{bcolors.OKBLUE}type error: pointer required{bcolors.ENDC}")
-assert should_not_compile("int main(){return 1[2];}", "cannot deref a non-pointer type")
+assert should_not_compile("int main(){return 1[2];}", "cannot deref a non-pointer type: `int`")
 assert should_not_compile(
     "int main() { int x; *x; return 0; }",
-    "cannot deref a non-pointer type"
+    "cannot deref a non-pointer type: `int`"
 )
 
 ############################################################
 print(f"{bcolors.OKBLUE}type error: integer required{bcolors.ENDC}")
 assert should_not_compile(
     "struct A{int a; int b;}; int main(){struct A a; struct A b; b *= a; return 3;}",
-    "int/char is expected, but not an int/char")
+    "int/char is expected, but not an int/char; the type is instead `struct A`.")
 
 ############################################################
 print(f"{bcolors.OKBLUE}incorrect use of void:{bcolors.ENDC}")
