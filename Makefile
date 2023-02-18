@@ -12,11 +12,19 @@ $(OBJS):
 	$(CC) -o 2kmcc_2ndgen 2kmcc_2ndgen.s -static $(LDFLAGS)
 
 test: 2kmcc
+		echo "2kmcc" > tmp_which_compiler_to_test.txt
+		python3 test_compilerbook.py
+		python3 test_correctly_accepts.py 
+		python3 test_correctly_rejects.py
+
+test_2ndgen: 2kmcc_2ndgen
+		echo "2kmcc_2ndgen" > tmp_which_compiler_to_test.txt
 		python3 test_compilerbook.py
 		python3 test_correctly_accepts.py 
 		python3 test_correctly_rejects.py
 
 embarrass: 2kmcc
+		echo "2kmcc" > tmp_which_compiler_to_test.txt
 		python3 test_miscompiles.py 
 		python3 test_incorrectly_accepts.py 
 		python3 test_incorrectly_rejects.py

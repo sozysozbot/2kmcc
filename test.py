@@ -14,10 +14,14 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+def get_compiler_name():
+    compiler_name = open("tmp_which_compiler_to_test.txt", "r").read().strip()
+    return compiler_name
 
 def compile_with_2kmcc(input: str, output_assembly_path: str = "tmp.s"):
     assembly = open(output_assembly_path, "w")
-    ret = subprocess.call(["./2kmcc", input], stdout=assembly)
+    compiler_name = get_compiler_name()
+    ret = subprocess.call([f"./{compiler_name}", input], stdout=assembly)
     if ret != 0:
         result = open(output_assembly_path, "r").read()
         msg = result.split("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n", maxsplit=1)[1]

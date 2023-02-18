@@ -1,5 +1,4 @@
-import subprocess
-from test import bcolors, check, compile_with_2kmcc, run_resulting_binary
+from test import bcolors, check, compile_with_2kmcc, get_compiler_name, run_resulting_binary
 import os
 
 def check_stepN_test_case(n: int, step_n: str, input_to_step_n: str, expected_output: int):
@@ -26,7 +25,8 @@ def check_stepN_that_2kmcc_compiled(n: int, step_n: str, input_to_step_n: str, e
     os.system("cc -o tmp_2kmcc_stepn tmp_2kmcc_stepn.s -static")
     value_returned_from_stepN = run_resulting_binary(
         "./tmp_2kmcc_stepn", stdin=input_to_step_n, stdout_path="tmp_final.s")
-    return rest(n, value_returned_from_stepN, expected_output, step_n, input_to_step_n, "2kmcc")
+    compiler_name = get_compiler_name()
+    return rest(n, value_returned_from_stepN, expected_output, step_n, input_to_step_n, compiler_name)
 
 def rest(n: int, value_returned_from_stepN: int, expected_output: int, step_n: str, input_to_step_n: str, compiler: str):
     os.system("cc -o tmp_final tmp_final.s -static")
