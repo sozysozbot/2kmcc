@@ -1195,7 +1195,7 @@ const char *nth_arg_reg(int n, int sz) {
         return &"edi\0esi\0edx\0ecx\0r8d\0r9d"[4 * n];
     else if (sz == 1)
         return &"dil\0sil\0dl \0cl \0r8b\0r9b"[4 * n];
-    fprintf(stderr, "unhandlable size %d\n", sz);
+    fprintf(stderr, "Internal compiler error at codegen: unhandlable size %d\n", sz);
     exit(1);
 }
 
@@ -1206,7 +1206,7 @@ const char *rax_eax_al(int sz) {
         return "eax";
     else if (sz == 1)
         return "al";
-    fprintf(stderr, "unhandlable size %d\n", sz);
+    fprintf(stderr, "Internal compiler error at codegen: unhandlable size %d\n", sz);
     exit(1);
 }
 
@@ -1248,7 +1248,7 @@ void deref_rax(int sz) {
         printf("  movzx ecx, BYTE PTR [rax]\n");
         printf("  mov eax, ecx\n");
     } else {
-        fprintf(stderr, "unhandlable size %d\n", sz);
+        fprintf(stderr, "Internal compiler error at codegen: unhandlable size %d\n", sz);
         exit(1);
     }
 }
@@ -1262,7 +1262,7 @@ void write_rax_to_where_rdi_points(int sz) {
         printf("  mov ecx, eax\n");
         printf("  mov [rdi], cl\n");
     } else {
-        fprintf(stderr, "unhandlable size %d\n", sz);
+        fprintf(stderr, "Internal compiler error at codegen: unhandlable size %d\n", sz);
         exit(1);
     }
 }
@@ -1317,7 +1317,7 @@ void EvaluateExprIntoRax(struct Expr *expr) {
         } else if (expr->op_kind == enum4('[', ']', '>', '*')) {
             EvaluateExprIntoRax(expr->first_child);
         } else {
-            fprintf(stderr, "Invalid unaryop kind: `%s`", decode_kind(expr->op_kind));
+            fprintf(stderr, "Internal compiler error at codegen: Invalid unaryop kind: `%s`", decode_kind(expr->op_kind));
             exit(1);
         }
     } else if (expr->expr_kind == enum4('2', 'A', 'R', 'Y')) {
@@ -1390,12 +1390,12 @@ void EvaluateExprIntoRax(struct Expr *expr) {
                 printf("  setge al\n");
                 printf("  movzb rax, al\n");
             } else {
-                fprintf(stderr, "Invalid binaryop kind: `%s`\n", decode_kind(expr->op_kind));
+                fprintf(stderr, "Internal compiler error at codegen: Invalid binaryop kind: `%s`\n", decode_kind(expr->op_kind));
                 exit(1);
             }
         }
     } else {
-        fprintf(stderr, "Invalid expr kind: %s\n", decode_kind(expr->expr_kind));
+        fprintf(stderr, "Internal compiler error at codegen: Invalid expr kind: %s\n", decode_kind(expr->expr_kind));
         exit(1);
     }
 }
