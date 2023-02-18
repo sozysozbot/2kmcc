@@ -112,7 +112,7 @@ def should_not_compile(input: str, expected_stderr: str = None):
                     f"{bcolors.OKCYAN}error message was not as expected:\n  {expected_stderr=}\n  {actual_stderr=}{bcolors.ENDC}")
         else:
             print(
-                f"{bcolors.OKGREEN}error message was:{actual_stderr=}{bcolors.ENDC}")
+                f"{bcolors.OKGREEN}error message was:\n```\n{actual_stderr}```{bcolors.ENDC}")
         os.system("rm tmp.s tmp_compile_stderr.txt")
         return True
     else:

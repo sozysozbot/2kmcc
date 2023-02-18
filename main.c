@@ -768,7 +768,7 @@ struct Type *consume_simple_type() {
         char *name = (tokens_cursor++)->identifier_name_or_escaped_string_content;
         type->struct_name = name;
     } else {
-        fprintf(stderr, "expected `int` or `char` or `struct`; got TokenKind `%s`\n", decode_kind(tokens_cursor->kind));
+        fprintf(stderr, "expected a type specifier or a type qualifier; got TokenKind `%s`\n", decode_kind(tokens_cursor->kind));
         exit(1);
     }
     while (maybe_consume('*'))
@@ -1193,6 +1193,8 @@ const char *nth_arg_reg(int n, int sz) {
         return &"rdi\0rsi\0rdx\0rcx\0r8 \0r9"[4 * n];
     else if (sz == 4)
         return &"edi\0esi\0edx\0ecx\0r8d\0r9d"[4 * n];
+    else if (sz == 1)
+        return &"dil\0sil\0dl \0cl \0r8b\0r9b"[4 * n];
     fprintf(stderr, "unhandlable size %d\n", sz);
     exit(1);
 }
@@ -1209,14 +1211,7 @@ const char *rax_eax_al(int sz) {
 }
 
 const char *rdi_edi_dil(int sz) {
-    if (sz == 8)
-        return "rdi";
-    else if (sz == 4)
-        return "edi";
-    else if (sz == 1)
-        return "dil";
-    fprintf(stderr, "unhandlable size %d\n", sz);
-    exit(1);
+    return nth_arg_reg(0, sz);
 }
 
 void CodegenFunc(struct FuncDef *funcdef) {
