@@ -1817,7 +1817,7 @@ int strcmp();
 int strncmp();
 char *strchr();
 void *memcpy();
-char * strncpy();
+char *strncpy();
 char *strstr();
 
 struct Type {

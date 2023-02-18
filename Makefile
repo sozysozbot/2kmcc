@@ -7,10 +7,14 @@ OBJS=$(SRCS:.c=.o)
 
 $(OBJS): 
 
+2ndgen: 2kmcc
+	cat main.c | xargs -0 -I XX ./2kmcc XX > 2kmcc_2ndgen.s
+	$(CC) -o 2kmcc_2ndgen 2kmcc_2ndgen.s -static $(LDFLAGS)
+
 test: 2kmcc
 		python3 test_compilerbook.py
 		python3 test_correctly_accepts.py 
-		python3 test_correctly_rejects.py 
+		python3 test_correctly_rejects.py
 
 embarrass: 2kmcc
 		python3 test_miscompiles.py 

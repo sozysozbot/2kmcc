@@ -1,6 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+int printf();
+void exit();
+void *calloc();
+int strcmp();
+int strncmp();
+char *strchr();
+void *memcpy();
+char *strncpy();
+char *strstr();
 
 struct Type {
     int kind;
