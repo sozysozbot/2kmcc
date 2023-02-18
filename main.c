@@ -83,8 +83,23 @@ int enum4(int a, int b, int c, int d) {
     return enum2(a, enum3(b, c, d));
 }
 
+char *decode_kind(int kind) {
+    void *r = &kind;
+    char *q = r;
+    char *ans = calloc(5, sizeof(char));
+    strncpy(ans, q, 4);
+    return ans;
+}
+
 void panic(const char *msg) {
-    fprintf(stderr, "%s", msg);
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    printf("! %s", msg);
+    exit(1);
+}
+
+void panic_kind(const char *msg, int kind) {
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    printf("! %s `%s`\n", msg, decode_kind(kind));
     exit(1);
 }
 
@@ -155,7 +170,8 @@ struct Token *tokenize(char *str) {
                 (tokens_cursor++)->value_or_string_size = '\n';
                 i += 4;
             } else {
-                fprintf(stderr, "Not supported: Unsupported escape sequence within a character literal: `\\%c`\n", str[i + 2]);
+                printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+                printf("! Not supported: Unsupported escape sequence within a character literal: `\\%c`\n", str[i + 2]);
                 exit(1);
             }
         } else if (c == '"') {
@@ -223,7 +239,8 @@ struct Token *tokenize(char *str) {
         } else if (strchr(" \n", c)) {
             i += 1;
         } else {
-            fprintf(stderr, "unknown character `%c` (%d)\n", c, c);
+            printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+            printf("! unknown character `%c` (%d)\n", c, c);
             exit(1);
         }
     }
@@ -254,8 +271,7 @@ struct Type *arr_of(struct Type *t, int array_size) {
 struct Type *deref(struct Type *t) {
     if (t->kind == '*')
         return t->ptr_to;
-    fprintf(stderr, "cannot deref a non-pointer type\n");
-    exit(1);
+    panic("cannot deref a non-pointer type\n");
 }
 
 void display_type(struct Type *t);
@@ -273,9 +289,10 @@ int size(struct Type *t) {
         for (int i = 0; struct_sizes_and_alignments_start[i]; i++)
             if (strcmp(t->struct_name, struct_sizes_and_alignments_start[i]->struct_name) == 0)
                 return struct_sizes_and_alignments_start[i]->size;
-    fprintf(stderr, "cannot calculate the size for type `");
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    printf("! cannot calculate the size for type `");
     display_type(t);
-    fprintf(stderr, "`.\n");
+    printf("`.\n");
     exit(1);
 }
 
@@ -292,9 +309,10 @@ int align(struct Type *t) {
         for (int i = 0; struct_sizes_and_alignments_start[i]; i++)
             if (strcmp(t->struct_name, struct_sizes_and_alignments_start[i]->struct_name) == 0)
                 return struct_sizes_and_alignments_start[i]->align;
-    fprintf(stderr, "cannot calculate the alignment for type `");
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    printf("! cannot calculate the alignment for type `");
     display_type(t);
-    fprintf(stderr, "`\n");
+    printf("`\n");
     exit(1);
 }
 
@@ -341,14 +359,6 @@ int maybe_consume(int kind) {
     return 1;
 }
 
-char *decode_kind(int kind) {
-    void *r = &kind;
-    char *q = r;
-    char *ans = calloc(5, sizeof(char));
-    strncpy(ans, q, 4);
-    return ans;
-}
-
 void show_error_at(char *location, const char *msg) {
     char *line = location;
     while (entire_input_start < line && line[-1] != '\n')
@@ -362,20 +372,18 @@ void show_error_at(char *location, const char *msg) {
     for (char *p = entire_input_start; p < line; p++)
         if (*p == '\n')
             line_num++;
-
-    int indent = fprintf(stderr, "line #%d: ", line_num);
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    int indent = printf("! line #%d: ", line_num);
     int offset = end - line;
-    fprintf(stderr, "%.*s\n", offset, line);
-
-    int pos = location - line + indent;
-    fprintf(stderr, "%*s", pos, "");
-    fprintf(stderr, "^ %s\n", msg);
+    printf("%.*s\n", offset, line);
+    printf("! %*s", location - line + indent, "");
+    printf("^ %s\n", msg);
 }
 
 void consume_otherwise_panic(int kind) {
     if (!maybe_consume(kind)) {
         show_error_at(tokens_cursor->position, "");
-        fprintf(stderr, "parse error: expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
+        printf("! parse error: expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
         exit(1);
     }
 }
@@ -383,16 +391,14 @@ void consume_otherwise_panic(int kind) {
 void expect_otherwise_panic(int kind) {
     if (tokens_cursor->kind != kind) {
         show_error_at(tokens_cursor->position, "");
-        fprintf(stderr, "parse error: expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
+        printf("! parse error: expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
         exit(1);
     }
 }
 
 void panic_if_eof() {
-    if (tokens_cursor >= tokens_end) {
-        fprintf(stderr, "EOF encountered");
-        exit(1);
-    }
+    if (tokens_cursor >= tokens_end)
+        panic("EOF encountered");
 }
 
 struct Expr *parseExpr(void);
@@ -413,7 +419,8 @@ struct Type *lookup_ident_type(char *name) {
     for (int i = 0; global_vars_start[i]; i++)
         if (strcmp(global_vars_start[i]->name, name) == 0)
             return global_vars_start[i]->type;
-    fprintf(stderr, "cannot find an identifier named `%s`; cannot determine the type\n", name);
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    printf("! cannot find an identifier named `%s`; cannot determine the type\n", name);
     exit(1);
 }
 
@@ -496,21 +503,20 @@ struct Expr *assert_integer(struct Expr *e) {
     if (is_integer(e->typ)) {
         return e;
     }
-    fprintf(stderr, "int/char is expected, but not an int/char\n");
-    exit(1);
+    panic("int/char is expected, but not an int/char\n");
 }
 
 void display_type(struct Type *t) {
     if (t->kind == enum2('[', ']')) {
-        fprintf(stderr, "array (length: %d) of ", t->array_size);
+        printf("array (length: %d) of ", t->array_size);
         display_type(t->ptr_to);
     } else if (t->kind == '*') {
-        fprintf(stderr, "pointer to ");
+        printf("pointer to ");
         display_type(t->ptr_to);
     } else if (t->kind == enum4('S', 'T', 'R', 'U')) {
-        fprintf(stderr, "struct %s", t->struct_name);
+        printf("struct %s", t->struct_name);
     } else
-        fprintf(stderr, "%s", decode_kind(t->kind));
+        printf("%s", decode_kind(t->kind));
 }
 
 int is_same_type(struct Type *t1, struct Type *t2) {
@@ -528,11 +534,12 @@ int is_compatible_type(struct Type *t1, struct Type *t2) {
 }
 
 void panic_invalid_binary_operand_types(struct Type *lhs_type, struct Expr *rhs, int op_kind) {
-    fprintf(stderr, "invalid operands to binary `%s`: types are `", decode_kind(op_kind));
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    printf("! invalid operands to binary `%s`: types are `", decode_kind(op_kind));
     display_type(lhs_type);
-    fprintf(stderr, "` and `");
+    printf("` and `");
     display_type(rhs->typ);
-    fprintf(stderr, "`.\n");
+    printf("`.\n");
     exit(1);
 }
 
@@ -767,10 +774,8 @@ struct Type *consume_simple_type() {
         expect_otherwise_panic(enum4('I', 'D', 'N', 'T'));
         char *name = (tokens_cursor++)->identifier_name_or_escaped_string_content;
         type->struct_name = name;
-    } else {
-        fprintf(stderr, "expected a type specifier or a type qualifier; got TokenKind `%s`\n", decode_kind(tokens_cursor->kind));
-        exit(1);
-    }
+    } else
+        panic_kind("expected a type specifier or a type qualifier; got TokenKind", tokens_cursor->kind);
     while (maybe_consume('*'))
         type = ptr_of(type);
     return type;
@@ -1127,7 +1132,8 @@ void EvaluateLValueAddressIntoRax(struct Expr *expr) {
         } else if (isGVar(name)) {
             printf("  mov eax, OFFSET FLAT:%s\n", name);
         } else {
-            fprintf(stderr, "undefined variable %s\n", name);
+            printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+            printf("! Internal compiler error at codegen: undefined variable %s\n", name);
             exit(1);
         }
     } else if (expr->expr_kind == enum3('S', 'T', 'R')) {
@@ -1195,7 +1201,8 @@ const char *nth_arg_reg(int n, int sz) {
         return &"edi\0esi\0edx\0ecx\0r8d\0r9d"[4 * n];
     else if (sz == 1)
         return &"dil\0sil\0dl \0cl \0r8b\0r9b"[4 * n];
-    fprintf(stderr, "Internal compiler error at codegen: unhandlable size %d\n", sz);
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    printf("! Internal compiler error at codegen: unhandlable size %d\n", sz);
     exit(1);
 }
 
@@ -1206,7 +1213,8 @@ const char *rax_eax_al(int sz) {
         return "eax";
     else if (sz == 1)
         return "al";
-    fprintf(stderr, "Internal compiler error at codegen: unhandlable size %d\n", sz);
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    printf("! Internal compiler error at codegen: unhandlable size %d\n", sz);
     exit(1);
 }
 
@@ -1248,7 +1256,7 @@ void deref_rax(int sz) {
         printf("  movzx ecx, BYTE PTR [rax]\n");
         printf("  mov eax, ecx\n");
     } else {
-        fprintf(stderr, "Internal compiler error at codegen: unhandlable size %d\n", sz);
+        printf("! Internal compiler error at codegen: unhandlable size %d\n", sz);
         exit(1);
     }
 }
@@ -1262,7 +1270,8 @@ void write_rax_to_where_rdi_points(int sz) {
         printf("  mov ecx, eax\n");
         printf("  mov [rdi], cl\n");
     } else {
-        fprintf(stderr, "Internal compiler error at codegen: unhandlable size %d\n", sz);
+        printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        printf("! Internal compiler error at codegen: unhandlable size %d\n", sz);
         exit(1);
     }
 }
@@ -1316,10 +1325,8 @@ void EvaluateExprIntoRax(struct Expr *expr) {
             EvaluateLValueAddressIntoRax(expr->first_child);
         } else if (expr->op_kind == enum4('[', ']', '>', '*')) {
             EvaluateExprIntoRax(expr->first_child);
-        } else {
-            fprintf(stderr, "Internal compiler error at codegen: Invalid unaryop kind: `%s`", decode_kind(expr->op_kind));
-            exit(1);
-        }
+        } else
+            panic_kind("Internal compiler error at codegen: Invalid unaryop kind:", expr->op_kind);
     } else if (expr->expr_kind == enum4('2', 'A', 'R', 'Y')) {
         if (expr->op_kind == '=') {
             EvaluateLValueAddressIntoRax(expr->first_child);
@@ -1389,15 +1396,11 @@ void EvaluateExprIntoRax(struct Expr *expr) {
                 printf("  cmp %s, %s\n", rax_eax_al(siz), rdi_edi_dil(siz));
                 printf("  setge al\n");
                 printf("  movzb rax, al\n");
-            } else {
-                fprintf(stderr, "Internal compiler error at codegen: Invalid binaryop kind: `%s`\n", decode_kind(expr->op_kind));
-                exit(1);
-            }
+            } else
+                panic_kind("Internal compiler error at codegen: Invalid binaryop kind:", expr->op_kind);
         }
-    } else {
-        fprintf(stderr, "Internal compiler error at codegen: Invalid expr kind: %s\n", decode_kind(expr->expr_kind));
-        exit(1);
-    }
+    } else
+        panic_kind("Internal compiler error at codegen: Invalid expr kind:", expr->expr_kind);
 }
 
 /*** ^ CODEGEN | v MAIN ***/
