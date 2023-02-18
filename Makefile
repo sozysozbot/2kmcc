@@ -31,8 +31,8 @@ test_2ndgen: 2kmcc_2ndgen
 embarrass: 2kmcc
 		echo "2kmcc" > tmp_which_compiler_to_test.txt
 		python3 test_miscompiles.py 
-		python3 test_incorrectly_accepts.py 
 		python3 test_incorrectly_rejects.py
+		python3 test_incorrectly_accepts.py 
 
 clean:
 		rm -f 2kmcc *.o *~ tmp*
