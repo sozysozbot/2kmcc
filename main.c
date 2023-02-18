@@ -1,6 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+int printf();
+void exit();
+void *calloc();
+int strcmp();
+int strncmp();
+char *strchr();
+void *memcpy();
+char *strncpy();
+char *strstr();
 
 struct Type {
     int kind;
@@ -1263,6 +1269,7 @@ void deref_rax(int sz) {
         printf("  movzx ecx, BYTE PTR [rax]\n");
         printf("  mov eax, ecx\n");
     } else {
+        printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
         printf("! Internal compiler error at codegen: unhandlable size %d\n", sz);
         exit(1);
     }

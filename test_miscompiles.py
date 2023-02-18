@@ -4,7 +4,14 @@ from test import bcolors, check, check_and_link_with
 
 print(f"{bcolors.WARNING}Checking the inputs that should work but DOESN'T:{bcolors.ENDC}")
 
-# incorrect variable scope when nested
+print(f"{bcolors.OKCYAN}octal literal{bcolors.ENDC}")
+check("int main() { return 011; }" , 9)
+
+print(f"{bcolors.OKCYAN}integral promotion{bcolors.ENDC}")
+check("int main() { char a; return sizeof +a; }" , 4)
+
+print(f"{bcolors.OKCYAN}incorrect variable scope when nested{bcolors.ENDC}")
+check('int main(){int a; a = 174; {int a; a = 3;} return a;}' , 174)
 check("""
 int printf();
 int main() 
