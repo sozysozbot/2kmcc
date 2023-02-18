@@ -64,7 +64,7 @@ assert should_not_compile(
 print(f"{bcolors.OKBLUE}type mismatch:{bcolors.ENDC}")
 assert should_not_compile(
     "int main() { int x; int y; x = 3; y = &x; return *y; }",
-    "cannot assign/initialize because two incompatible types are detected: `int` and `pointer to int`."
+    "invalid operands to binary `=`: types are `int` and `pointer to int`."
 )
 assert should_not_compile(
     "int main() { int *p; char *q; return p-q;}",
@@ -76,11 +76,11 @@ assert should_not_compile(
 )
 assert should_not_compile(
     "int main() { int *p; p = 3; return 0;}",
-    "cannot assign/initialize because two incompatible types are detected: `pointer to int` and `int`."
+    "invalid operands to binary `=`: types are `pointer to int` and `int`."
 )
 assert should_not_compile(
     "int main() { int *p = 3; return 0;}",
-    "cannot assign/initialize because two incompatible types are detected: `pointer to int` and `int`."
+    "invalid operands to binary `=`: types are `pointer to int` and `int`."
 )
 
 print(f"{bcolors.OKBLUE}other type errors:{bcolors.ENDC}")

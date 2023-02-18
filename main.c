@@ -519,15 +519,6 @@ int is_same_type(struct Type *t1, struct Type *t2) {
     return t1->kind == t2->kind;
 }
 
-void panic_two_types(const char *msg, struct Type *t1, struct Type *t2) {
-    fprintf(stderr, "%s: `", msg);
-    display_type(t1);
-    fprintf(stderr, "` and `");
-    display_type(t2);
-    fprintf(stderr, "`.\n");
-    exit(1);
-}
-
 int is_compatible_type(struct Type *t1, struct Type *t2) {
     if (t1->kind != '*' || t2->kind != '*')
         return t1->kind == t2->kind || (is_integer(t1) && is_integer(t2));
@@ -536,9 +527,9 @@ int is_compatible_type(struct Type *t1, struct Type *t2) {
     return is_same_type(t1->ptr_to, t2->ptr_to);
 }
 
-void panic_invalid_binary_operand_types(struct Expr *lhs, struct Expr *rhs, int op_kind) {
+void panic_invalid_binary_operand_types(struct Type *lhs_type, struct Expr *rhs, int op_kind) {
     fprintf(stderr, "invalid operands to binary `%s`: types are `", decode_kind(op_kind));
-    display_type(lhs->typ);
+    display_type(lhs_type);
     fprintf(stderr, "` and `");
     display_type(rhs->typ);
     fprintf(stderr, "`.\n");
@@ -552,14 +543,14 @@ struct Expr *expr_add(struct Expr *lhs, struct Expr *rhs) {
         else if (rhs->typ->kind == '*')
             return expr_add(rhs, lhs);
         else
-            panic_invalid_binary_operand_types(lhs, rhs, '+');
+            panic_invalid_binary_operand_types(lhs->typ, rhs, '+');
     } else if (lhs->typ->kind == '*') {
         if (is_integer(rhs->typ))
             return binaryExpr(lhs, binaryExpr(numberExpr(size(deref(lhs->typ))), rhs, '*', type(enum3('i', 'n', 't'))), '+', lhs->typ);
         else
-            panic_invalid_binary_operand_types(lhs, rhs, '+');
+            panic_invalid_binary_operand_types(lhs->typ, rhs, '+');
     }
-    panic_invalid_binary_operand_types(lhs, rhs, '+');
+    panic_invalid_binary_operand_types(lhs->typ, rhs, '+');
     exit(1);
 }
 
@@ -574,7 +565,7 @@ struct Expr *expr_subtract(struct Expr *lhs, struct Expr *rhs) {
             if (is_same_type(lhs->typ, rhs->typ))
                 return binaryExpr(binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't'))), numberExpr(size(deref(lhs->typ))), '/', type(enum3('i', 'n', 't')));
     }
-    panic_invalid_binary_operand_types(lhs, rhs, '-');
+    panic_invalid_binary_operand_types(lhs->typ, rhs, '-');
     exit(1);
 }
 
@@ -671,7 +662,7 @@ void assert_compatible_in_equality(struct Expr *e1, struct Expr *e2, int op_kind
         return;
     if (e2->expr_kind == '0' && e1->typ->kind == '*')  // one operand is a pointer and the other is a null pointer constant
         return;
-    panic_invalid_binary_operand_types(e1, e2, op_kind);
+    panic_invalid_binary_operand_types(e1->typ, e2, op_kind);
 }
 
 struct Expr *equalityExpr(struct Expr *lhs, struct Expr *rhs, int kind) {
@@ -726,7 +717,7 @@ void assert_compatible_in_simple_assignment(struct Type *lhs_type, struct Expr *
         return;
     if (lhs_type->kind == '*' && rhs->expr_kind == '0')  // the left operand is an atomic, qualified, or unqualified pointer, and the right is a null pointer constant
         return;
-    panic_two_types("cannot assign/initialize because two incompatible types are detected", lhs_type, rhs->typ);
+    panic_invalid_binary_operand_types(lhs_type, rhs, '=');
 }
 
 struct Expr *parseAssign() {
