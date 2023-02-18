@@ -374,7 +374,6 @@ void show_error_at(char *location, const char *msg) {
 
 void consume_otherwise_panic(int kind) {
     if (!maybe_consume(kind)) {
-        int diff = tokens_cursor->position - entire_input_start;
         show_error_at(tokens_cursor->position, "");
         fprintf(stderr, "parse error: expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
         exit(1);
@@ -423,7 +422,7 @@ struct Type *lookup_func_type(char *name) {
     for (int i = 0; funcdecls_start[i]; i++)
         if (strcmp(funcdecls_start[i]->name, name) == 0)
             return funcdecls_start[i]->type;
-    // fprintf(stderr, "cannot find a function named `%s`. Implicitly assumes that it return an int\n", name);
+    printf("# cannot find a function named `%s`. Implicitly assumes that it return an int\n", name);
     return type(enum3('i', 'n', 't'));
 }
 
@@ -483,11 +482,11 @@ struct Expr *parsePrimary() {
 }
 
 int is_int_or_char(int kind) {
-    return (kind == enum3('i', 'n', 't')) || (kind == enum4('c', 'h', 'a', 'r'));
+    return kind == enum3('i', 'n', 't') || kind == enum4('c', 'h', 'a', 'r');
 }
 
 int starts_a_type(int kind) {
-    return is_int_or_char(kind) || (kind == enum4('v', 'o', 'i', 'd')) || (kind == enum4('S', 'T', 'R', 'U')) || (kind == enum4('C', 'N', 'S', 'T'));
+    return is_int_or_char(kind) || kind == enum4('v', 'o', 'i', 'd') || kind == enum4('S', 'T', 'R', 'U') || kind == enum4('C', 'N', 'S', 'T');
 }
 
 int is_integer(struct Type *typ) {
@@ -516,9 +515,8 @@ void display_type(struct Type *t) {
 }
 
 int is_same_type(struct Type *t1, struct Type *t2) {
-    if (t1->kind == '*' && t2->kind == '*') {
+    if (t1->kind == '*' && t2->kind == '*')
         return is_same_type(t1->ptr_to, t2->ptr_to);
-    }
     return t1->kind == t2->kind;
 }
 
@@ -532,12 +530,11 @@ void panic_two_types(const char *msg, struct Type *t1, struct Type *t2) {
 }
 
 int is_compatible_type(struct Type *t1, struct Type *t2) {
-    if (t1->kind == '*' && t2->kind == '*') {
-        if ((t1->ptr_to->kind == enum4('v', 'o', 'i', 'd')) || (t2->ptr_to->kind == enum4('v', 'o', 'i', 'd')))
-            return 1;
-        return is_same_type(t1->ptr_to, t2->ptr_to);
-    }
-    return !(t1->kind != t2->kind && !(is_integer(t1) && is_integer(t2)));
+    if (t1->kind != '*' || t2->kind != '*')
+        return t1->kind == t2->kind || (is_integer(t1) && is_integer(t2));
+    if ((t1->ptr_to->kind == enum4('v', 'o', 'i', 'd')) || (t2->ptr_to->kind == enum4('v', 'o', 'i', 'd')))
+        return 1;
+    return is_same_type(t1->ptr_to, t2->ptr_to);
 }
 
 void panic_invalid_binary_operand_types(struct Expr *lhs, struct Expr *rhs, int op_kind) {
@@ -574,10 +571,9 @@ struct Expr *expr_subtract(struct Expr *lhs, struct Expr *rhs) {
     } else if (lhs->typ->kind == '*') {
         if (is_integer(rhs->typ)) {
             return binaryExpr(lhs, binaryExpr(numberExpr(size(deref(lhs->typ))), rhs, '*', type(enum3('i', 'n', 't'))), '-', lhs->typ);
-        } else if (rhs->typ->kind == '*') {
+        } else if (rhs->typ->kind == '*')
             if (is_same_type(lhs->typ, rhs->typ))
                 return binaryExpr(binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't'))), numberExpr(size(deref(lhs->typ))), '/', type(enum3('i', 'n', 't')));
-        }
     }
     panic_invalid_binary_operand_types(lhs, rhs, '-');
     exit(1);
@@ -1075,13 +1071,11 @@ struct LVar *locals;
 
 struct LVar *findLVar(char *name) {
     struct LVar *local = locals;
-    if (!local) {
+    if (!local) 
         return 0;
-    }
     while (local) {
-        if (!strcmp(name, local->name)) {
+        if (!strcmp(name, local->name)) 
             return local;
-        }
         local = local->next;
     }
     return 0;

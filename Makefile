@@ -15,6 +15,7 @@ test: 2kmcc
 embarrass: 2kmcc
 		python3 test_miscompiles.py 
 		python3 test_incorrectly_accepts.py 
+		python3 test_incorrectly_rejects.py
 
 clean:
 		rm -f 2kmcc *.o *~ tmp*
