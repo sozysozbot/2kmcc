@@ -6,11 +6,16 @@
 
 [作戦部屋](https://docs.google.com/document/d/1hgJ0aRh7KJBRPPZLc7yDAkGntGJLEPjdysq1h8404i4/edit)
 
-## Goal
+## What this is
 C compiler self-host struct% 
 - compile a subset of C into x64 asm System-V ABI
 - the source code of the compiler must be *correctly* compilable by the compiler itself
 - the source code of the compiler should be compilable by many other toy C compilers
+
+## Assumptions made
+The language implemented by this compiler is intended as a subset of C99 - C17. Hence,
+- `for(int i = 0; i < 5; i++) { }` is supported
+- `int foo();` means that it does not make assumptions about the parameter types, while `int foo(void);` means that there should be no parameters
 
 ## How to use
 Run
@@ -34,6 +39,16 @@ to make an executable out of `foo.c`.
 - Try `make test` to see what it can handle; try `make embarrass` for what it can't
 - Try `make test_2ndgen` and `make test_3rdgen` to see that it self-hosts
 
+<hr>
+
+The following was what I originally planned:
+
+## Goal
+C compiler self-host struct% 
+- compile a subset of C into x64 asm System-V ABI
+- the source code of the compiler must be *correctly* compilable by the compiler itself
+- the source code of the compiler should be compilable by many other toy C compilers
+
 ## Rules for the compiler source code
 - Must self-host
 - Must be legible enough
@@ -49,10 +64,8 @@ In particular, it must support:
 - `struct`
 - string literals with `\n`
 
-## Why did I aim for 2k lines?
-[@hiromi-mi](https://github.com/hiromi-mi/)'s [hanando-fukui v1.1.1](https://github.com/hiromi-mi/hanando-fukui/tree/v1.1.1) is astonishingly short while satisfying the conditions that I put up, with 2203 lines of `main.c` and 169 lines of `main.h`. Therefore, I know that this goal is attainable in 2.5k lines; that's why I aimed for sub 2k.
-
-It turned out that it was doable in 1500 lines. Yay.
+## Why do I aim for 2k lines?
+[@hiromi-mi](https://github.com/hiromi-mi/)'s [hanando-fukui v1.1.1](https://github.com/hiromi-mi/hanando-fukui/tree/v1.1.1) is astonishingly short while satisfying the conditions that I put up, with 2203 lines of `main.c` and 169 lines of `main.h`. Therefore, I know that this goal is attainable in 2.5k lines; that's why I aim for sub 2k.
 
 ## Special thanks to
 - Rui Ueyama ([@rui314](https://github.com/rui314)) for writing the compilerbook

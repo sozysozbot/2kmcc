@@ -4,7 +4,6 @@ void *calloc();
 int strcmp();
 int strncmp();
 char *strchr();
-void *memcpy();
 char *strncpy();
 char *strstr();
 
@@ -239,7 +238,7 @@ struct Token *tokenize(char *str) {
             }
             int length = &str[i] - start;
             char *name = calloc(length + 1, sizeof(char));
-            memcpy(name, start, length);
+            strncpy(name, start, length);
             tokens_cursor->kind = enum4('I', 'D', 'N', 'T');
             (tokens_cursor++)->identifier_name_or_escaped_string_content = name;
         } else if (strchr(" \n", c)) {
@@ -634,12 +633,12 @@ struct Expr *parsePostfix() {
     }
 }
 
-struct Expr *parseUnary();
+struct Expr *parseUnary(void);
 struct Expr *parseCast() {
     return parseUnary();
 }
 
-struct Type *consume_simple_type();
+struct Type *consume_simple_type(void);
 struct Expr *equalityExpr(struct Expr *lhs, struct Expr *rhs, int kind);
 
 struct Expr *parseUnary() {
