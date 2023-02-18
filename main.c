@@ -382,7 +382,6 @@ void consume_otherwise_panic(int kind) {
 
 void expect_otherwise_panic(int kind) {
     if (tokens_cursor->kind != kind) {
-        int diff = tokens_cursor->position - entire_input_start;
         show_error_at(tokens_cursor->position, "");
         fprintf(stderr, "parse error: expected TokenKind `%s`; got TokenKind `%s`\n", decode_kind(kind), decode_kind(tokens_cursor->kind));
         exit(1);
@@ -1071,10 +1070,10 @@ struct LVar *locals;
 
 struct LVar *findLVar(char *name) {
     struct LVar *local = locals;
-    if (!local) 
+    if (!local)
         return 0;
     while (local) {
-        if (!strcmp(name, local->name)) 
+        if (!strcmp(name, local->name))
             return local;
         local = local->next;
     }
@@ -1307,15 +1306,13 @@ void EvaluateExprIntoRax(struct Expr *expr) {
             EvaluateExprIntoRax(expr->func_args_start[i]);
             printf("  push rax\n");
         }
-        for (int i = expr->func_arg_len - 1; i >= 0; i--) {
+        for (int i = expr->func_arg_len - 1; i >= 0; i--)
             if (size(expr->func_args_start[i]->typ) == 1) {
                 printf("  pop rax\n");
                 printf("  movsx rax, al\n");
                 printf("  mov %s, rax\n", nth_arg_reg(i, 8));
-            } else {
+            } else
                 printf("  pop %s\n", nth_arg_reg(i, 8));
-            }
-        }
         printf("  mov rax, 0\n");
         printf("  call %s\n", expr->func_or_ident_name_or_string_content);
     } else if (expr->expr_kind == enum3('N', 'U', 'M')) {
@@ -1334,7 +1331,7 @@ void EvaluateExprIntoRax(struct Expr *expr) {
         } else if (expr->op_kind == enum4('[', ']', '>', '*')) {
             EvaluateExprIntoRax(expr->first_child);
         } else {
-            fprintf(stderr, "Invalid unaryop kind:%d", expr->op_kind);
+            fprintf(stderr, "Invalid unaryop kind: `%s`", decode_kind(expr->op_kind));
             exit(1);
         }
     } else if (expr->expr_kind == enum4('2', 'A', 'R', 'Y')) {
@@ -1407,7 +1404,7 @@ void EvaluateExprIntoRax(struct Expr *expr) {
                 printf("  setge al\n");
                 printf("  movzb rax, al\n");
             } else {
-                fprintf(stderr, "Invalid binaryop kind: %s\n", decode_kind(expr->op_kind));
+                fprintf(stderr, "Invalid binaryop kind: `%s`\n", decode_kind(expr->op_kind));
                 exit(1);
             }
         }
