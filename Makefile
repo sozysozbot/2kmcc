@@ -21,18 +21,21 @@ test: 2kmcc
 		python3 test_compilerbook.py
 		python3 test_correctly_accepts.py 
 		python3 test_correctly_rejects.py
+		rm tmp_which_compiler_to_test.txt
 
 test_2ndgen: 2kmcc_2ndgen
 		echo "2kmcc_2ndgen" > tmp_which_compiler_to_test.txt
 		python3 test_compilerbook.py
 		python3 test_correctly_accepts.py 
 		python3 test_correctly_rejects.py
+		rm tmp_which_compiler_to_test.txt
 
 embarrass: 2kmcc
 		echo "2kmcc" > tmp_which_compiler_to_test.txt
 		python3 test_miscompiles.py 
 		python3 test_incorrectly_rejects.py
 		python3 test_incorrectly_accepts.py 
+		rm tmp_which_compiler_to_test.txt
 
 clean:
 		rm -f 2kmcc *.o *~ tmp*

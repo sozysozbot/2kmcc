@@ -20,7 +20,7 @@ def check_stepN_that_2kmcc_compiled(n: int, step_n: str, input_to_step_n: str, e
         print(
             f"{bcolors.FAIL}FAIL:check (2kmcc gave a compile error):{step_n=}{bcolors.ENDC}")
         msg = open("tmp_compile_errmsg.txt", "r").read()
-        print(f"  The error message is: {bcolors.FAIL}{msg}{bcolors.ENDC}")
+        print(f"  The error message is:\n{bcolors.FAIL}{msg}{bcolors.ENDC}")
         return False
     os.system("cc -o tmp_2kmcc_stepn tmp_2kmcc_stepn.s -static")
     value_returned_from_stepN = run_resulting_binary(

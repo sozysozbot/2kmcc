@@ -1269,6 +1269,7 @@ void deref_rax(int sz) {
         printf("  movzx ecx, BYTE PTR [rax]\n");
         printf("  mov eax, ecx\n");
     } else {
+        printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
         printf("! Internal compiler error at codegen: unhandlable size %d\n", sz);
         exit(1);
     }

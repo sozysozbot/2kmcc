@@ -15,8 +15,12 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 def get_compiler_name():
-    compiler_name = open("tmp_which_compiler_to_test.txt", "r").read().strip()
-    return compiler_name
+    try:
+        return open("tmp_which_compiler_to_test.txt", "r").read().strip()
+    except:
+        os.system("make 2kmcc")
+        os.system('echo "2kmcc" > tmp_which_compiler_to_test.txt')
+        return "2kmcc"
 
 def compile_with_2kmcc(input: str, output_assembly_path: str = "tmp.s"):
     assembly = open(output_assembly_path, "w")
@@ -40,7 +44,7 @@ def check(input: str, expected: int, stdin: str = None, expected_stdout: str = N
     if compiler_returns != 0:
         print(f"{bcolors.FAIL}FAIL:check (compile error):{input=}{bcolors.ENDC}")
         msg = open("tmp_compile_errmsg.txt", "r").read()
-        print(f"  The error message is: {bcolors.FAIL}{msg}{bcolors.ENDC}")
+        print(f"  The error message is:\n{bcolors.FAIL}{msg}{bcolors.ENDC}")
         return False
     os.system("cc -o tmp tmp.s -static")
     returned_value = run_resulting_binary("./tmp", stdin)
