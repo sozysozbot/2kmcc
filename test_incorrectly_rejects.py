@@ -206,3 +206,13 @@ print(f"{bcolors.OKCYAN}`const` positioned in a rare position{bcolors.ENDC}")
 check('struct A {int a;};int main(){const struct A const *const a; return 174;}' , 174)
 check('struct A {int a;};int f(int *const b){return 0;}int main(){const struct A const *const a; return 174;}' , 174)
 check('struct A {int a;};const int f(const int *const b){return 0;}int main(){const struct A const *const a; return 174;}' , 174)
+
+print(f"{bcolors.OKCYAN}global variable with an initializer{bcolors.ENDC}")
+check('int a = 3; int main() { return 0; }', 0)
+
+print(f"{bcolors.OKCYAN}cast{bcolors.ENDC}")
+check('int main() { return (int)3; }', 3)
+
+print(f"{bcolors.OKCYAN}typedef{bcolors.ENDC}")
+check('typedef int A; int main() { return sizeof(A); }', 4)
+check('typedef struct A { int a; } A; int main() { A a; return 0; }', 0)

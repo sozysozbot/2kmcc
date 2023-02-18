@@ -197,9 +197,8 @@ struct Token *tokenize(char *str) {
                                 parsed_length++;
                             }
                         }
-                    } else {
+                    } else 
                         parsed_length++;
-                    }
                 }
             }
             char *escaped_string_content = calloc(parsed_length + 1, sizeof(char));

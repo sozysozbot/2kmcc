@@ -8,3 +8,4 @@ test2
 *.pyc
 tmp
 2kmcc_*gen*
+tmp_which_compiler_to_test.txt
