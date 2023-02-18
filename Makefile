@@ -7,9 +7,14 @@ OBJS=$(SRCS:.c=.o)
 
 $(OBJS): 
 
-2ndgen: 2kmcc
+2kmcc_2ndgen: 2kmcc
 	cat main.c | xargs -0 -I XX ./2kmcc XX > 2kmcc_2ndgen.s
 	$(CC) -o 2kmcc_2ndgen 2kmcc_2ndgen.s -static $(LDFLAGS)
+
+2kmcc_3rdgen: 2kmcc_2ndgen
+	cat main.c | xargs -0 -I XX ./2kmcc_2ndgen XX > 2kmcc_3rdgen.s
+	$(CC) -o 2kmcc_3rdgen 2kmcc_3rdgen.s -static $(LDFLAGS)
+	diff 2kmcc_2ndgen.s 2kmcc_3rdgen.s
 
 test: 2kmcc
 		echo "2kmcc" > tmp_which_compiler_to_test.txt
