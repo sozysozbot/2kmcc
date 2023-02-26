@@ -524,7 +524,7 @@ struct Expr *assert_integer(struct Expr *e) {
 }
 
 struct Expr *assert_scalar(struct Expr *e) {
-    if (!is_integer(e->typ) && e->typ->kind != '*') 
+    if (e && !is_integer(e->typ) && e->typ->kind != '*') // so that it can be used to handle `for(;;)`
         panic_single_type("a scalar value is expected, but the type is instead", e->typ);
     return e;
 }
