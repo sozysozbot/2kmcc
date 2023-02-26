@@ -285,14 +285,18 @@ void display_type(struct Type *t) {
         printf("%s", decode_kind(t->kind));
 }
 
-struct Type *deref(struct Type *t) {
-    if (t->kind == '*')
-        return t->ptr_to;
+void panic_single_type(const char *msg, struct Type *t) {
     printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    printf("! cannot deref a non-pointer type: `");
+    printf("! %s `", msg);
     display_type(t);
-    printf("`\n");
+    printf("`.\n");
     exit(1);
+}
+
+struct Type *deref(struct Type *t) {
+    if (t->kind != '*')
+        panic_single_type("cannot deref a non-pointer type", t);
+    return t->ptr_to;
 }
 
 int size(struct Type *t) {
@@ -308,10 +312,7 @@ int size(struct Type *t) {
         for (int i = 0; struct_sizes_and_alignments_start[i]; i++)
             if (strcmp(t->struct_name, struct_sizes_and_alignments_start[i]->struct_name) == 0)
                 return struct_sizes_and_alignments_start[i]->size;
-    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    printf("! cannot calculate the size for type `");
-    display_type(t);
-    printf("`.\n");
+    panic_single_type("cannot calculate the size for type", t);
     exit(1);
 }
 
@@ -328,10 +329,7 @@ int align(struct Type *t) {
         for (int i = 0; struct_sizes_and_alignments_start[i]; i++)
             if (strcmp(t->struct_name, struct_sizes_and_alignments_start[i]->struct_name) == 0)
                 return struct_sizes_and_alignments_start[i]->align;
-    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    printf("! cannot calculate the alignment for type `");
-    display_type(t);
-    printf("`\n");
+    panic_single_type("cannot calculate the alignment for type", t);
     exit(1);
 }
 
@@ -520,14 +518,15 @@ int is_integer(struct Type *typ) {
 }
 
 struct Expr *assert_integer(struct Expr *e) {
-    if (is_integer(e->typ)) {
-        return e;
-    }
-    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    printf("! int/char is expected, but not an int/char; the type is instead `");
-    display_type(e->typ);
-    printf("`.\n");
-    exit(1);
+    if (!is_integer(e->typ))
+        panic_single_type("int/char is expected, but not an int/char; the type is instead", e->typ);
+    return e;
+}
+
+struct Expr *assert_scalar(struct Expr *e) {
+    if (e && !is_integer(e->typ) && e->typ->kind != '*') // so that it can be used to handle `for(;;)`
+        panic_single_type("a scalar value is expected, but the type is instead", e->typ);
+    return e;
 }
 
 int is_same_type(struct Type *t1, struct Type *t2) {
@@ -732,6 +731,8 @@ struct Expr *parseLeftToRightInfix(int level) {
             expr = binaryExpr(decay_if_arr(parseLeftToRightInfix(precedence + 1)), decay_if_arr(expr), op - '<' + '>', type(enum3('i', 'n', 't')));
         else if (precedence == 6)
             expr = equalityExpr(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)), op);
+        else if (precedence <= 2)
+            expr = binaryExpr(assert_scalar(decay_if_arr(expr)), assert_scalar(decay_if_arr(parseLeftToRightInfix(precedence + 1))), op, type(enum3('i', 'n', 't')));
         else
             expr = binaryExpr(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)), op, type(enum3('i', 'n', 't')));
     }
@@ -895,7 +896,7 @@ struct Stmt *parseStmt() {
     if (maybe_consume(enum2('i', 'f'))) {
         struct Stmt *stmt = calloc(1, sizeof(struct Stmt));
         consume_otherwise_panic('(');
-        stmt->expr = decay_if_arr(parseExpr());
+        stmt->expr = assert_scalar(decay_if_arr(parseExpr()));
         consume_otherwise_panic(')');
         stmt->stmt_kind = enum2('i', 'f');
         stmt->first_child = parseStmt();  // then-block
@@ -906,7 +907,7 @@ struct Stmt *parseStmt() {
     if (maybe_consume(enum4('W', 'H', 'I', 'L'))) {
         struct Stmt *stmt = calloc(1, sizeof(struct Stmt));
         consume_otherwise_panic('(');
-        stmt->expr = decay_if_arr(parseExpr());
+        stmt->expr = assert_scalar(decay_if_arr(parseExpr()));
         consume_otherwise_panic(')');
         stmt->stmt_kind = enum4('W', 'H', 'I', 'L');
         struct Stmt *statement = parseStmt();
@@ -920,7 +921,7 @@ struct Stmt *parseStmt() {
         if (starts_a_type(tokens_cursor->kind)) {
             struct Stmt *initializer = parse_var_def_maybe_with_initializer();
             for_stmt->expr = numberExpr(42);
-            for_stmt->for_cond = parseOptionalExprAndToken(';');
+            for_stmt->for_cond = assert_scalar(parseOptionalExprAndToken(';'));
             for_stmt->for_after = parseOptionalExprAndToken(')');
             for_stmt->second_child = parseStmt();
             struct Stmt *combined_stmt = calloc(1, sizeof(struct Stmt));
@@ -930,7 +931,7 @@ struct Stmt *parseStmt() {
             return combined_stmt;
         } else {
             for_stmt->expr = parseOptionalExprAndToken(';');
-            for_stmt->for_cond = parseOptionalExprAndToken(';');
+            for_stmt->for_cond = assert_scalar(parseOptionalExprAndToken(';'));
             for_stmt->for_after = parseOptionalExprAndToken(')');
             for_stmt->second_child = parseStmt();
             return for_stmt;

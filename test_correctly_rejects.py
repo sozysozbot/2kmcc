@@ -40,10 +40,10 @@ assert should_not_compile('int main(){1}')
 
 ############################################################
 print(f"{bcolors.OKBLUE}type error: pointer required{bcolors.ENDC}")
-assert should_not_compile("int main(){return 1[2];}", "cannot deref a non-pointer type: `int`")
+assert should_not_compile("int main(){return 1[2];}", "cannot deref a non-pointer type `int`.")
 assert should_not_compile(
     "int main() { int x; *x; return 0; }",
-    "cannot deref a non-pointer type: `int`"
+    "cannot deref a non-pointer type `int`."
 )
 
 ############################################################
@@ -89,7 +89,7 @@ assert should_not_compile(
 
 ############################################################
 print(f"{bcolors.OKBLUE}assigning to an array:{bcolors.ENDC}")
-assert should_not_compile('int main(){int a[1]; int *b; a = b;}')
+assert should_not_compile('int main(){int a[1]; int *b; a = b;}', "invalid operands to binary `=`: types are `array (length: 1) of int` and `pointer to int`.")
 
 ############################################################
 print(f"{bcolors.OKBLUE}undefined identifier:{bcolors.ENDC}")
@@ -125,12 +125,12 @@ assert should_not_compile(
     "invalid operands to binary `=`: types are `pointer to int` and `int`."
 )
 assert should_not_compile('int main() {int a; int *b; b = a; return a;}', "invalid operands to binary `=`: types are `pointer to int` and `int`.")
-assert should_not_compile('int main() {int a; *a;}', "cannot deref a non-pointer type: `int`")
+assert should_not_compile('int main() {int a; *a;}', "cannot deref a non-pointer type `int`.")
 assert should_not_compile(
     'int main(){int x; int *y; y = &x;int **z; z = y;}', 
     "invalid operands to binary `=`: types are `pointer to pointer to int` and `pointer to int`."
 )
-assert should_not_compile('int main(){int x; int *y; y = &x; **y;}', "cannot deref a non-pointer type: `int`")
+assert should_not_compile('int main(){int x; int *y; y = &x; **y;}', "cannot deref a non-pointer type `int`.")
 assert should_not_compile('int *foo(){int *x; return x;}int main(){int x; x= foo();}', "invalid operands to binary `=`: types are `int` and `pointer to int`.")
 assert should_not_compile(
     'int main(void){char a[5]; a[1] = 74; int *p = a + 3; p -= 2; return *p;}', 
@@ -164,6 +164,14 @@ assert should_not_compile(
     "struct A {int a;}; int main() { struct A a; return a.b; }",
     "cannot find a struct type `struct A` which has a member named `b`"
 )
+
+############################################################
+print(f"{bcolors.OKCYAN}scalar required{bcolors.ENDC}")
+assert should_not_compile("struct A {int a;}; int main() { struct A a; a&&a; return 0; }", "a scalar value is expected, but the type is instead `struct A`.")
+assert should_not_compile('struct A{int a; int b;}; int main(){struct A a; if(a){return 12;} return 3;}', "a scalar value is expected, but the type is instead `struct A`.")
+assert should_not_compile('struct A{int a; int b;}; int main(){struct A a; for(;a;){return 12;} return 3;}', "a scalar value is expected, but the type is instead `struct A`.")
+assert should_not_compile('struct A{int a; int b;}; int main(){struct A a; while(a){return 12;} return 3;}', "a scalar value is expected, but the type is instead `struct A`.")
+assert should_not_compile('struct A{int a; int b;}; int main(){struct A a; struct A b; b || a; return 3;}', "a scalar value is expected, but the type is instead `struct A`.")
 
 ############################################################
 print(f"{bcolors.WARNING}!!!possible memory violation while detecting the error!!!{bcolors.ENDC}")
