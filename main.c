@@ -285,14 +285,18 @@ void display_type(struct Type *t) {
         printf("%s", decode_kind(t->kind));
 }
 
-struct Type *deref(struct Type *t) {
-    if (t->kind == '*')
-        return t->ptr_to;
+void panic_single_type(const char *msg, struct Type *t) {
     printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    printf("! cannot deref a non-pointer type: `");
+    printf("! %s `", msg);
     display_type(t);
-    printf("`\n");
+    printf("`.\n");
     exit(1);
+}
+
+struct Type *deref(struct Type *t) {
+    if (t->kind != '*')
+        panic_single_type("cannot deref a non-pointer type", t);
+    return t->ptr_to;
 }
 
 int size(struct Type *t) {
@@ -308,10 +312,7 @@ int size(struct Type *t) {
         for (int i = 0; struct_sizes_and_alignments_start[i]; i++)
             if (strcmp(t->struct_name, struct_sizes_and_alignments_start[i]->struct_name) == 0)
                 return struct_sizes_and_alignments_start[i]->size;
-    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    printf("! cannot calculate the size for type `");
-    display_type(t);
-    printf("`.\n");
+    panic_single_type("cannot calculate the size for type", t);
     exit(1);
 }
 
@@ -328,10 +329,7 @@ int align(struct Type *t) {
         for (int i = 0; struct_sizes_and_alignments_start[i]; i++)
             if (strcmp(t->struct_name, struct_sizes_and_alignments_start[i]->struct_name) == 0)
                 return struct_sizes_and_alignments_start[i]->align;
-    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    printf("! cannot calculate the alignment for type `");
-    display_type(t);
-    printf("`\n");
+    panic_single_type("cannot calculate the alignment for type", t);
     exit(1);
 }
 
@@ -520,25 +518,15 @@ int is_integer(struct Type *typ) {
 }
 
 struct Expr *assert_integer(struct Expr *e) {
-    if (is_integer(e->typ)) {
-        return e;
-    }
-    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    printf("! int/char is expected, but not an int/char; the type is instead `");
-    display_type(e->typ);
-    printf("`.\n");
-    exit(1);
+    if (!is_integer(e->typ))
+        panic_single_type("int/char is expected, but not an int/char; the type is instead", e->typ);
+    return e;
 }
 
 struct Expr *assert_scalar(struct Expr *e) {
-    if (is_integer(e->typ) || e->typ->kind == '*') {
-        return e;
-    }
-    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    printf("! a scalar value is expected, but the type is instead `");
-    display_type(e->typ);
-    printf("`.\n");
-    exit(1);
+    if (!is_integer(e->typ) && e->typ->kind != '*') 
+        panic_single_type("a scalar value is expected, but the type is instead", e->typ);
+    return e;
 }
 
 int is_same_type(struct Type *t1, struct Type *t2) {

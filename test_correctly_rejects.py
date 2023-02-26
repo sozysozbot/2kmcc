@@ -40,10 +40,10 @@ assert should_not_compile('int main(){1}')
 
 ############################################################
 print(f"{bcolors.OKBLUE}type error: pointer required{bcolors.ENDC}")
-assert should_not_compile("int main(){return 1[2];}", "cannot deref a non-pointer type: `int`")
+assert should_not_compile("int main(){return 1[2];}", "cannot deref a non-pointer type `int`.")
 assert should_not_compile(
     "int main() { int x; *x; return 0; }",
-    "cannot deref a non-pointer type: `int`"
+    "cannot deref a non-pointer type `int`."
 )
 
 ############################################################
@@ -125,12 +125,12 @@ assert should_not_compile(
     "invalid operands to binary `=`: types are `pointer to int` and `int`."
 )
 assert should_not_compile('int main() {int a; int *b; b = a; return a;}', "invalid operands to binary `=`: types are `pointer to int` and `int`.")
-assert should_not_compile('int main() {int a; *a;}', "cannot deref a non-pointer type: `int`")
+assert should_not_compile('int main() {int a; *a;}', "cannot deref a non-pointer type `int`.")
 assert should_not_compile(
     'int main(){int x; int *y; y = &x;int **z; z = y;}', 
     "invalid operands to binary `=`: types are `pointer to pointer to int` and `pointer to int`."
 )
-assert should_not_compile('int main(){int x; int *y; y = &x; **y;}', "cannot deref a non-pointer type: `int`")
+assert should_not_compile('int main(){int x; int *y; y = &x; **y;}', "cannot deref a non-pointer type `int`.")
 assert should_not_compile('int *foo(){int *x; return x;}int main(){int x; x= foo();}', "invalid operands to binary `=`: types are `int` and `pointer to int`.")
 assert should_not_compile(
     'int main(void){char a[5]; a[1] = 74; int *p = a + 3; p -= 2; return *p;}', 
