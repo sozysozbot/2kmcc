@@ -197,7 +197,7 @@ struct Token *tokenize(char *str) {
                                 parsed_length++;
                             }
                         }
-                    } else 
+                    } else
                         parsed_length++;
                 }
             }
@@ -395,7 +395,7 @@ void show_error_at(char *location, const char *msg) {
     int indent = printf("! line #%d: ", line_num) - 2;
     int offset = end - line;
     printf("%.*s\n", offset, line);
-    int pos = location - line + indent; // ptrdiff_t -> int
+    int pos = location - line + indent;  // ptrdiff_t -> int
     printf("! %*s", pos, "");
     printf("^ %s\n", msg);
 }
@@ -587,18 +587,26 @@ struct Expr *expr_subtract(struct Expr *lhs, struct Expr *rhs) {
     exit(1);
 }
 
+struct Type *get_member_type(struct Type *struct_type, char *member_name, int *ptr_offset) {
+    for (int i = 0; struct_members_start[i]; i++)
+        if (strcmp(struct_members_start[i]->struct_name, struct_type->struct_name) == 0)
+            if (strcmp(struct_members_start[i]->member_name, member_name) == 0) {
+                *ptr_offset = struct_members_start[i]->member_offset;
+                return struct_members_start[i]->member_type;
+            }
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    printf("! cannot find a struct type `");
+    display_type(struct_type);
+    printf("` which has a member named `%s`\n", member_name);
+    exit(1);
+}
+
 struct Expr *arrowExpr(struct Expr *lhs, char *member_name) {
     struct Type *struct_type = deref(lhs->typ);
     if (struct_type->kind != enum4('S', 'T', 'R', 'U'))
         panic("tried to access a member of a non-struct type\n");
     int offset;
-    struct Type *member_type;
-    for (int i = 0; struct_members_start[i]; i++)
-        if (strcmp(struct_members_start[i]->struct_name, struct_type->struct_name) == 0)
-            if (strcmp(struct_members_start[i]->member_name, member_name) == 0) {
-                offset = struct_members_start[i]->member_offset;
-                member_type = struct_members_start[i]->member_type;
-            }
+    struct Type *member_type = get_member_type(struct_type, member_name, &offset);
     struct Expr *expr = binaryExpr(lhs, numberExpr(offset), '+', ptr_of(member_type));
     return unaryExpr(expr, '*', deref(expr->typ));
 }
