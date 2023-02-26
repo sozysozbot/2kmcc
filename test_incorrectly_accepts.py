@@ -9,10 +9,6 @@ should_not_compile("struct A {int a;}; struct A {int b;}; int main() { return 0;
 should_not_compile('int a(); char *a(); int main(void){return 174;}')
 should_not_compile('int a(void); int a(int b); int main(void){return 174;}')
 
-print(f"{bcolors.OKCYAN}nonexistent member{bcolors.ENDC}")
-should_not_compile("struct A {int a;}; int main() { struct A a; a.b; return 0; }")
-should_not_compile("struct A {int a;}; int main() { struct A a; return a.b; }")
-
 print(f"{bcolors.OKCYAN}scalar required{bcolors.ENDC}")
 should_not_compile("struct A {int a;}; int main() { struct A a; a&&a; return 0; }")
 should_not_compile('struct A{int a; int b;}; int main(){struct A a; if(a){return 12;} return 3;}')

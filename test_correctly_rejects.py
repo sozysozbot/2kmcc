@@ -151,10 +151,18 @@ assert should_not_compile('struct A{int a;}; int main() { struct A x; struct A y
 assert should_not_compile('struct A{int a;}; int main() { struct A x; struct A y; y.a = 100; &(x = y); return 0; }', "not an lvalue")
 
 ############################################################
-print(f"{bcolors.OKBLUE}other type errors:{bcolors.ENDC}")
+print(f"{bcolors.OKBLUE}nonexistent member{bcolors.ENDC}")
 assert should_not_compile(
     "int main() { int a; return a.b; }",
     "tried to access a member of a non-struct type"
+)
+assert should_not_compile(
+    "struct A {int a;}; int main() { struct A a; a.b; return 0; }", 
+    "cannot find a struct type `struct A` which has a member named `b`"
+)
+assert should_not_compile(
+    "struct A {int a;}; int main() { struct A a; return a.b; }",
+    "cannot find a struct type `struct A` which has a member named `b`"
 )
 
 ############################################################
