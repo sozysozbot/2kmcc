@@ -15,17 +15,17 @@ def check_stepN_that_gcc_compiled(n: int, step_n: str, input_to_step_n: str, exp
 
 
 def check_stepN_that_2kmcc_compiled(n: int, step_n: str, input_to_step_n: str, expected_output: int):
-    compiler_returns = compile_with_2kmcc(step_n, "tmp_2kmcc_stepn.s")
+    compiler_name = get_compiler_name()
+    compiler_returns = compile_with_2kmcc(step_n, f"tmp_{compiler_name}_stepn.s")
     if compiler_returns != 0:
         print(
-            f"{bcolors.FAIL}FAIL:check (2kmcc gave a compile error):{step_n=}{bcolors.ENDC}")
+            f"{bcolors.FAIL}FAIL:check ({compiler_name} gave a compile error):{step_n=}{bcolors.ENDC}")
         msg = open("tmp_compile_errmsg.txt", "r").read()
         print(f"  The error message is:\n{bcolors.FAIL}{msg}{bcolors.ENDC}")
         return False
-    os.system("cc -o tmp_2kmcc_stepn tmp_2kmcc_stepn.s -static")
+    os.system(f"cc -o tmp_{compiler_name}_stepn tmp_{compiler_name}_stepn.s -static")
     value_returned_from_stepN = run_resulting_binary(
-        "./tmp_2kmcc_stepn", stdin=input_to_step_n, stdout_path="tmp_final.s")
-    compiler_name = get_compiler_name()
+        f"./tmp_{compiler_name}_stepn", stdin=input_to_step_n, stdout_path="tmp_final.s")
     return rest(n, value_returned_from_stepN, expected_output, step_n, input_to_step_n, compiler_name)
 
 def rest(n: int, value_returned_from_stepN: int, expected_output: int, step_n: str, input_to_step_n: str, compiler: str):

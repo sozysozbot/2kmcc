@@ -512,13 +512,13 @@ int is_integer(struct Type *typ) {
     return is_int_or_char(typ->kind);
 }
 
-struct Expr *assert_integer(struct Expr *e) {
+struct Expr *require_integer(struct Expr *e) {
     if (!is_integer(e->typ))
         panic_single_type("int/char is expected, but not an int/char; the type is instead", e->typ);
     return e;
 }
 
-struct Expr *assert_scalar(struct Expr *e) {
+struct Expr *require_scalar(struct Expr *e) {
     if (e && !is_integer(e->typ) && e->typ->kind != '*')  // so that it can be used to handle `for(;;)`
         panic_single_type("a scalar value is expected, but the type is instead", e->typ);
     return e;
@@ -639,9 +639,9 @@ struct Expr *equalityExpr(struct Expr *lhs, struct Expr *rhs, int kind);
 struct Expr *parseUnary() {
     panic_if_eof();
     if (maybe_consume('+')) {
-        return binaryExpr(numberExpr(0), assert_integer(parseCast()), '+', type(enum3('i', 'n', 't')));
+        return binaryExpr(numberExpr(0), require_integer(parseCast()), '+', type(enum3('i', 'n', 't')));
     } else if (maybe_consume('-')) {
-        return binaryExpr(numberExpr(0), assert_integer(parseCast()), '-', type(enum3('i', 'n', 't')));
+        return binaryExpr(numberExpr(0), require_integer(parseCast()), '-', type(enum3('i', 'n', 't')));
     } else if (maybe_consume('!')) {
         return equalityExpr(numberExpr(0), parseCast(), enum2('=', '='));  // The expression !E is equivalent to (0==E)
     } else if (maybe_consume('*')) {
@@ -651,18 +651,17 @@ struct Expr *parseUnary() {
         struct Expr *expr = parseCast();                 // NO DECAY
         return unaryExpr(expr, '&', ptr_of(expr->typ));  // NO DECAY
     } else if (maybe_consume(enum4('S', 'Z', 'O', 'F'))) {
-        if (tokens_cursor->kind == '(') {
-            if (starts_a_type((tokens_cursor + 1)->kind)) {
-                tokens_cursor++;
-                struct Type *typ = consume_simple_type();
-                consume_otherwise_panic(')');
-                return numberExpr(size(typ));
-            } else
-                return numberExpr(size(parseUnary()->typ));  // NO DECAY
+        if (tokens_cursor->kind != '(') {
+            return numberExpr(size(parseUnary()->typ));  // NO DECAY
+        } else if (starts_a_type((tokens_cursor + 1)->kind)) {
+            tokens_cursor++;
+            struct Type *typ = consume_simple_type();
+            consume_otherwise_panic(')');
+            return numberExpr(size(typ));
         } else
             return numberExpr(size(parseUnary()->typ));  // NO DECAY
-    }
-    return parsePostfix();
+    } else
+        return parsePostfix();
 }
 
 void assert_compatible_in_equality(struct Expr *e1, struct Expr *e2, int op_kind) {
@@ -706,7 +705,7 @@ struct Expr *parseLeftToRightInfix(int level) {
             return expr;
         int op = (tokens_cursor++)->kind;
         if (precedence == 10)
-            expr = binaryExpr(assert_integer(expr), assert_integer(parseUnary()), op, type(enum3('i', 'n', 't')));
+            expr = binaryExpr(require_integer(expr), require_integer(parseUnary()), op, type(enum3('i', 'n', 't')));
         else if (precedence == 9)
             if (op == '-')
                 expr = expr_subtract(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)));
@@ -717,7 +716,7 @@ struct Expr *parseLeftToRightInfix(int level) {
         else if (precedence == 6)
             expr = equalityExpr(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)), op);
         else if (precedence <= 2)
-            expr = binaryExpr(assert_scalar(decay_if_arr(expr)), assert_scalar(decay_if_arr(parseLeftToRightInfix(precedence + 1))), op, type(enum3('i', 'n', 't')));
+            expr = binaryExpr(require_scalar(decay_if_arr(expr)), require_scalar(decay_if_arr(parseLeftToRightInfix(precedence + 1))), op, type(enum3('i', 'n', 't')));
         else
             expr = binaryExpr(decay_if_arr(expr), decay_if_arr(parseLeftToRightInfix(precedence + 1)), op, type(enum3('i', 'n', 't')));
     }
@@ -740,15 +739,15 @@ struct Expr *parseAssign() {
         assert_compatible_in_simple_assignment(result->typ, rhs);  // no decay of lhs, since we cannot assign to an array
         return binaryExpr(result, rhs, '=', result->typ);
     } else if (maybe_consume(enum2('+', '='))) {
-        result = expr_add(decay_if_arr(result), assert_integer(parseAssign()));
+        result = expr_add(decay_if_arr(result), require_integer(parseAssign()));
         result->op_kind = enum2('+', '=');
     } else if (maybe_consume(enum2('-', '='))) {
-        result = expr_subtract(decay_if_arr(result), assert_integer(parseAssign()));
+        result = expr_subtract(decay_if_arr(result), require_integer(parseAssign()));
         result->op_kind = enum2('-', '=');
     } else if (maybe_consume(enum2('*', '=')))
-        result = binaryExpr(assert_integer(result), assert_integer(parseUnary()), enum2('*', '='), type(enum3('i', 'n', 't')));
+        result = binaryExpr(require_integer(result), require_integer(parseUnary()), enum2('*', '='), type(enum3('i', 'n', 't')));
     else if (maybe_consume(enum2('/', '=')))
-        result = binaryExpr(assert_integer(result), assert_integer(parseUnary()), enum2('/', '='), type(enum3('i', 'n', 't')));
+        result = binaryExpr(require_integer(result), require_integer(parseUnary()), enum2('/', '='), type(enum3('i', 'n', 't')));
     return result;
 }
 
@@ -881,7 +880,7 @@ struct Stmt *parseStmt() {
     if (maybe_consume(enum2('i', 'f'))) {
         struct Stmt *stmt = calloc(1, sizeof(struct Stmt));
         consume_otherwise_panic('(');
-        stmt->expr = assert_scalar(decay_if_arr(parseExpr()));
+        stmt->expr = require_scalar(decay_if_arr(parseExpr()));
         consume_otherwise_panic(')');
         stmt->stmt_kind = enum2('i', 'f');
         stmt->first_child = parseStmt();  // then-block
@@ -892,7 +891,7 @@ struct Stmt *parseStmt() {
     if (maybe_consume(enum4('W', 'H', 'I', 'L'))) {
         struct Stmt *stmt = calloc(1, sizeof(struct Stmt));
         consume_otherwise_panic('(');
-        stmt->expr = assert_scalar(decay_if_arr(parseExpr()));
+        stmt->expr = require_scalar(decay_if_arr(parseExpr()));
         consume_otherwise_panic(')');
         stmt->stmt_kind = enum4('W', 'H', 'I', 'L');
         struct Stmt *statement = parseStmt();
@@ -906,7 +905,7 @@ struct Stmt *parseStmt() {
         if (starts_a_type(tokens_cursor->kind)) {
             struct Stmt *initializer = parse_var_def_maybe_with_initializer();
             for_stmt->expr = numberExpr(42);
-            for_stmt->for_cond = assert_scalar(parseOptionalExprAndToken(';'));
+            for_stmt->for_cond = require_scalar(parseOptionalExprAndToken(';'));
             for_stmt->for_after = parseOptionalExprAndToken(')');
             for_stmt->second_child = parseStmt();
             struct Stmt *combined_stmt = calloc(1, sizeof(struct Stmt));
@@ -916,15 +915,14 @@ struct Stmt *parseStmt() {
             return combined_stmt;
         } else {
             for_stmt->expr = parseOptionalExprAndToken(';');
-            for_stmt->for_cond = assert_scalar(parseOptionalExprAndToken(';'));
+            for_stmt->for_cond = require_scalar(parseOptionalExprAndToken(';'));
             for_stmt->for_after = parseOptionalExprAndToken(')');
             for_stmt->second_child = parseStmt();
             return for_stmt;
         }
     }
-    if (starts_a_type(tokens_cursor->kind)) {
+    if (starts_a_type(tokens_cursor->kind))
         return parse_var_def_maybe_with_initializer();
-    }
     struct Stmt *stmt = calloc(1, sizeof(struct Stmt));
     stmt->stmt_kind = enum4('e', 'x', 'p', 'r');
     stmt->expr = decay_if_arr(parseExpr());
@@ -1109,11 +1107,10 @@ struct LVar *insertLVar(char *name, int sz) {
     struct LVar *last = lastLVar();
     newlocal->name = name;
     printf("# inserting a variable named `%s` at offset", name);
-    if (!last) {
+    if (!last)
         newlocal->offset_from_rbp = sz;
-    } else {
+    else
         newlocal->offset_from_rbp = last->offset_from_rbp + sz;
-    }
     printf(" %d\n", newlocal->offset_from_rbp);
     newlocal->next = 0;
     if (!last)
