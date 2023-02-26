@@ -837,9 +837,8 @@ struct Stmt *parse_var_def_maybe_with_initializer() {
         return stmt;
     }
     consume_otherwise_panic('=');
-    if (maybe_consume('{')) {
+    if (maybe_consume('{')) 
         panic("not supported: initializer list\n");
-    }
     struct Expr *rhs = decay_if_arr(parseExpr());
     consume_otherwise_panic(';');
     struct Stmt *stmt = calloc(1, sizeof(struct Stmt));
