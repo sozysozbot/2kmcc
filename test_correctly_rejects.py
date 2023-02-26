@@ -43,6 +43,9 @@ print(f"{bcolors.OKBLUE}type error: integer required{bcolors.ENDC}")
 assert should_not_compile(
     "struct A{int a; int b;}; int main(){struct A a; struct A b; b *= a; return 3;}",
     "int/char is expected, but not an int/char; the type is instead `struct A`.")
+assert should_not_compile(
+    "int main() { int a = 0; int *p = &a; +p; return 0; }",
+    "int/char is expected, but not an int/char; the type is instead `pointer to int`.")
 
 ############################################################
 print(f"{bcolors.OKBLUE}incorrect use of void:{bcolors.ENDC}")

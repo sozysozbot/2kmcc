@@ -643,7 +643,7 @@ struct Expr *equalityExpr(struct Expr *lhs, struct Expr *rhs, int kind);
 struct Expr *parseUnary() {
     panic_if_eof();
     if (maybe_consume('+')) {
-        return assert_integer(parseCast());
+        return binaryExpr(numberExpr(0), assert_integer(parseCast()), '+', type(enum3('i', 'n', 't')));
     } else if (maybe_consume('-')) {
         return binaryExpr(numberExpr(0), assert_integer(parseCast()), '-', type(enum3('i', 'n', 't')));
     } else if (maybe_consume('!')) {

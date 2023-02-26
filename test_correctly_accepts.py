@@ -5,6 +5,7 @@ from test import bcolors, check, check_and_link_with
 print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
+assert check("int main() { char a; return sizeof +a; }" , 4)
 assert check("int main() { char a; return sizeof((a+a)); }", 4)
 assert check("int main() { char a; return sizeof(a+a); }" , 4)
 
