@@ -89,7 +89,7 @@ assert should_not_compile(
 
 ############################################################
 print(f"{bcolors.OKBLUE}assigning to an array:{bcolors.ENDC}")
-assert should_not_compile('int main(){int a[1]; int *b; a = b;}')
+assert should_not_compile('int main(){int a[1]; int *b; a = b;}', "invalid operands to binary `=`: types are `array (length: 1) of int` and `pointer to int`.")
 
 ############################################################
 print(f"{bcolors.OKBLUE}undefined identifier:{bcolors.ENDC}")
@@ -164,6 +164,14 @@ assert should_not_compile(
     "struct A {int a;}; int main() { struct A a; return a.b; }",
     "cannot find a struct type `struct A` which has a member named `b`"
 )
+
+############################################################
+print(f"{bcolors.OKCYAN}scalar required{bcolors.ENDC}")
+assert should_not_compile("struct A {int a;}; int main() { struct A a; a&&a; return 0; }", "a scalar value is expected, but the type is instead `struct A`.")
+assert should_not_compile('struct A{int a; int b;}; int main(){struct A a; if(a){return 12;} return 3;}', "a scalar value is expected, but the type is instead `struct A`.")
+assert should_not_compile('struct A{int a; int b;}; int main(){struct A a; for(;a;){return 12;} return 3;}', "a scalar value is expected, but the type is instead `struct A`.")
+assert should_not_compile('struct A{int a; int b;}; int main(){struct A a; while(a){return 12;} return 3;}', "a scalar value is expected, but the type is instead `struct A`.")
+assert should_not_compile('struct A{int a; int b;}; int main(){struct A a; struct A b; b || a; return 3;}', "a scalar value is expected, but the type is instead `struct A`.")
 
 ############################################################
 print(f"{bcolors.WARNING}!!!possible memory violation while detecting the error!!!{bcolors.ENDC}")
