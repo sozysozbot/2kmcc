@@ -110,8 +110,8 @@ def check_and_link_with(input: str, linked_lib: str, expected: int, expected_std
 
 def should_not_compile(input: str, expected_errmsg: str = None):
     compiler_returns = compile_with_2kmcc(input)
-    actual_errmsg = open("tmp_compile_errmsg.txt", "r").read()
     if compiler_returns != 0:
+        actual_errmsg = open("tmp_compile_errmsg.txt", "r").read()
         print(
             f"{bcolors.OKGREEN}passed: should give compile error\n  {input=}{bcolors.ENDC}")
         if expected_errmsg != None:

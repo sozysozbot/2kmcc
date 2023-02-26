@@ -6,6 +6,8 @@ print(f"{bcolors.OKCYAN}duplicate definition{bcolors.ENDC}")
 should_not_compile("int foo() { return 0; } int foo() { return 1; } int main() { return 0; }")
 should_not_compile("int main() {int i; int i; return 0;}")
 should_not_compile("struct A {int a;}; struct A {int b;}; int main() { return 0; }")
+should_not_compile('int a(); char *a(); int main(void){return 174;}')
+should_not_compile('int a(void); int a(int b); int main(void){return 174;}')
 
 print(f"{bcolors.OKCYAN}nonexistent member{bcolors.ENDC}")
 should_not_compile("struct A {int a;}; int main() { struct A a; a.b; return 0; }")
@@ -13,3 +15,19 @@ should_not_compile("struct A {int a;}; int main() { struct A a; return a.b; }")
 
 print(f"{bcolors.OKCYAN}scalar required{bcolors.ENDC}")
 should_not_compile("struct A {int a;}; int main() { struct A a; a&&a; return 0; }")
+should_not_compile('struct A{int a; int b;}; int main(){struct A a; if(a){return 12;} return 3;}')
+should_not_compile('struct A{int a; int b;}; int main(){struct A a; for(;a;){return 12;} return 3;}')
+should_not_compile('struct A{int a; int b;}; int main(){struct A a; while(a){return 12;} return 3;}')
+should_not_compile('struct A{int a; int b;}; int main(){struct A a; struct A b; b || a; return 3;}')
+
+print(f"{bcolors.OKCYAN}wrong scope{bcolors.ENDC}")
+should_not_compile( 'int main(){int a; {int b;} return b;}')
+
+print(f"{bcolors.OKCYAN}wrong type of return value{bcolors.ENDC}")
+should_not_compile('int *foo(){return 1;}int main(){return 0;}')
+should_not_compile('int *foo(){int x; return x;}int main(){return 0;}')
+should_not_compile('int foo(){int *x; return x;}int main(){return 0;}')
+should_not_compile('int *foo(){int *x; return x;}int main(){return foo();}')
+
+print(f"{bcolors.OKCYAN}wrong type of an argument{bcolors.ENDC}")
+should_not_compile('int f(int a); int f(int a){return a;} int main(){int a; f(&a); return 3;}')

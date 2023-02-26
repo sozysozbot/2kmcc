@@ -216,3 +216,6 @@ check('int main() { return (int)3; }', 3)
 print(f"{bcolors.OKCYAN}typedef{bcolors.ENDC}")
 check('typedef int A; int main() { return sizeof(A); }', 4)
 check('typedef struct A { int a; } A; int main() { A a; return 0; }', 0)
+
+print(f"{bcolors.OKCYAN}struct declaration{bcolors.ENDC}")
+check('struct A; int main(){ return 0; }', 0)

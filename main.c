@@ -1152,7 +1152,7 @@ void EvaluateLValueAddressIntoRax(struct Expr *expr) {
     } else if (expr->expr_kind == enum4('1', 'A', 'R', 'Y') && expr->op_kind == '*') {
         EvaluateExprIntoRax(expr->first_child);
     } else
-        panic("not lvalue");
+        panic("not an lvalue\n");
 }
 
 void CodegenStmt(struct Stmt *stmt) {
