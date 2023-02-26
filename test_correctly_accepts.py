@@ -5,6 +5,10 @@ from test import bcolors, check, check_and_link_with
 print(f"{bcolors.OKBLUE}Checking the inputs that should work:{bcolors.ENDC}")
 
 ######################################
+assert check("int main() { char a; return sizeof +a; }" , 4)
+assert check("int main() { char a; return sizeof((a+a)); }", 4)
+assert check("int main() { char a; return sizeof(a+a); }" , 4)
+
 assert check('int main(void){int a[5]; a[1] = 174; int *p = a + 3; p -= 2; return *p;}' , 174)
 assert check('int main(void){char a[5]; a[1] = 74; char *p = a + 3; p -= 2; return *p;}' , 74)
 assert check('int main(void){int a[5]; a[3] = 174; int *p = a + 2; p++; return *p;}' , 174)
