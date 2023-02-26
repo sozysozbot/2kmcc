@@ -193,9 +193,8 @@ struct Token *tokenize(char *str) {
                         parsed_length++;
                         if (strchr("01234567", str[i + parsed_length + 1])) {
                             parsed_length++;
-                            if (strchr("01234567", str[i + parsed_length + 1])) {
+                            if (strchr("01234567", str[i + parsed_length + 1]))
                                 parsed_length++;
-                            }
                         }
                     } else
                         parsed_length++;
@@ -420,7 +419,6 @@ void panic_if_eof() {
 }
 
 struct Expr *parseExpr(void);
-
 struct NameAndType *lvars_start;
 struct NameAndType *lvars_cursor;
 struct NameAndType *funcdecls_start[100];
@@ -487,15 +485,14 @@ struct Expr *parsePrimary() {
             if (maybe_consume(')'))
                 return callingExpr(name, arguments, 0);
             int i = 0;
-            while (1) {
+            while (i < 6) {
                 arguments[i] = decay_if_arr(parseExpr());
                 if (maybe_consume(')'))
                     return callingExpr(name, arguments, i + 1);
                 consume_otherwise_panic(',');
                 i++;
-                if (i >= 6)
-                    panic("not supported: more than 6 arguments\n");
             }
+            panic("not supported: more than 6 arguments\n");
         }
         return identExpr(name);
     }
@@ -524,7 +521,7 @@ struct Expr *assert_integer(struct Expr *e) {
 }
 
 struct Expr *assert_scalar(struct Expr *e) {
-    if (e && !is_integer(e->typ) && e->typ->kind != '*') // so that it can be used to handle `for(;;)`
+    if (e && !is_integer(e->typ) && e->typ->kind != '*')  // so that it can be used to handle `for(;;)`
         panic_single_type("a scalar value is expected, but the type is instead", e->typ);
     return e;
 }
@@ -572,27 +569,22 @@ struct Expr *expr_add(struct Expr *lhs, struct Expr *rhs) {
 }
 
 struct Expr *expr_subtract(struct Expr *lhs, struct Expr *rhs) {
-    if (is_integer(lhs->typ)) {
-        if (is_integer(rhs->typ))
-            return binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't')));
-    } else if (lhs->typ->kind == '*') {
+    if (lhs->typ->kind == '*') {
         if (is_integer(rhs->typ)) {
             return binaryExpr(lhs, binaryExpr(numberExpr(size(deref(lhs->typ))), rhs, '*', type(enum3('i', 'n', 't'))), '-', lhs->typ);
-        } else if (rhs->typ->kind == '*')
-            if (is_same_type(lhs->typ, rhs->typ))
-                return binaryExpr(binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't'))), numberExpr(size(deref(lhs->typ))), '/', type(enum3('i', 'n', 't')));
-    }
+        } else if (rhs->typ->kind == '*' && is_same_type(lhs->typ, rhs->typ))
+            return binaryExpr(binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't'))), numberExpr(size(deref(lhs->typ))), '/', type(enum3('i', 'n', 't')));
+    } else if (is_integer(lhs->typ))
+        if (is_integer(rhs->typ))
+            return binaryExpr(lhs, rhs, '-', type(enum3('i', 'n', 't')));
     panic_invalid_binary_operand_types(lhs->typ, rhs, '-');
     exit(1);
 }
 
-struct Type *get_member_type(struct Type *struct_type, char *member_name, int *ptr_offset) {
+struct StructMember *get_member(struct Type *struct_type, char *member_name) {
     for (int i = 0; struct_members_start[i]; i++)
-        if (strcmp(struct_members_start[i]->struct_name, struct_type->struct_name) == 0)
-            if (strcmp(struct_members_start[i]->member_name, member_name) == 0) {
-                *ptr_offset = struct_members_start[i]->member_offset;
-                return struct_members_start[i]->member_type;
-            }
+        if (strcmp(struct_members_start[i]->struct_name, struct_type->struct_name) == 0 && strcmp(struct_members_start[i]->member_name, member_name) == 0)
+            return struct_members_start[i];
     printf("!!!!!!!!!!!!!!!!!!!!!!!!! compile error !!!!!!!!!!!!!!!!!!!!!!!!!\n");
     printf("! cannot find a struct type `");
     display_type(struct_type);
@@ -604,9 +596,8 @@ struct Expr *arrowExpr(struct Expr *lhs, char *member_name) {
     struct Type *struct_type = deref(lhs->typ);
     if (struct_type->kind != enum4('S', 'T', 'R', 'U'))
         panic("tried to access a member of a non-struct type\n");
-    int offset;
-    struct Type *member_type = get_member_type(struct_type, member_name, &offset);
-    struct Expr *expr = binaryExpr(lhs, numberExpr(offset), '+', ptr_of(member_type));
+    struct StructMember *member = get_member(struct_type, member_name);
+    struct Expr *expr = binaryExpr(lhs, numberExpr(member->member_offset), '+', ptr_of(member->member_type));
     return unaryExpr(expr, '*', deref(expr->typ));
 }
 
@@ -668,14 +659,10 @@ struct Expr *parseUnary() {
                 struct Type *typ = consume_simple_type();
                 consume_otherwise_panic(')');
                 return numberExpr(size(typ));
-            } else {
-                struct Expr *expr = parseUnary();  // NO DECAY
-                return numberExpr(size(expr->typ));
-            }
-        } else {
-            struct Expr *expr = parseUnary();  // NO DECAY
-            return numberExpr(size(expr->typ));
-        }
+            } else
+                return numberExpr(size(parseUnary()->typ)); // NO DECAY
+        } else
+            return numberExpr(size(parseUnary()->typ)); // NO DECAY
     }
     return parsePostfix();
 }
