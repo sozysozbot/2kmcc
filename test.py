@@ -76,6 +76,8 @@ def check_and_link_with(input: str, linked_lib: str, expected: int, expected_std
     compiler_returns = compile_with_2kmcc(input)
     if compiler_returns != 0:
         print(f"{bcolors.FAIL}FAIL:check (compile error):{input=}{bcolors.ENDC}")
+        msg = open("tmp_compile_errmsg.txt", "r").read()
+        print(f"  The error message is:\n{bcolors.FAIL}{msg}{bcolors.ENDC}")
         return False
     lib_file = open("libtest.c", "w")
     lib_file.write(linked_lib)

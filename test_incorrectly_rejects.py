@@ -1,4 +1,4 @@
-from test import bcolors, check
+from test import bcolors, check, check_and_link_with
 
 print(f"{bcolors.WARNING}Checking the inputs that SHOULD work, but is currently REJECTED:{bcolors.ENDC}")
 
@@ -6,8 +6,8 @@ print(f"{bcolors.OKCYAN}escape sequence{bcolors.ENDC}")
 check(r"int main() { return '\a';}", 7)
 
 print(f"{bcolors.OKCYAN}bitwise operations{bcolors.ENDC}")
-check("int foo() { return 5 | 6; }", 7)
-check("int foo() { return 5 & 6; }", 4)
+check("int main() { return 5 | 6; }", 7)
+check("int main() { return 5 & 6; }", 4)
 check('int main(){return 175^1;}' , 174)
 check('int main(){3; {5; 7; 11; } return 175^1;}' , 174)
 
@@ -219,3 +219,7 @@ check('typedef struct A { int a; } A; int main() { A a; return 0; }', 0)
 
 print(f"{bcolors.OKCYAN}struct declaration{bcolors.ENDC}")
 check('struct A; int main(){ return 0; }', 0)
+
+print(f"{bcolors.OKCYAN}more than 6 args / params{bcolors.ENDC}")
+check("int foo(int a1, int a2, int a3, int a4, int a5, int a6, int a7) { return 0; } int main() { return 7; }", 7)
+check_and_link_with("int foo(); int main() { return foo(1,2,3,4,5,6,7); }", "int foo(int a1, int a2, int a3, int a4, int a5, int a6, int a7) { return 0; }", 7)

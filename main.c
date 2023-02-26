@@ -484,13 +484,11 @@ struct Expr *parsePrimary() {
             struct Expr **arguments = calloc(6, sizeof(struct Expr *));
             if (maybe_consume(')'))
                 return callingExpr(name, arguments, 0);
-            int i = 0;
-            while (i < 6) {
+            for (int i = 0; i < 6; i++) {
                 arguments[i] = decay_if_arr(parseExpr());
                 if (maybe_consume(')'))
                     return callingExpr(name, arguments, i + 1);
                 consume_otherwise_panic(',');
-                i++;
             }
             panic("not supported: more than 6 arguments\n");
         }
@@ -660,9 +658,9 @@ struct Expr *parseUnary() {
                 consume_otherwise_panic(')');
                 return numberExpr(size(typ));
             } else
-                return numberExpr(size(parseUnary()->typ)); // NO DECAY
+                return numberExpr(size(parseUnary()->typ));  // NO DECAY
         } else
-            return numberExpr(size(parseUnary()->typ)); // NO DECAY
+            return numberExpr(size(parseUnary()->typ));  // NO DECAY
     }
     return parsePostfix();
 }
@@ -1033,8 +1031,7 @@ void parseToplevel() {
             return;
         }
         lvars_cursor = lvars_start = calloc(100, sizeof(char *));
-        int i = 0;
-        while (1) {
+        for (int i = 0; i < 6; i++) {
             struct NameAndType *param = consume_type_and_ident();
             if (maybe_consume(')')) {
                 params_start[i].name = param->name;
@@ -1053,10 +1050,8 @@ void parseToplevel() {
             params_start[i].type = param->type;
             lvars_cursor->name = param->name;
             (lvars_cursor++)->type = param->type;
-            i++;
-            if (i >= 6)
-                panic("not supported: more than 6 parameters\n");
         }
+        panic("not supported: more than 6 parameters\n");
     } else {
         struct NameAndType *global_var_type_and_name = consume_type_and_ident_2nd_half(first_half);
         *(global_vars_cursor++) = global_var_type_and_name;
